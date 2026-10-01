@@ -14,7 +14,7 @@ The `/docs` directory contains project documentation, specification files, and r
 * **`Specifications.pdf`**: Contains the detailed system requirements and specifications, including:
 
   * **User Stories & User Story Mapping**: Comprehensive coverage of user journeys, functional workflows, and feature prioritization for core system modules.
-  * **Functional Requirements**: Detailed User Stories and Acceptance Criteria covering social features (following users, viewing public playlists, adding tracks), community engagement (commenting system with edit/delete actions and timestamps), and account management.
+  * **Functional Requirements**: Detailed User Stories and Acceptance Criteria covering audio management and encryption, access management, statistics and analysis, social features, community engagement, copyright protection, account management, etc.
   * **Non-Functional Requirements**: Technical standards for Security & Zero-Knowledge Confidentiality, Performance (sub-second write / sub-2-second read latency targets), Availability (99.9% uptime SLA), Docker containerization, and backend scalability with storage quota enforcement (Free vs. Premium).
   * **System Integrity & Architecture**: Copyright verification via ACRCloud API integration, local browser decryption standards, cross-device authentication/key derivation, and responsible AI usage guidelines.
 
