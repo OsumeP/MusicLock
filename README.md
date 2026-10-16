@@ -5,6 +5,7 @@
 │   ├── Specifications.pdf  # System specifications, user stories, and policies
 │   └── Workshop2Part1.pdf  # Design artifacts, system domain, CRC cards, models, and mockups
 └── README.md
+```
 
 ## Documentation (`/docs`)
 
