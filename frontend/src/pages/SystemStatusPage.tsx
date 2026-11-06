@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 
 import { fetchHealth, type HealthResponse } from '../api/health'
 
-type CheckState = 'loading' | 'ok' | 'error' | 'pending'
+type CheckState = 'loading' | 'ok' | 'error'
 
 type HealthState =
   | { kind: 'loading' }
@@ -13,7 +13,6 @@ const STATE_STYLES: Record<CheckState, { label: string; dot: string; text: strin
   loading: { label: 'Comprobando…', dot: 'bg-on-surface-variant animate-pulse', text: 'text-on-surface-variant' },
   ok: { label: 'Operativo', dot: 'bg-accent-cyan', text: 'text-accent-cyan' },
   error: { label: 'Sin conexión', dot: 'bg-security-danger', text: 'text-security-danger' },
-  pending: { label: 'Día 2', dot: 'bg-border-blue', text: 'text-on-surface-variant' },
 }
 
 function StatusRow({ icon, name, detail, state }: { icon: string; name: string; detail: string; state: CheckState }) {
@@ -36,8 +35,9 @@ function StatusRow({ icon, name, detail, state }: { icon: string; name: string; 
 }
 
 /**
- * Página temporal del día 1: comprueba que frontend → proxy de Vite → Django →
- * PostgreSQL están conectados. Se reemplaza por la landing page en el día 9.
+ * Página temporal de los días 1–2: comprueba que frontend → proxy de Vite →
+ * Django → PostgreSQL y MinIO están conectados. Se reemplaza por la landing
+ * page en el día 9.
  */
 export function SystemStatusPage() {
   const [health, setHealth] = useState<HealthState>({ kind: 'loading' })
@@ -57,10 +57,11 @@ export function SystemStatusPage() {
 
   const apiState: CheckState =
     health.kind === 'loading' ? 'loading' : health.kind === 'loaded' ? 'ok' : 'error'
-  const dbState: CheckState =
+
+  const checkState = (check: 'database' | 'storage'): CheckState =>
     health.kind === 'loading'
       ? 'loading'
-      : health.kind === 'loaded' && health.data.database === 'ok'
+      : health.kind === 'loaded' && health.data[check] === 'ok'
         ? 'ok'
         : 'error'
 
@@ -82,14 +83,19 @@ export function SystemStatusPage() {
         <div className="border-b border-border-subtle px-5 py-4">
           <h2 className="font-display text-headline-sm font-medium">Estado del sistema</h2>
           <p className="text-body-md text-on-surface-variant">
-            Verificación de la infraestructura del MVP (día 1).
+            Verificación de la infraestructura del MVP (días 1–2).
           </p>
         </div>
         <ul className="divide-y divide-border-subtle">
           <StatusRow icon="web" name="Frontend" detail="React + TypeScript · Vite" state="ok" />
           <StatusRow icon="dns" name="API" detail="Django + DRF · GET /api/health" state={apiState} />
-          <StatusRow icon="database" name="Base de datos" detail="PostgreSQL" state={dbState} />
-          <StatusRow icon="cloud" name="Almacenamiento cifrado" detail="MinIO · puerto BlobStorage" state="pending" />
+          <StatusRow icon="database" name="Base de datos" detail="PostgreSQL" state={checkState('database')} />
+          <StatusRow
+            icon="cloud"
+            name="Almacenamiento cifrado"
+            detail="MinIO · puerto BlobStorage"
+            state={checkState('storage')}
+          />
         </ul>
       </section>
     </main>

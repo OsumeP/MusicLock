@@ -14,7 +14,7 @@ describe('SystemStatusPage', () => {
     vi.stubGlobal(
       'fetch',
       vi.fn().mockResolvedValue(
-        new Response(JSON.stringify({ status: 'ok', service: 'musiclock-api', database: 'ok' }), { status: 200 }),
+        new Response(JSON.stringify({ status: 'ok', service: 'musiclock-api', database: 'ok', storage: 'ok' }), { status: 200 }),
       ),
     )
 
@@ -22,7 +22,25 @@ describe('SystemStatusPage', () => {
 
     expect(await within(rowFor('API')).findByText('Operativo')).toBeInTheDocument()
     expect(within(rowFor('Base de datos')).getByText('Operativo')).toBeInTheDocument()
+    expect(within(rowFor('Almacenamiento cifrado')).getByText('Operativo')).toBeInTheDocument()
     expect(fetch).toHaveBeenCalledWith('/api/health', expect.anything())
+  })
+
+  it('marca el almacenamiento con error cuando la API responde 503 (degradada)', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(
+        new Response(
+          JSON.stringify({ status: 'degraded', service: 'musiclock-api', database: 'ok', storage: 'error' }),
+          { status: 503 },
+        ),
+      ),
+    )
+
+    render(<SystemStatusPage />)
+
+    expect(await within(rowFor('Almacenamiento cifrado')).findByText('Sin conexión')).toBeInTheDocument()
+    expect(within(rowFor('Base de datos')).getByText('Operativo')).toBeInTheDocument()
   })
 
   it('muestra error cuando la API no responde', async () => {

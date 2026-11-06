@@ -56,7 +56,7 @@ Resumen de las decisiones que resuelven los problemas detectados en la documenta
 | D6 | Los mockups muestran WAV/FLAC/AIFF/stems, pero BR-11 dice solo MP3. | Solo MP3 (validación en cliente y servidor). Al portar los mockups a React se ajustan los textos ("Stems", "FLAC 24-bit", etc.). |
 | D7 | El CI esperaba `manage.py` y `requirements.txt` en la raíz. | **Ya aplicado:** `.github/workflows/testsTask.yml` ahora tiene un job `backend` (`working-directory: backend`, servicio PostgreSQL) y un job `frontend` (`npm ci`, tests, build). |
 | D8 | Olvidar la contraseña = archivos irrecuperables. | MVP sin recuperación; **advertencia explícita y casilla de confirmación** en el registro. Seed phrase en el backlog. |
-| D9 | Almacenamiento de blobs. | **MinIO** detrás de un puerto `BlobStorage`; un adaptador local alternativo para desarrollo y tests. Ver §3.2. ⚠️ Las imágenes oficiales de MinIO ya no se publican: ver `desarrollo/dia-01.md`. |
+| D9 | Almacenamiento de blobs. | **MinIO** detrás de un puerto `BlobStorage`; un adaptador local alternativo para desarrollo y tests. Ver §3.2. Imagen: fork comunitario `pgsty/minio`, porque las oficiales ya no se publican (ver `desarrollo/dia-01.md`). |
 | D10 | ¿Cifrar metadatos? | **Título y artista NO se cifran** (decisión del equipo). Sí se cifra el contenido de audio. El nombre del objeto en MinIO es un UUID, no el título. |
 
 ---
@@ -190,11 +190,11 @@ File Key              ── cifra    (AES-GCM) ──►  MP3
 
 ## 5. Modelo de datos (D5)
 
-**`plan`** — `plan_id`, `name`, `monthly_price`, **`max_storage_bytes`**, **`max_file_size_bytes`**. Datos semilla (migración): Free = 500 MB / 20 MB, Premium = 5 GB / 100 MB.
+**`plan`** — `plan_id`, **`code`** (`free`/`premium`), `name`, `monthly_price`, **`max_storage_bytes`**, **`max_file_size_bytes`**. Datos semilla (migración): Free = 500 MB / 20 MB, Premium = 5 GB / 100 MB.
 
 **`user`** (extiende `AbstractUser`) — `username`, `email` (único), `password` (hash de `authKey`), `active_plan` (FK, por defecto Free), `used_storage` (`BigInteger`), **`kdf_salt`**, **`kdf_params`** (JSON), **`wrapped_master_key`**, **`master_key_iv`**, `is_active` (para bloquear usuarios, BR-06), `public_key` (nullable, para compartir en el futuro).
 
-**`song`** — `song_id`, **`uuid`** (nombre del objeto en MinIO), `owner` (FK), `title`, **`artist`**, `duration`, `size` (`BigInteger`, bytes del cifrado), **`storage_key`**, **`file_iv`**, **`wrapped_file_key`**, **`wrapped_key_iv`**, `creation_date`. Se crean pero no se usan aún: `album` (FK nullable), `is_public` (default `False`, BR-19), `copyright`.
+**`song`** — `song_id`, **`uuid`** (nombre del objeto en MinIO), `owner` (FK), `title`, **`artist`**, `duration`, `size` (`BigInteger`, bytes del cifrado), **`storage_key`**, **`file_iv`**, **`wrapped_file_key`**, **`wrapped_key_iv`**, `creation_date`. Se crean pero no se usan aún: `is_public` (default `False`, BR-19), `copyright`. La FK `album` se añadirá junto con el modelo `Album` (backlog; ver decisión I14 en `desarrollo/README.md`).
 
 > `artist` se añade como texto libre en `song`: la tabla de álbumes/artistas es del backlog, pero el mockup "Mis Archivos" ya muestra la columna Artista.
 

@@ -52,7 +52,11 @@ INSTALLED_APPS = [
     "corsheaders",
     # MusicLock
     "core",
+    "accounts",
+    "vault",
 ]
+
+AUTH_USER_MODEL = "accounts.User"
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
