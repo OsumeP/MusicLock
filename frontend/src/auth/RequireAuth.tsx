@@ -16,7 +16,7 @@ export function RequireAuth({ children }: { children: ReactNode }) {
     return <Navigate to="/login" replace state={{ from: location.pathname }} />
   }
   if (session.status === 'locked') {
-    // Día 4: se vuelve a iniciar sesión. Día 5: pantalla "Desbloquear bóveda".
+    // La Master Key no está en IndexedDB: /login en modo "Desbloquear bóveda".
     return <Navigate to="/login" replace state={{ from: location.pathname, locked: true, email: session.user.email }} />
   }
   return children

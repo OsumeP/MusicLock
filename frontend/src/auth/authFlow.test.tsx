@@ -3,12 +3,16 @@
  * crypto real + un servidor falso en memoria que se comporta como la API de
  * Django (guarda solo lo que guardaría el backend).
  */
+import 'fake-indexeddb/auto'
+
 import { cleanup, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { IDBFactory } from 'fake-indexeddb'
 import { MemoryRouter, Route, Routes } from 'react-router'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { tokenStore } from '../api/tokens'
+import { clearMasterKey, loadMasterKey } from './keyStore'
 import { LoginPage } from '../pages/LoginPage'
 import { RegisterPage } from '../pages/RegisterPage'
 import { VaultHomePage } from '../pages/VaultHomePage'
@@ -129,6 +133,7 @@ describe('flujo de autenticación', () => {
 
   beforeEach(() => {
     tokenStore.clear()
+    globalThis.indexedDB = new IDBFactory() // IndexedDB vacío en cada test
     server = createFakeServer()
     vi.stubGlobal('fetch', server.fetch)
   })
@@ -156,17 +161,30 @@ describe('flujo de autenticación', () => {
     expect(server.requests.some((r) => r.url === '/api/auth/register')).toBe(false)
   })
 
-  it('tras recargar la página la bóveda queda bloqueada y se abre de nuevo con la contraseña', async () => {
-    const user = userEvent.setup()
-    await registerAna(user)
-
-    // "Recarga": se desmonta la app y se pierde la memoria (access token y
-    // Master Key); el refresh token sigue en localStorage.
+  /** "Recarga": se desmonta la app y se pierde la memoria; quedan localStorage e IndexedDB. */
+  function reload() {
     cleanup()
     tokenStore.set({ access: '' })
     renderApp('/')
+  }
 
-    expect(await screen.findByText(/Tu bóveda se bloqueó/)).toBeInTheDocument()
+  it('tras recargar la página la bóveda sigue abierta (Master Key en IndexedDB)', async () => {
+    await registerAna()
+
+    reload()
+
+    expect(await screen.findByText('Hola, ana')).toBeInTheDocument()
+    expect(server.requests.filter((r) => r.url === '/api/auth/login')).toHaveLength(0)
+  })
+
+  it('si IndexedDB no tiene la clave, la bóveda queda bloqueada y se abre con la contraseña', async () => {
+    const user = userEvent.setup()
+    await registerAna(user)
+    await clearMasterKey() // p. ej. el usuario borró los datos del sitio
+
+    reload()
+
+    expect(await screen.findByText(/Tu bóveda está bloqueada/)).toBeInTheDocument()
     expect(screen.getByLabelText('Correo electrónico')).toHaveValue('ana@example.com')
     await user.type(screen.getByLabelText('Contraseña'), PASSWORD)
     await user.click(screen.getByRole('button', { name: /desbloquear bóveda/i }))
@@ -195,6 +213,7 @@ describe('flujo de autenticación', () => {
 
     await waitFor(() => expect(server.requests.at(-1)).toEqual({ url: '/api/auth/logout', body: { refresh } }))
     expect(tokenStore.getRefresh()).toBeNull()
+    expect(await loadMasterKey(1)).toBeNull() // la Master Key se borró de IndexedDB
     expect(await screen.findByRole('heading', { name: 'Iniciar sesión' })).toBeInTheDocument()
   })
 

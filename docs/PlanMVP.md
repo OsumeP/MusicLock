@@ -251,7 +251,7 @@ Tablas `favorite`, `listening_history`, `playlist` y `playlist_song` se crean so
 
 1. `docker compose up` en una máquina limpia levanta todo.
 2. Registrar a **Ana**; mostrar en PostgreSQL que no hay contraseña ni clave maestra en claro.
-3. Ana sube `cancion.mp3` → en la consola de MinIO el objeto se llama `…/{uuid}.bin` y al descargarlo directamente **no** es un MP3 válido (sin cabecera ID3/MPEG; `file` → `data`).
+3. Ana sube `cancion.mp3` → en la consola de MinIO el objeto se llama `…/{uuid}.bin` y al descargarlo directamente **no** es un MP3 válido (sin cabecera ID3/MPEG; `ffprobe blob.bin` → "Invalid data"). Ojo: `file` puede dar falsos positivos con bytes aleatorios (p. ej. "OpenPGP Public Key"); usar `ffprobe` o `xxd`.
 4. Ana reproduce la canción en el reproductor web sin cortes; descarga el original y su SHA-256 coincide con el del archivo inicial.
 5. Ana recarga la página y sigue reproduciendo; inicia sesión desde **otro navegador** y reproduce la misma canción (portabilidad de claves).
 6. Registrar a **Beto**; `GET /api/songs/{id_de_Ana}/blob` con el token de Beto → **404**.

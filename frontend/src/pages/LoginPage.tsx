@@ -58,7 +58,7 @@ export function LoginPage() {
       }
     >
       {locked && (
-        <Alert tone="info">Tu bóveda se bloqueó al recargar la página. Ingresa tu contraseña para descifrarla de nuevo.</Alert>
+        <Alert tone="info">Tu bóveda está bloqueada en este navegador. Ingresa tu contraseña para descifrarla de nuevo.</Alert>
       )}
       {error && <Alert tone="error">{error}</Alert>}
 

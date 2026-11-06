@@ -101,6 +101,51 @@ function buildRequest(options: RequestOptions): RequestInit {
   }
 }
 
+function sessionEnded(): void {
+  tokenStore.clear()
+  sessionExpiredListeners.forEach((listener) => listener())
+}
+
+/**
+ * Subida multipart con progreso. `fetch` no informa el avance de la subida,
+ * por eso se usa XMLHttpRequest. Misma política de 401 → refresh → reintento.
+ */
+export async function apiUpload<T>(
+  path: string,
+  form: FormData,
+  { onProgress, signal }: { onProgress?: (fraction: number) => void; signal?: AbortSignal } = {},
+): Promise<T> {
+  const send = () =>
+    new Promise<{ status: number; body: string }>((resolve, reject) => {
+      const xhr = new XMLHttpRequest()
+      xhr.open('POST', `/api${path}`)
+      xhr.setRequestHeader('Accept', 'application/json')
+      const access = tokenStore.getAccess()
+      if (access) xhr.setRequestHeader('Authorization', `Bearer ${access}`)
+      xhr.upload.onprogress = (event) => {
+        if (event.lengthComputable) onProgress?.(event.loaded / event.total)
+      }
+      xhr.onload = () => resolve({ status: xhr.status, body: xhr.responseText })
+      xhr.onerror = () => reject(new TypeError('Error de red durante la subida'))
+      xhr.onabort = () => reject(new DOMException('Subida cancelada', 'AbortError'))
+      signal?.addEventListener('abort', () => xhr.abort(), { once: true })
+      xhr.send(form)
+    })
+
+  let result = await send()
+  if (result.status === 401) {
+    if (await refreshAccessToken()) {
+      result = await send()
+    } else {
+      sessionEnded()
+    }
+  }
+
+  const response = new Response(result.body || null, { status: result.status })
+  if (!response.ok) throw await toApiError(response)
+  return (await response.json()) as T
+}
+
 export async function apiRequest<T>(path: string, options: RequestOptions = {}): Promise<T> {
   const url = `/api${path}`
   let response = await fetch(url, buildRequest(options))
@@ -109,8 +154,7 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
     if (await refreshAccessToken()) {
       response = await fetch(url, buildRequest(options))
     } else {
-      tokenStore.clear()
-      sessionExpiredListeners.forEach((listener) => listener())
+      sessionEnded()
     }
   }
 

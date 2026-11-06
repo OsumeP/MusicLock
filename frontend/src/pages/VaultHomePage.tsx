@@ -1,24 +1,18 @@
+import { useState } from 'react'
 import { Link } from 'react-router'
 
+import type { Song } from '../api/songs'
 import { useAuth } from '../auth/session'
-
-function formatBytes(bytes: number): string {
-  const units = ['B', 'KB', 'MB', 'GB']
-  let value = bytes
-  let unit = 0
-  while (value >= 1024 && unit < units.length - 1) {
-    value /= 1024
-    unit++
-  }
-  return `${value.toFixed(unit === 0 ? 0 : 1)} ${units[unit]}`
-}
+import { formatBytes, formatDuration } from '../lib/format'
+import { UploadPanel } from '../vault/UploadPanel'
 
 /**
- * Página temporal del día 4: confirma que la sesión y la Master Key están
- * activas. El día 6 se reemplaza por el layout completo y "Mis Archivos".
+ * Página temporal (días 4–5): sesión, cuota y subida cifrada. El día 6 se
+ * reemplaza por el layout completo y "Mis Archivos".
  */
 export function VaultHomePage() {
   const { session, logout } = useAuth()
+  const [uploaded, setUploaded] = useState<Song[]>([])
   if (session.status !== 'ready') return null
   const { user } = session
   const usedPercent = Math.min(100, (user.usedStorage / user.plan.maxStorageBytes) * 100)
@@ -60,9 +54,31 @@ export function VaultHomePage() {
           </div>
         </div>
         <p className="text-body-md text-on-surface-variant">
-          Aquí aparecerán tus archivos cifrados (día 6). Máximo {formatBytes(user.plan.maxFileSizeBytes)} por archivo.
+          Máximo {formatBytes(user.plan.maxFileSizeBytes)} por archivo. La lista completa de tus archivos llega con "Mis Archivos" (día 6).
         </p>
       </section>
+
+      <UploadPanel onUploaded={(song) => setUploaded((songs) => [song, ...songs])} />
+
+      {uploaded.length > 0 && (
+        <section className="flex flex-col gap-2 rounded-lg bg-surface-card p-5 ring-1 ring-border-subtle">
+          <h2 className="font-display text-headline-sm font-medium">Subidos en esta sesión</h2>
+          <ul className="divide-y divide-border-subtle">
+            {uploaded.map((song) => (
+              <li key={song.id} className="flex items-center justify-between gap-4 py-3">
+                <div className="min-w-0">
+                  <p className="truncate text-title-sm font-semibold">{song.title}</p>
+                  <p className="truncate text-body-sm text-on-surface-variant">{song.artist || 'Artista desconocido'} · {formatDuration(song.duration)}</p>
+                </div>
+                <div className="text-right">
+                  <span className="rounded bg-primary-container px-2 py-0.5 font-mono text-mono-label text-primary-light">AES-GCM 256</span>
+                  <p className="mt-1 font-mono text-mono-label text-on-surface-variant">{formatBytes(song.size)} cifrados</p>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       <Link to="/estado" className="text-center text-body-sm text-on-surface-variant hover:text-on-surface">
         Estado del sistema
