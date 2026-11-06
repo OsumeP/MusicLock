@@ -137,7 +137,8 @@ password ──PBKDF2-SHA256(salt, 600k)──► 256 bits ──HKDF-SHA256─�
 - `salt`: 16 bytes aleatorios por usuario, generados en el registro.
 - Django recibe `authKey` (en base64) en el campo "password" y lo hashea de nuevo con su hasher normal → nunca ve la contraseña real y aun así no guarda nada en texto plano (NFR Seg-01).
 - Antes del login el cliente necesita el `salt`: `POST /api/auth/prelogin {email}` → `{salt, kdf_params}`. Para no revelar qué correos existen, si el correo no existe se devuelve un salt **determinista falso** (HMAC del email con una clave del servidor).
-- `kdf_params` = `{"alg": "PBKDF2-SHA256", "iterations": 600000}`; permite cambiar el algoritmo más adelante.
+- `kdf_params` = `{"alg": "PBKDF2-SHA256", "iterations": 600000}`; permite cambiar el algoritmo más adelante. El cliente rechaza parámetros más débiles que estos.
+- La contraseña se normaliza con NFKC antes de derivar, y cada cifrado AES-GCM lleva una etiqueta de contexto autenticada (AAD). Implementación y detalles en `desarrollo/dia-03.md`.
 
 ### 4.2 Jerarquía de claves (D3)
 
