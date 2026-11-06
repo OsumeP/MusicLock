@@ -19,7 +19,7 @@ function StatusRow({ icon, name, detail, state }: { icon: string; name: string; 
   const style = STATE_STYLES[state]
   return (
     <li className="flex items-center gap-4 px-5 py-4">
-      <span className="material-symbols-outlined grid size-10 place-items-center rounded bg-primary-container text-primary-light">
+      <span aria-hidden className="material-symbols-outlined grid size-10 place-items-center rounded bg-primary-container text-primary-light">
         {icon}
       </span>
       <div className="min-w-0 flex-1">
@@ -68,7 +68,7 @@ export function SystemStatusPage() {
   return (
     <main className="mx-auto flex min-h-screen max-w-xl flex-col justify-center gap-8 px-4 py-12">
       <header className="flex items-center gap-3">
-        <span className="material-symbols-outlined grid size-11 place-items-center rounded-md bg-primary text-on-surface">
+        <span aria-hidden className="material-symbols-outlined grid size-11 place-items-center rounded-md bg-primary text-on-surface">
           lock
         </span>
         <div>

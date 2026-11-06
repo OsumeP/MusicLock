@@ -1,0 +1,23 @@
+import type { ReactNode } from 'react'
+import { Navigate, useLocation } from 'react-router'
+
+import { FullScreenMessage } from '../components/FullScreenMessage'
+import { useAuth } from './session'
+
+/** Protege las rutas de la bóveda: solo entran sesiones con la Master Key en memoria. */
+export function RequireAuth({ children }: { children: ReactNode }) {
+  const { session } = useAuth()
+  const location = useLocation()
+
+  if (session.status === 'loading') {
+    return <FullScreenMessage icon="lock_clock" message="Verificando sesión…" />
+  }
+  if (session.status === 'anonymous') {
+    return <Navigate to="/login" replace state={{ from: location.pathname }} />
+  }
+  if (session.status === 'locked') {
+    // Día 4: se vuelve a iniciar sesión. Día 5: pantalla "Desbloquear bóveda".
+    return <Navigate to="/login" replace state={{ from: location.pathname, locked: true, email: session.user.email }} />
+  }
+  return children
+}

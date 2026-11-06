@@ -8,6 +8,7 @@ están pensados para desarrollo local y tests; en Docker los provee
 """
 
 import os
+import sys
 from datetime import timedelta
 from pathlib import Path
 
@@ -32,7 +33,8 @@ SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY", "")
 if not SECRET_KEY:
     if not DEBUG:
         raise RuntimeError("DJANGO_SECRET_KEY es obligatorio cuando DJANGO_DEBUG=False")
-    SECRET_KEY = "insecure-dev-only-key"
+    # >= 32 bytes: JWT con HS256 avisa si la clave es más corta.
+    SECRET_KEY = "insecure-dev-only-key-do-not-use-in-production"
 
 ALLOWED_HOSTS = env_list("DJANGO_ALLOWED_HOSTS", "localhost,127.0.0.1,api")
 
@@ -113,6 +115,12 @@ AUTH_PASSWORD_VALIDATORS = [
 ]
 
 
+# En tests se usa un hasher rápido: el PBKDF2 de Django (1M iteraciones) haría la
+# suite muy lenta. Solo afecta a `manage.py test`.
+if len(sys.argv) > 1 and sys.argv[1] == "test":
+    PASSWORD_HASHERS = ["django.contrib.auth.hashers.MD5PasswordHasher"]
+
+
 # --- Internacionalización ------------------------------------------------------
 
 LANGUAGE_CODE = "es-co"
@@ -140,6 +148,10 @@ REST_FRAMEWORK = {
     ],
     "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.PageNumberPagination",
     "PAGE_SIZE": 20,
+    # Límite de peticiones para los endpoints sin sesión (prelogin, registro,
+    # login, refresh): frena ataques de fuerza bruta. Un login usa 2 peticiones.
+    "DEFAULT_THROTTLE_CLASSES": ["rest_framework.throttling.ScopedRateThrottle"],
+    "DEFAULT_THROTTLE_RATES": {"auth": os.environ.get("AUTH_THROTTLE_RATE", "30/min")},
 }
 
 SIMPLE_JWT = {

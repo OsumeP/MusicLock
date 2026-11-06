@@ -34,7 +34,7 @@ jobs:
           --health-retries 5
 
     env:
-      DJANGO_SECRET_KEY: ci-only-secret
+      DJANGO_SECRET_KEY: ci-only-secret-at-least-32-characters-long
       DJANGO_DEBUG: "False"
       DATABASE_URL: postgres://musiclock:musiclock@localhost:5432/musiclock
       STORAGE_BACKEND: local
