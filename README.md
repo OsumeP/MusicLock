@@ -1,5 +1,19 @@
 # MusicLock
 
+Almacenamiento y reproducción de música con **cifrado en el navegador (Zero-Knowledge)**.
+
+## Inicio rápido
+
+```bash
+cp .env.example .env
+docker compose up --build
+```
+
+Frontend en http://localhost:5173 · API en http://localhost:8000/api/health
+
+- Plan del MVP: [`docs/PlanMVP.md`](docs/PlanMVP.md)
+- Estado del desarrollo, estructura y decisiones: [`docs/desarrollo/README.md`](docs/desarrollo/README.md)
+
 .
 ├── docs/
 │   ├── Specifications.pdf  # System specifications, user stories, and policies

@@ -1,4 +1,4 @@
-name: Django CI
+name: CI
 
 on:
   push:
@@ -7,20 +7,46 @@ on:
     branches: [ "main", "develop" ]
 
 jobs:
-  build:
-
+  backend:
+    name: Backend (Django)
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
     strategy:
       max-parallel: 4
       matrix:
         python-version: ['3.10', '3.11', '3.12']
 
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: musiclock
+          POSTGRES_USER: musiclock
+          POSTGRES_PASSWORD: musiclock
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U musiclock"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      DJANGO_SECRET_KEY: ci-only-secret
+      DJANGO_DEBUG: "False"
+      DATABASE_URL: postgres://musiclock:musiclock@localhost:5432/musiclock
+      STORAGE_BACKEND: local
+
     steps:
     - uses: actions/checkout@v4
     - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v3
+      uses: actions/setup-python@v5
       with:
         python-version: ${{ matrix.python-version }}
+        cache: pip
+        cache-dependency-path: backend/requirements.txt
     - name: Install Dependencies
       run: |
         python -m pip install --upgrade pip
@@ -28,3 +54,25 @@ jobs:
     - name: Run Tests
       run: |
         python manage.py test
+
+  frontend:
+    name: Frontend (React + TS)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+
+    steps:
+    - uses: actions/checkout@v4
+    - name: Set up Node
+      uses: actions/setup-node@v4
+      with:
+        node-version: 20
+        cache: npm
+        cache-dependency-path: frontend/package-lock.json
+    - name: Install Dependencies
+      run: npm ci
+    - name: Run Tests
+      run: npm test -- --run
+    - name: Build
+      run: npm run build

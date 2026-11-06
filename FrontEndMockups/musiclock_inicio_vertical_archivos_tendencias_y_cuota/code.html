@@ -1,0 +1,730 @@
+<!DOCTYPE html><html class="dark" lang="es"><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<meta content="web_dashboard" name="shell-type">
+<title>MusicLock - Bóveda de Audio Cifrada</title>
+<link href="https://fonts.googleapis.com" rel="preconnect">
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect">
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:ital,wght@0,300..800;1,300..800&amp;family=JetBrains+Mono:ital,wght@0,400..700;1,400..700&amp;family=Space+Grotesk:wght@400..700&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<style>
+    @layer base {
+      html, body { margin: 0; padding: 0; }
+      body { overscroll-behavior: none; }
+      main > :first-child { margin-top: 0 !important; }
+      main > :last-child { margin-bottom: 0 !important; }
+    }
+    ::-webkit-scrollbar { display: none; }
+  </style>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            "primary": "#025098",
+            "primary-hover": "#0260b8",
+            "primary-light": "#38bdf8",
+            "primary-container": "#0d3663",
+            "accent-cyan": "#0ea5e9",
+            "accent-blue": "#1d4ed8",
+            "surface-base": "#0b111e",
+            "surface-raised": "#0f172a",
+            "surface-card": "#131d31",
+            "surface-container-high": "#18243c",
+            "surface-container-lowest": "#070b14",
+            "border-subtle": "#1e293b",
+            "border-blue": "#1e3a5f",
+            "on-surface": "#e2e8f0",
+            "on-surface-variant": "#94a3b8",
+            "security-warning": "#f59e0b",
+            "security-danger": "#ef4444"
+          },
+          fontFamily: {
+            "title-sm": ["Hanken Grotesk", "sans-serif"],
+            "body-lg": ["Hanken Grotesk", "sans-serif"],
+            "title-md": ["Hanken Grotesk", "sans-serif"],
+            "body-md": ["Hanken Grotesk", "sans-serif"],
+            "mono-crypto": ["JetBrains Mono", "monospace"],
+            "headline-lg": ["Space Grotesk", "sans-serif"],
+            "display-lg": ["Space Grotesk", "sans-serif"],
+            "mono-label": ["JetBrains Mono", "monospace"],
+            "headline-md": ["Space Grotesk", "sans-serif"],
+            "headline-sm": ["Space Grotesk", "sans-serif"],
+            "body-sm": ["Hanken Grotesk", "sans-serif"]
+          }
+        }
+      }
+    };
+  </script>
+</head>
+<body class="bg-surface-base text-on-surface font-body-md min-h-screen selection:bg-primary selection:text-white flex flex-col">
+<!-- ========================================== -->
+<!-- SIDEBAR LATERAL (CONSERVADO Y AJUSTADO)    -->
+<!-- ========================================== -->
+<aside class="fixed left-0 top-0 h-full w-64 bg-surface-raised border-r border-border-subtle z-40 flex flex-col justify-between shadow-[0_2px_12px_rgba(0,0,0,0.5)]">
+<div class="flex flex-col">
+<!-- Logo Branding -->
+<div class="h-16 px-5 flex items-center gap-3 border-b border-border-subtle/60 bg-surface-raised">
+<div class="w-9 h-9 rounded-xl bg-gradient-to-br from-primary to-accent-cyan flex items-center justify-center text-white shadow-md shadow-primary/20">
+<span class="material-symbols-outlined text-xl">lock</span>
+</div>
+<div class="flex flex-col">
+<span class="font-headline-sm text-lg text-white font-bold tracking-tight leading-tight flex items-center gap-1.5">
+            MusicLock
+          </span>
+<span class="font-mono-label text-[10px] text-accent-cyan tracking-wider uppercase font-medium">Client-Side Encrypted</span>
+</div>
+</div>
+<!-- Badge Encriptación -->
+<div class="px-5 py-3">
+<div class="flex items-center gap-2 px-2.5 py-1.5 rounded-lg bg-surface-card border border-border-blue/60 text-accent-cyan">
+<span class="material-symbols-outlined text-sm text-accent-cyan">verified_user</span>
+<span class="font-mono-label text-[11px] font-medium tracking-wide">AES-GCM 256 VAULT</span>
+</div>
+</div>
+<!-- Navegación Principal -->
+<nav class="flex flex-col gap-1 px-3 mt-1">
+<a aria-current="page" class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all bg-primary/25 border border-primary/40 text-accent-cyan font-semibold" href="#">
+<span class="material-symbols-outlined text-xl">home</span>
+<span class="font-title-sm text-sm">Inicio</span>
+</a>
+<a class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-on-surface-variant hover:bg-surface-card hover:text-white transition-all" href="#">
+<span class="material-symbols-outlined text-xl">folder_special</span>
+<span class="font-title-sm text-sm">Mis Archivos</span>
+</a>
+<a class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-on-surface-variant hover:bg-surface-card hover:text-white transition-all" href="#">
+<span class="material-symbols-outlined text-xl">favorite</span>
+<span class="font-title-sm text-sm">Favoritos</span>
+</a>
+<a class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-on-surface-variant hover:bg-surface-card hover:text-white transition-all" href="#">
+<span class="material-symbols-outlined text-xl">queue_music</span>
+<span class="font-title-sm text-sm">Playlists</span>
+</a>
+<a class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-on-surface-variant hover:bg-surface-card hover:text-white transition-all" href="#">
+<span class="material-symbols-outlined text-xl">share</span>
+<span class="font-title-sm text-sm">Compartido Conmigo</span>
+</a>
+<a class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-on-surface-variant hover:bg-surface-card hover:text-white transition-all" href="#">
+<span class="material-symbols-outlined text-xl">history</span>
+<span class="font-title-sm text-sm">Recientes</span>
+</a>
+<a class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-on-surface-variant hover:bg-surface-card hover:text-white transition-all" href="#">
+<span class="material-symbols-outlined text-xl">local_fire_department</span>
+<span class="font-title-sm text-sm">Tendencias</span>
+</a>
+<a class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-on-surface-variant hover:bg-surface-card hover:text-white transition-all" href="#">
+<span class="material-symbols-outlined text-xl">manage_accounts</span>
+<span class="font-title-sm text-sm">Admin / Planes</span>
+</a>
+</nav>
+</div>
+<!-- Storage Badge en Sidebar Inferior -->
+<div class="p-4 mx-3 mb-24 rounded-xl bg-surface-card border border-border-subtle flex flex-col gap-2">
+<div class="flex items-center justify-between text-xs font-mono-label">
+<span class="text-on-surface-variant">Bóveda Cifrada</span>
+<span class="text-accent-cyan font-semibold">70%</span>
+</div>
+<div class="w-full h-1.5 rounded-full bg-surface-base overflow-hidden">
+<div class="h-full bg-gradient-to-r from-primary to-accent-cyan rounded-full" style="width: 70%;"></div>
+</div>
+<span class="text-[11px] text-on-surface-variant">350 MB de 500 MB usados</span>
+</div>
+</aside>
+<!-- ========================================== -->
+<!-- CONTENIDO PRINCIPAL                        -->
+<!-- ========================================== -->
+<div class="pl-64 flex-1">
+<!-- Header Superior -->
+<header class="fixed top-0 left-64 right-0 h-16 bg-surface-raised/95 backdrop-blur-xl border-b border-border-subtle z-30 flex items-center justify-between px-8">
+<div class="flex items-center gap-4 flex-1 max-w-xl">
+<div class="relative w-full">
+<span class="material-symbols-outlined absolute left-3.5 top-1/2 -translate-y-1/2 text-on-surface-variant text-lg">search</span>
+<input class="w-full bg-surface-card border border-border-subtle text-white placeholder:text-on-surface-variant text-sm pl-10 pr-4 py-2 rounded-xl focus:outline-none focus:border-accent-cyan/60 transition-all" placeholder="Buscar pistas cifradas, artistas, hashes SHA-256..." type="text">
+</div>
+</div>
+<div class="flex items-center gap-4">
+<!-- Indicador de Sesión -->
+<div class="hidden lg:flex items-center gap-2 px-3 py-1.5 rounded-full bg-surface-card border border-border-blue/60">
+<span class="w-2 h-2 rounded-full bg-accent-cyan animate-pulse"></span>
+<span class="font-mono-label text-xs text-accent-cyan">Sesión Cifrada / Argon2id</span>
+</div>
+<!-- Botón Notificaciones -->
+<button class="relative p-2 rounded-xl text-on-surface-variant hover:text-white hover:bg-surface-card transition-all" title="Notificaciones de seguridad">
+<span class="material-symbols-outlined text-xl">notifications</span>
+<span class="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-accent-cyan"></span>
+</button>
+<!-- Perfil Usuario -->
+<div class="flex items-center gap-3 pl-2 border-l border-border-subtle">
+<div class="flex flex-col text-right hidden sm:flex">
+<span class="font-title-sm text-sm text-white leading-tight font-medium">Audiophile Zero</span>
+<span class="font-mono-label text-[11px] text-accent-cyan">Master Key #7F09</span>
+</div>
+<img alt="Profile" class="w-9 h-9 rounded-full object-cover ring-2 ring-primary/40" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAxZsXkxxMXSfdbXWs_dpkvlULZf-exZoNHrL7ZAgg0KvnRTQ0X_D2GthZroFNiJdDaoAPoqfhqb9tVve0K8dvRvXxi1MuV_3-6FpaxQqlc30MgIDwF54uI1JBDxArsyMFyA-SWP5KkrEvTUyo7EQMJYBcF55PbJz1CMc3DPQMj1yNF_ajiz7UWgjxtxmSUAaNW6fmE8PIWK6OjJ_m9z_SQEJH8N7DjikpJUMfciNzGpIEDSa7jfgqZow">
+</div>
+</div>
+</header>
+<!-- Main Body -->
+<main class="relative pt-20 pb-28 px-8 min-h-screen bg-surface-base">
+<div class="flex flex-col gap-7 max-w-7xl mx-auto">
+<!-- ========================================== -->
+<!-- A) CABECERA SUPERIOR COMPACTA Y ELEGANTE   -->
+<!-- ========================================== -->
+<section class="rounded-2xl bg-gradient-to-r from-surface-raised via-surface-card to-surface-raised border border-border-blue/60 p-6 shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-5 relative overflow-hidden">
+<div class="absolute -right-16 -top-16 w-64 h-64 rounded-full bg-primary/20 blur-3xl pointer-events-none"></div>
+<div class="relative z-10 flex flex-col gap-2">
+<div class="flex items-center gap-2.5">
+<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-primary/30 border border-primary/50 text-accent-cyan font-mono-label text-[11px] font-semibold tracking-wider uppercase">
+<span class="w-1.5 h-1.5 rounded-full bg-accent-cyan animate-ping"></span>
+                Bóveda Principal Cifrada
+              </span>
+<span class="text-on-surface-variant font-mono-label text-xs">AES-256 GCM • Zero-Knowledge</span>
+</div>
+<h1 class="font-headline-md text-2xl lg:text-3xl font-bold text-white tracking-tight">
+              Bienvenido a tu Espacio Seguro de Audio
+            </h1>
+<p class="font-body-md text-sm text-on-surface-variant max-w-2xl">
+              Cifra, almacena y reproduce tus grabaciones y stems directamente en tu navegador sin que el servidor conozca tus claves.
+            </p>
+</div>
+<!-- Botón de Acción Principal en Azul #025098 -->
+<div class="relative z-10 flex items-center gap-3">
+<button class="px-5 py-2.5 rounded-xl bg-primary hover:bg-primary-hover text-white font-title-sm text-sm font-semibold transition-all shadow-lg shadow-primary/30 flex items-center gap-2 border border-blue-400/20 hover:scale-[1.02]" id="upload-primary-btn">
+<span class="material-symbols-outlined text-lg">cloud_upload</span>
+              Subir Audio
+            </button>
+<button class="px-4 py-2.5 rounded-xl bg-surface-raised border border-border-subtle hover:border-border-blue text-on-surface hover:text-white font-title-sm text-sm transition-all flex items-center gap-2" id="new-playlist-btn">
+<span class="material-symbols-outlined text-lg text-accent-cyan">playlist_add</span>
+              Nueva Playlist
+            </button>
+</div>
+</section>
+<!-- ========================================== -->
+<!-- GRID PRINCIPAL: TABLA + LATERALES          -->
+<!-- ========================================== -->
+<div class="flex flex-col gap-7 w-full">
+<!-- 1. SECCIÓN DE ARCHIVOS / PISTAS CIFRADAS (FULL WIDTH) -->
+<section class="flex flex-col gap-4 w-full">
+<div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+<div class="flex items-center gap-1.5 p-1 rounded-xl bg-surface-raised border border-border-subtle">
+<button class="filter-tab active px-4 py-1.5 rounded-lg font-title-sm text-xs md:text-sm font-semibold transition-all bg-primary text-white shadow-sm shadow-primary/20">
+          Recientes
+        </button>
+<button class="filter-tab px-4 py-1.5 rounded-lg font-title-sm text-xs md:text-sm font-medium text-on-surface-variant hover:text-white transition-all">
+          Todos mis archivos
+        </button>
+<button class="filter-tab px-4 py-1.5 rounded-lg font-title-sm text-xs md:text-sm font-medium text-on-surface-variant hover:text-white transition-all">
+          Favoritos
+        </button>
+</div>
+<div class="flex items-center gap-2 text-xs font-mono-label text-on-surface-variant">
+<span class="material-symbols-outlined text-sm text-accent-cyan">verified</span>
+<span>6 Pistas Cifradas en Bóveda</span>
+</div>
+</div>
+<div class="rounded-2xl bg-surface-raised border border-border-subtle shadow-xl overflow-visible">
+<div class="overflow-x-visible">
+<table class="w-full text-left font-body-md text-sm border-collapse">
+<thead>
+<tr class="border-b border-border-subtle text-on-surface-variant font-mono-label text-[11px] uppercase tracking-wider">
+<th class="py-3 pl-4 pr-2 w-12 text-center">#</th>
+<th class="py-3 px-4">Título &amp; Artista</th>
+<th class="py-3 px-3">Estado / Privacidad</th>
+<th class="py-3 px-3 hidden sm:table-cell">Formato</th>
+<th class="py-3 px-3 hidden md:table-cell">Peso</th>
+<th class="py-3 px-3 hidden lg:table-cell">Duración</th>
+<th class="py-3 pr-4 pl-2 text-right">Opciones</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-border-subtle/50" id="audio-table-body">
+<!-- PISTA 1 -->
+<tr class="hover:bg-surface-card/60 transition-colors bg-primary/10 group relative">
+<td class="py-3 pl-4 pr-2 text-center">
+<button class="track-play-toggle w-8 h-8 rounded-full bg-primary hover:bg-primary-hover text-white flex items-center justify-center mx-auto shadow-sm shadow-primary/30 transition-all" data-playing="true">
+<span class="material-symbols-outlined text-base">pause</span>
+</button>
+</td>
+<td class="py-3 px-4 min-w-[200px]">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-lg overflow-hidden flex-shrink-0 bg-surface-card border border-border-subtle relative">
+<img class="w-full h-full object-cover" data-alt="Dark neon futuristic cyberpunk synthwave abstract vinyl cover with emerald green and cyan laser lines" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBIDxYzR189FgZQY8wiN_xEv9yNVSW7XUiVarz56TDRfENxt3xPReDB2uzVEQV1ynXFupTRRqlL_XcnWPJBqZB6yrBaRtPah4SX0cN_MwhhztpaxyO1mf7edl_w7E5lOHmmnVCO9EbPDB8VIAAOpjRWM3Kt4XXvTsnbhoL8HRQW38y6vjmlO8Ffpf649w7pt4HW6SOmAr1a0KC62bjC61yADy6SqzFQVUb78gYhDJK0ZWnziH8PN7-BSw">
+</div>
+<div class="flex flex-col min-w-0">
+<span class="font-title-sm text-sm text-accent-cyan font-bold truncate flex items-center gap-1.5">
+                      Starlight Odyssey - Master Mix
+                      <span class="w-1.5 h-1.5 rounded-full bg-accent-cyan animate-pulse"></span>
+</span>
+<span class="font-body-sm text-xs text-on-surface-variant truncate">Aethel Audio</span>
+</div>
+</div>
+</td>
+<td class="py-3 px-3 whitespace-nowrap">
+<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-primary/30 border border-primary/50 text-accent-cyan font-mono-label text-[11px]">
+<span class="material-symbols-outlined text-xs">lock</span> Privado (Cifrado)
+                </span>
+</td>
+<td class="py-3 px-3 hidden sm:table-cell whitespace-nowrap">
+<span class="font-mono-crypto text-xs text-on-surface">FLAC 24-bit</span>
+</td>
+<td class="py-3 px-3 hidden md:table-cell whitespace-nowrap">
+<span class="font-mono-crypto text-xs text-on-surface-variant">42.8 MB</span>
+</td>
+<td class="py-3 px-3 hidden lg:table-cell whitespace-nowrap font-mono-label text-xs text-on-surface-variant">
+                04:18
+              </td>
+<td class="py-3 pr-4 pl-2 text-right relative">
+<div class="relative inline-block text-left">
+<button class="more-options-btn p-1.5 rounded-lg text-on-surface-variant hover:text-white hover:bg-surface-card transition-all" title="Más opciones">
+<span class="material-symbols-outlined text-xl">more_vert</span>
+</button>
+<div class="dropdown-menu hidden absolute right-0 top-full mt-1 w-64 rounded-xl bg-surface-card border border-border-blue shadow-2xl z-50 py-1.5 text-left">
+<button class="w-full px-3.5 py-2 text-xs flex items-center gap-2.5 text-on-surface hover:text-white hover:bg-surface-container-high transition-colors">
+<span class="material-symbols-outlined text-base text-accent-cyan">favorite</span>
+<span>Añadir a Favoritos</span>
+</button>
+<button class="w-full px-3.5 py-2 text-xs flex items-center gap-2.5 text-on-surface hover:text-white hover:bg-surface-container-high transition-colors">
+<span class="material-symbols-outlined text-base text-primary-light">vpn_key</span>
+<span>Gestionar Acceso</span>
+</button>
+<div class="my-1 border-t border-border-subtle"></div>
+<button class="w-full px-3.5 py-2 text-xs flex items-center gap-2.5 text-on-surface hover:text-white hover:bg-surface-container-high transition-colors">
+<span class="material-symbols-outlined text-base text-accent-cyan">info</span>
+<span>Ver Detalles Técnicos / Cifrado</span>
+</button>
+</div>
+</div>
+</td>
+</tr>
+<!-- PISTA 2 -->
+<tr class="hover:bg-surface-card/60 transition-colors group relative">
+<td class="py-3 pl-4 pr-2 text-center">
+<button class="track-play-toggle w-8 h-8 rounded-full hover:bg-primary text-on-surface-variant hover:text-white flex items-center justify-center mx-auto transition-all" data-playing="false">
+<span class="material-symbols-outlined text-base">play_arrow</span>
+</button>
+</td>
+<td class="py-3 px-4 min-w-[200px]">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-lg overflow-hidden flex-shrink-0 bg-surface-card border border-border-subtle">
+<img class="w-full h-full object-cover" data-alt="Minimalist monochromatic obsidian sphere surrounded by neon emerald ring glowing in a dark acoustic recording studio" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAOAT1X0HATJ1_sd6EQ5YDIb_zZx4EJicNsXfuaRG-NP9yE1XI6mxrnYSe1Z1rqRdYBO2ypXlU-Eyv4AO2s6PC3NVn8PlQJjQs0WiPoPhnLCNBZyCwqSUlgzkZpnMooFVwMFaM95nwdetQbck7uTu-PkbNvxa0mmNzEtEw8WUu9IlsDPwajXg1vByVW93Wzk3CH4sfp3KwTc_JLEK9GEKOlUD-h7Sn8VC5NQiVXz1zR9np0U8Cr2BXSRA">
+</div>
+<div class="flex flex-col min-w-0">
+<span class="font-title-sm text-sm text-white font-medium truncate">Cryptographic Dreams (Vocal Stem)</span>
+<span class="font-body-sm text-xs text-on-surface-variant truncate">Sovereign Echoes</span>
+</div>
+</div>
+</td>
+<td class="py-3 px-3 whitespace-nowrap">
+<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-primary/30 border border-primary/50 text-accent-cyan font-mono-label text-[11px]">
+<span class="material-symbols-outlined text-xs">lock</span> Privado (Cifrado)
+                </span>
+</td>
+<td class="py-3 px-3 hidden sm:table-cell whitespace-nowrap">
+<span class="font-mono-crypto text-xs text-on-surface">WAV 16-bit</span>
+</td>
+<td class="py-3 px-3 hidden md:table-cell whitespace-nowrap">
+<span class="font-mono-crypto text-xs text-on-surface-variant">31.2 MB</span>
+</td>
+<td class="py-3 px-3 hidden lg:table-cell whitespace-nowrap font-mono-label text-xs text-on-surface-variant">
+                03:45
+              </td>
+<td class="py-3 pr-4 pl-2 text-right relative">
+<div class="relative inline-block text-left">
+<button class="more-options-btn p-1.5 rounded-lg text-on-surface-variant hover:text-white hover:bg-surface-card transition-all" title="Más opciones">
+<span class="material-symbols-outlined text-xl">more_vert</span>
+</button>
+<div class="dropdown-menu hidden absolute right-0 top-full mt-1.5 w-64 rounded-xl bg-surface-card border border-border-blue shadow-2xl z-50 py-1.5 text-left">
+<button class="w-full px-3.5 py-2 text-xs flex items-center gap-2.5 text-on-surface hover:text-white hover:bg-surface-container-high transition-colors">
+<span class="material-symbols-outlined text-base text-accent-cyan">favorite</span>
+<span>Añadir a Favoritos</span>
+</button>
+<button class="w-full px-3.5 py-2 text-xs flex items-center gap-2.5 text-on-surface hover:text-white hover:bg-surface-container-high transition-colors">
+<span class="material-symbols-outlined text-base text-primary-light">vpn_key</span>
+<span>Gestionar Acceso</span>
+</button>
+<div class="my-1 border-t border-border-subtle"></div>
+<button class="w-full px-3.5 py-2 text-xs flex items-center gap-2.5 text-on-surface hover:text-white hover:bg-surface-container-high transition-colors">
+<span class="material-symbols-outlined text-base text-accent-cyan">info</span>
+<span>Ver Detalles Técnicos / Cifrado</span>
+</button>
+</div>
+</div>
+</td>
+</tr>
+<!-- PISTA 3 -->
+<tr class="hover:bg-surface-card/60 transition-colors group relative">
+<td class="py-3 pl-4 pr-2 text-center">
+<button class="track-play-toggle w-8 h-8 rounded-full hover:bg-primary text-on-surface-variant hover:text-white flex items-center justify-center mx-auto transition-all" data-playing="false">
+<span class="material-symbols-outlined text-base">play_arrow</span>
+</button>
+</td>
+<td class="py-3 px-4 min-w-[200px]">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-lg overflow-hidden flex-shrink-0 bg-surface-card border border-border-subtle">
+<img class="w-full h-full object-cover" data-alt="Deep ultraviolet and cyan galaxy wave art with acoustic soundwave frequency lines" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAb1KOEB0XQq7BISwRrVu5WK924eL-kvIlQw99U9W1VDl_ynPh3YsJgg3RkwHeqSLMwZ3cXpu8TjQnZBvYo0Us4EoI-1gSQDTGl01BBC46lyHwYK_kr2vSo7i1oBmxOuxEZXVhAt7S9d20_RNuGSiWpd5yyZf73gVcDtM1-xFq5qZFuxMLZDmM3RSPTfU3PtLTdvSQF2gsLu14MepcCxtVsmIWF7tJgOyV_HhC0WrCN5NXAIXY8F3vVBA">
+</div>
+<div class="flex flex-col min-w-0">
+<span class="font-title-sm text-sm text-white font-medium truncate">Pulse of the Enclave</span>
+<span class="font-body-sm text-xs text-on-surface-variant truncate">Cipher Lab 01</span>
+</div>
+</div>
+</td>
+<td class="py-3 px-3 whitespace-nowrap">
+<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-blue-950/60 border border-blue-800/50 text-primary-light font-mono-label text-[11px]">
+<span class="material-symbols-outlined text-xs">public</span> Público (Desencriptado)
+                </span>
+</td>
+<td class="py-3 px-3 hidden sm:table-cell whitespace-nowrap">
+<span class="font-mono-crypto text-xs text-on-surface">MP3 320kbps</span>
+</td>
+<td class="py-3 px-3 hidden md:table-cell whitespace-nowrap">
+<span class="font-mono-crypto text-xs text-on-surface-variant">8.4 MB</span>
+</td>
+<td class="py-3 px-3 hidden lg:table-cell whitespace-nowrap font-mono-label text-xs text-on-surface-variant">
+                05:12
+              </td>
+<td class="py-3 pr-4 pl-2 text-right relative">
+<div class="relative inline-block text-left">
+<button class="more-options-btn p-1.5 rounded-lg text-on-surface-variant hover:text-white hover:bg-surface-card transition-all" title="Más opciones">
+<span class="material-symbols-outlined text-xl">more_vert</span>
+</button>
+<div class="dropdown-menu hidden absolute right-0 top-full mt-1 w-64 rounded-xl bg-surface-card border border-border-blue shadow-2xl z-50 py-1.5 text-left">
+<button class="w-full px-3.5 py-2 text-xs flex items-center gap-2.5 text-on-surface hover:text-white hover:bg-surface-container-high transition-colors">
+<span class="material-symbols-outlined text-base text-accent-cyan">favorite</span>
+<span>Añadir a Favoritos</span>
+</button>
+<button class="w-full px-3.5 py-2 text-xs flex items-center gap-2.5 text-on-surface hover:text-white hover:bg-surface-container-high transition-colors">
+<span class="material-symbols-outlined text-base text-primary-light">vpn_key</span>
+<span>Gestionar Acceso</span>
+</button>
+<div class="my-1 border-t border-border-subtle"></div>
+<button class="w-full px-3.5 py-2 text-xs flex items-center gap-2.5 text-on-surface hover:text-white hover:bg-surface-container-high transition-colors">
+<span class="material-symbols-outlined text-base text-accent-cyan">info</span>
+<span>Ver Detalles Técnicos / Cifrado</span>
+</button>
+</div>
+</div>
+</td>
+</tr>
+<!-- PISTA 4 -->
+<tr class="hover:bg-surface-card/60 transition-colors group relative">
+<td class="py-3 pl-4 pr-2 text-center">
+<button class="track-play-toggle w-8 h-8 rounded-full hover:bg-primary text-on-surface-variant hover:text-white flex items-center justify-center mx-auto transition-all" data-playing="false">
+<span class="material-symbols-outlined text-base">play_arrow</span>
+</button>
+</td>
+<td class="py-3 px-4 min-w-[200px]">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-lg overflow-hidden flex-shrink-0 bg-surface-card border border-border-subtle">
+<img class="w-full h-full object-cover" data-alt="High tech hardware audio synthesizer panel with glowing green VU meters" src="https://lh3.googleusercontent.com/aida-public/AB6AXuD8W8hZGdC_2ka_7-j6Dqu1lsaRhsHx739Eb0yDM_QUsVRHeXCQYGfjjRC3uA3yUwsGjpgLyGuzc7SDGMB5GUqHeT22ULgcj08uUCSZNJr42-_KvqlgrPIOxcw9LcOJVW2HmmbG2WeZce18i4bmCrV_pK6wox1rwsrRhvZ0A36m8TUwcnKzq0a7UtGNS7IIZRKpdUFQEsGSKhCN8iw5PW60qKg06R6IXFnYnSWKFLZIcfqo9hYeaxnOoA">
+</div>
+<div class="flex flex-col min-w-0">
+<span class="font-title-sm text-sm text-white font-medium truncate">Zero Knowledge Beat #04</span>
+<span class="font-body-sm text-xs text-on-surface-variant truncate">Krypton Sound</span>
+</div>
+</div>
+</td>
+<td class="py-3 px-3 whitespace-nowrap">
+<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-primary/30 border border-primary/50 text-accent-cyan font-mono-label text-[11px]">
+<span class="material-symbols-outlined text-xs">lock</span> Privado (Cifrado)
+                </span>
+</td>
+<td class="py-3 px-3 hidden sm:table-cell whitespace-nowrap">
+<span class="font-mono-crypto text-xs text-on-surface">MP3 320kbps</span>
+</td>
+<td class="py-3 px-3 hidden md:table-cell whitespace-nowrap">
+<span class="font-mono-crypto text-xs text-on-surface-variant">9.1 MB</span>
+</td>
+<td class="py-3 px-3 hidden lg:table-cell whitespace-nowrap font-mono-label text-xs text-on-surface-variant">
+                02:58
+              </td>
+<td class="py-3 pr-4 pl-2 text-right relative">
+<div class="relative inline-block text-left">
+<button class="more-options-btn p-1.5 rounded-lg text-on-surface-variant hover:text-white hover:bg-surface-card transition-all" title="Más opciones">
+<span class="material-symbols-outlined text-xl">more_vert</span>
+</button>
+<div class="dropdown-menu hidden absolute right-0 top-full mt-1 w-64 rounded-xl bg-surface-card border border-border-blue shadow-2xl z-50 py-1.5 text-left">
+<button class="w-full px-3.5 py-2 text-xs flex items-center gap-2.5 text-on-surface hover:text-white hover:bg-surface-container-high transition-colors">
+<span class="material-symbols-outlined text-base text-accent-cyan">favorite</span>
+<span>Añadir a Favoritos</span>
+</button>
+<button class="w-full px-3.5 py-2 text-xs flex items-center gap-2.5 text-on-surface hover:text-white hover:bg-surface-container-high transition-colors">
+<span class="material-symbols-outlined text-base text-primary-light">vpn_key</span>
+<span>Gestionar Acceso</span>
+</button>
+<div class="my-1 border-t border-border-subtle"></div>
+<button class="w-full px-3.5 py-2 text-xs flex items-center gap-2.5 text-on-surface hover:text-white hover:bg-surface-container-high transition-colors">
+<span class="material-symbols-outlined text-base text-accent-cyan">info</span>
+<span>Ver Detalles Técnicos / Cifrado</span>
+</button>
+</div>
+</div>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</section>
+<!-- 2. SECCIÓN DE TENDENCIAS Y ESTADÍSTICAS (FULL WIDTH EXTENDIDO) -->
+<section class="rounded-2xl bg-surface-raised border border-border-subtle p-6 shadow-xl flex flex-col gap-5 w-full">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-2.5">
+<div class="w-8 h-8 rounded-lg bg-primary/20 flex items-center justify-center text-accent-cyan">
+<span class="material-symbols-outlined text-lg">insights</span>
+</div>
+<div>
+<h3 class="font-title-md text-base text-white font-bold leading-tight">Tendencias y Estadísticas</h3>
+<span class="font-body-sm text-xs text-on-surface-variant">Métricas de reproducción y actividad criptográfica global</span>
+</div>
+</div>
+<span class="font-mono-label text-[10px] px-2.5 py-1 rounded bg-surface-card border border-border-subtle text-accent-cyan uppercase tracking-wider font-semibold">
+        Top 7 Días
+      </span>
+</div>
+<!-- Layout en grid 2 columnas para el contenido de tendencias -->
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-5 items-stretch">
+<!-- Top Artistas Ranking -->
+<div class="lg:col-span-6 flex flex-col gap-2.5">
+<span class="font-mono-label text-[11px] text-on-surface-variant uppercase tracking-wider">Top Artistas Más Escuchados</span>
+<div class="flex flex-col gap-2">
+<div class="flex items-center justify-between p-3 rounded-xl bg-surface-card border border-border-subtle hover:border-border-blue transition-all">
+<div class="flex items-center gap-3 min-w-0">
+<span class="font-mono-label text-xs text-accent-cyan font-bold w-4">01</span>
+<div class="flex flex-col min-w-0">
+<span class="font-title-sm text-xs font-semibold text-white truncate">Aethel Audio</span>
+<span class="font-body-sm text-[11px] text-on-surface-variant">1,482 streams locales</span>
+</div>
+</div>
+<span class="font-mono-crypto text-xs text-accent-cyan font-medium">+38%</span>
+</div>
+<div class="flex items-center justify-between p-3 rounded-xl bg-surface-card border border-border-subtle hover:border-border-blue transition-all">
+<div class="flex items-center gap-3 min-w-0">
+<span class="font-mono-label text-xs text-on-surface-variant font-bold w-4">02</span>
+<div class="flex flex-col min-w-0">
+<span class="font-title-sm text-xs font-semibold text-white truncate">Sovereign Echoes</span>
+<span class="font-body-sm text-[11px] text-on-surface-variant">920 streams</span>
+</div>
+</div>
+<span class="font-mono-crypto text-xs text-primary-light font-medium">+14%</span>
+</div>
+<div class="flex items-center justify-between p-3 rounded-xl bg-surface-card border border-border-subtle hover:border-border-blue transition-all">
+<div class="flex items-center gap-3 min-w-0">
+<span class="font-mono-label text-xs text-on-surface-variant font-bold w-4">03</span>
+<div class="flex flex-col min-w-0">
+<span class="font-title-sm text-xs font-semibold text-white truncate">Krypton Sound</span>
+<span class="font-body-sm text-[11px] text-on-surface-variant">640 streams</span>
+</div>
+</div>
+<span class="font-mono-crypto text-xs text-on-surface-variant font-medium">+5%</span>
+</div>
+</div>
+</div>
+<!-- Gráfico de Consumo Waveform & Métricas -->
+<div class="lg:col-span-6 p-4 rounded-xl bg-surface-card border border-border-subtle flex flex-col justify-between gap-3">
+<div class="flex items-center justify-between font-mono-label text-[11px]">
+<span class="text-on-surface-variant">CONSUMO CIFRADO COMUNIDAD</span>
+<span class="text-accent-cyan font-bold">4.2 TB TOTAL</span>
+</div>
+<div class="h-20 w-full pt-1 flex items-center">
+<svg class="w-full h-full overflow-visible" fill="none" preserveAspectRatio="none" viewBox="0 0 200 45">
+<defs>
+<linearGradient id="blueGlow" x1="0" x2="0" y1="0" y2="1">
+<stop offset="0%" stop-color="#38bdf8" stop-opacity="0.35"></stop>
+<stop offset="100%" stop-color="#025098" stop-opacity="0.0"></stop>
+</linearGradient>
+</defs>
+<path d="M0,38 Q25,12 55,26 T115,10 T160,22 T200,6" fill="none" stroke="#38bdf8" stroke-linecap="round" stroke-width="2.5"></path>
+<path d="M0,38 Q25,12 55,26 T115,10 T160,22 T200,6 L200,45 L0,45 Z" fill="url(#blueGlow)"></path>
+</svg>
+</div>
+<div class="flex items-center justify-between pt-2 border-t border-border-subtle/50 text-xs font-mono-label text-on-surface-variant">
+<span class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-accent-cyan"></span> Nodos Activos: 24</span>
+<span class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-primary"></span> Ancho de Banda: 1.8 Gbps</span>
+<span class="text-accent-cyan font-medium">Argon2id Hashrate OK</span>
+</div>
+</div>
+</div>
+</section>
+<!-- 3. SECCIÓN DE CUOTA DE ALMACENAMIENTO (HORIZONTAL EXPANDIDO FULL WIDTH) -->
+<section class="rounded-2xl bg-surface-raised border border-border-subtle p-6 shadow-xl flex flex-col gap-4 w-full">
+<div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+<div class="flex items-center gap-3">
+<div class="w-9 h-9 rounded-lg bg-primary/20 flex items-center justify-center text-accent-cyan flex-shrink-0">
+<span class="material-symbols-outlined text-xl">cloud_sync</span>
+</div>
+<div class="flex flex-col">
+<div class="flex items-center gap-2">
+<h3 class="font-title-md text-base text-white font-bold">Cuota de Almacenamiento</h3>
+<span class="font-mono-label text-[10px] px-2 py-0.5 rounded bg-primary/30 text-accent-cyan border border-primary/50 font-bold uppercase">
+              Plan Gratuito
+            </span>
+</div>
+<span class="font-body-sm text-xs text-on-surface-variant">Capacidad protegida bajo cifrado AES-256 en memoria</span>
+</div>
+</div>
+<div class="flex items-baseline gap-3">
+<div class="flex items-baseline gap-1.5">
+<span class="font-headline-md text-2xl font-bold text-white">350 MB</span>
+<span class="font-body-sm text-xs text-on-surface-variant">usados</span>
+</div>
+<span class="text-on-surface-variant font-mono-crypto text-xs">/</span>
+<span class="font-mono-crypto text-xs text-accent-cyan font-semibold">500 MB Asignados</span>
+</div>
+</div>
+<!-- Barra de Progreso y Desglose Horizontal -->
+<div class="flex flex-col gap-2.5">
+<div class="w-full h-3 rounded-full bg-surface-card overflow-hidden flex border border-border-subtle">
+<div class="bg-primary h-full transition-all" style="width: 70%;" title="Audio Cifrado 350 MB"></div>
+<div class="bg-accent-cyan h-full transition-all" style="width: 5%;" title="Metadatos"></div>
+</div>
+<div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 font-mono-label text-[11px] text-on-surface-variant">
+<div class="flex items-center gap-4">
+<span class="flex items-center gap-1.5">
+<span class="w-2 h-2 rounded-full bg-primary inline-block"></span> 70% Cifrado (350 MB)
+          </span>
+<span class="flex items-center gap-1.5">
+<span class="w-2 h-2 rounded-full bg-accent-cyan inline-block"></span> 5% Metadatos (25 MB)
+          </span>
+<span class="flex items-center gap-1.5">
+<span class="w-2 h-2 rounded-full bg-border-blue inline-block"></span> 150 MB Libre
+          </span>
+</div>
+<button class="px-4 py-2 rounded-xl bg-primary hover:bg-primary-hover text-white text-center font-title-sm text-xs font-semibold transition-all shadow-md shadow-primary/20 flex items-center justify-center gap-2 border border-blue-400/20 self-start sm:self-auto" id="upgrade-plan-btn">
+<span class="material-symbols-outlined text-base">bolt</span>
+          Actualizar Plan (Upgrade a 10 GB)
+        </button>
+</div>
+</div>
+</section>
+</div>
+</div>
+</main>
+</div>
+<!-- ========================================== -->
+<!-- 3. REPRODUCTOR INFERIOR FIJO ELEGANTE       -->
+<!-- ========================================== -->
+<div class="fixed bottom-0 left-0 right-0 h-20 bg-surface-raised/95 backdrop-blur-2xl border-t border-border-subtle z-50 px-6 flex items-center justify-between shadow-[0_-4px_24px_rgba(0,0,0,0.7)]">
+<!-- Info Canción -->
+<div class="flex items-center gap-3 w-1/4 min-w-[220px]">
+<div class="w-12 h-12 rounded-xl bg-surface-card border border-border-blue flex items-center justify-center flex-shrink-0 text-accent-cyan">
+<span class="material-symbols-outlined text-2xl">graphic_eq</span>
+</div>
+<div class="flex flex-col min-w-0">
+<span class="font-title-sm text-sm text-white truncate font-semibold">Starlight Odyssey - Master Mix</span>
+<span class="font-body-sm text-xs text-on-surface-variant truncate">Aethel Audio • Session Key #7F09</span>
+</div>
+</div>
+<!-- Controles Centrales -->
+<div class="flex flex-col items-center gap-1.5 flex-1 max-w-xl px-4">
+<div class="flex items-center gap-4">
+<button class="text-on-surface-variant hover:text-white transition-colors" title="Aleatorio">
+<span class="material-symbols-outlined text-lg">shuffle</span>
+</button>
+<button class="text-on-surface-variant hover:text-white transition-colors" title="Anterior">
+<span class="material-symbols-outlined text-xl">skip_previous</span>
+</button>
+<button class="w-9 h-9 rounded-full bg-primary hover:bg-primary-hover text-white flex items-center justify-center transition-all shadow-md shadow-primary/30" id="global-play-toggle">
+<span class="material-symbols-outlined text-xl">pause</span>
+</button>
+<button class="text-on-surface-variant hover:text-white transition-colors" title="Siguiente">
+<span class="material-symbols-outlined text-xl">skip_next</span>
+</button>
+<button class="text-on-surface-variant hover:text-white transition-colors" title="Repetir">
+<span class="material-symbols-outlined text-lg">repeat</span>
+</button>
+</div>
+<!-- Barra de Tiempo -->
+<div class="flex items-center gap-3 w-full">
+<span class="font-mono-label text-[11px] text-on-surface-variant">01:24</span>
+<div class="flex-1 h-1.5 bg-surface-card rounded-full overflow-hidden relative cursor-pointer group">
+<div class="absolute left-0 top-0 bottom-0 bg-gradient-to-r from-primary to-accent-cyan rounded-full" style="width: 32%;"></div>
+</div>
+<span class="font-mono-label text-[11px] text-on-surface-variant">04:18</span>
+</div>
+</div>
+<!-- Badge Seguridad & Volumen -->
+<div class="flex items-center justify-end gap-5 w-1/4 min-w-[220px]">
+<div class="hidden xl:flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-surface-card border border-border-blue/60">
+<span class="material-symbols-outlined text-xs text-accent-cyan">lock</span>
+<span class="font-mono-label text-[11px] text-accent-cyan whitespace-nowrap">RAM Decrypt: AES-GCM</span>
+</div>
+<div class="flex items-center gap-2">
+<button class="text-on-surface-variant hover:text-white transition-colors">
+<span class="material-symbols-outlined text-lg">volume_up</span>
+</button>
+<div class="w-20 h-1.5 bg-surface-card rounded-full overflow-hidden cursor-pointer">
+<div class="bg-accent-cyan h-full rounded-full" style="width: 80%;"></div>
+</div>
+</div>
+</div>
+</div>
+<!-- SCRIPT PARA INTERACTIVIDAD -->
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+      // Toggle de los menús contextuales de tres puntos
+      const optionButtons = document.querySelectorAll('.more-options-btn');
+      
+      optionButtons.forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const parent = btn.parentElement;
+          const menu = parent.querySelector('.dropdown-menu');
+          
+          // Cerrar otros menús abiertos
+          document.querySelectorAll('.dropdown-menu').forEach(m => {
+            if (m !== menu) m.classList.add('hidden');
+          });
+          
+          // Alternar este menú
+          if (menu) {
+            menu.classList.toggle('hidden');
+          }
+        });
+      });
+
+      // Cerrar menús al hacer clic fuera
+      document.addEventListener('click', () => {
+        document.querySelectorAll('.dropdown-menu').forEach(m => {
+          m.classList.add('hidden');
+        });
+      });
+
+      // Alternar reproducción de pistas
+      const playButtons = document.querySelectorAll('.track-play-toggle');
+      playButtons.forEach(btn => {
+        btn.addEventListener('click', () => {
+          const isPlaying = btn.getAttribute('data-playing') === 'true';
+          
+          // Reset otros
+          playButtons.forEach(b => {
+            b.setAttribute('data-playing', 'false');
+            b.querySelector('.material-symbols-outlined').textContent = 'play_arrow';
+            b.classList.remove('bg-primary', 'text-white');
+            b.classList.add('text-on-surface-variant');
+          });
+
+          if (!isPlaying) {
+            btn.setAttribute('data-playing', 'true');
+            btn.querySelector('.material-symbols-outlined').textContent = 'pause';
+            btn.classList.add('bg-primary', 'text-white');
+            btn.classList.remove('text-on-surface-variant');
+          }
+        });
+      });
+
+      // Filtros rápidos
+      const tabs = document.querySelectorAll('.filter-tab');
+      tabs.forEach(tab => {
+        tab.addEventListener('click', () => {
+          tabs.forEach(t => {
+            t.classList.remove('bg-primary', 'text-white', 'shadow-sm', 'shadow-primary/20');
+            t.classList.add('text-on-surface-variant');
+          });
+          tab.classList.add('bg-primary', 'text-white', 'shadow-sm', 'shadow-primary/20');
+          tab.classList.remove('text-on-surface-variant');
+        });
+      });
+    });
+  </script>
+</body></html>

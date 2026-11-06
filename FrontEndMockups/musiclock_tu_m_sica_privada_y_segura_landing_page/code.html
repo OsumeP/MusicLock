@@ -1,0 +1,845 @@
+<!DOCTYPE html><html class="dark" lang="es" style=""><head><meta charset="utf-8"><meta content="width=device-width, initial-scale=1.0" name="viewport"><meta content="web_standard" name="shell-type"><link href="https://fonts.googleapis.com" rel="preconnect"><link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"><link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:ital,wght@0,300..900;1,300..900&amp;family=JetBrains+Mono:ital,wght@0,100..800;1,100..800&amp;family=Space+Grotesk:wght@300..700&amp;family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"><style>@layer base{html,body{margin:0;padding:0;}body{overscroll-behavior:none;}main>:first-child{margin-top:0!important;}main>:last-child{margin-bottom:0!important;}}::-webkit-scrollbar{display:none;}</style><script src="https://cdn.tailwindcss.com"></script><script id="tailwind-config">tailwind.config = {
+    darkMode: "class",
+    theme: {
+      extend: {
+        "colors": {
+          "primary-fixed": "#d5e3ff",
+          "error-container": "#93000a",
+          "tertiary-fixed": "#e9ddff",
+          "surface-container-highest": "#31353f",
+          "on-primary-fixed": "#001b3b",
+          "on-tertiary-fixed": "#23005c",
+          "surface-container": "#1c1f29",
+          "inverse-primary": "#215fa7",
+          "on-secondary": "#003640",
+          "secondary-fixed": "#acedff",
+          "inverse-surface": "#dfe2ef",
+          "on-error-container": "#ffdad6",
+          "secondary": "#65d5f1",
+          "primary-fixed-dim": "#a7c8ff",
+          "on-secondary-container": "#002e38",
+          "primary-container": "#025098",
+          "on-tertiary": "#3c0091",
+          "error": "#ffb4ab",
+          "inverse-on-surface": "#2c303a",
+          "surface-variant": "#31353f",
+          "secondary-container": "#159eb8",
+          "surface-bright": "#353943",
+          "background": "#0f131c",
+          "on-tertiary-fixed-variant": "#5516be",
+          "secondary-fixed-dim": "#65d5f1",
+          "on-primary-fixed-variant": "#004788",
+          "tertiary-container": "#5f27c8",
+          "outline-variant": "#424751",
+          "on-background": "#dfe2ef",
+          "surface-container-lowest": "#0a0e17",
+          "on-primary-container": "#a0c4ff",
+          "on-primary": "#003060",
+          "tertiary": "#d0bcff",
+          "surface-container-high": "#262a34",
+          "surface-dim": "#0f131c",
+          "on-surface": "#dfe2ef",
+          "on-error": "#690005",
+          "on-surface-variant": "#c2c6d2",
+          "on-secondary-fixed": "#001f26",
+          "surface-container-low": "#181b25",
+          "on-tertiary-container": "#cdb8ff",
+          "tertiary-fixed-dim": "#d0bcff",
+          "outline": "#8c919c",
+          "primary": "#a7c8ff",
+          "on-secondary-fixed-variant": "#004e5c",
+          "surface": "#0f131c",
+          "surface-tint": "#a7c8ff"
+        },
+        "borderRadius": {
+          "DEFAULT": "0.25rem",
+          "lg": "0.5rem",
+          "xl": "0.75rem",
+          "full": "9999px"
+        },
+        "spacing": {
+          "margin-tablet": "1.5rem",
+          "space-3xl": "4rem",
+          "space-xxs": "0.125rem",
+          "space-xl": "2rem",
+          "margin": "1rem",
+          "space-lg": "1.5rem",
+          "margin-desktop": "2rem",
+          "gutter-desktop": "1.5rem",
+          "space-md": "1rem",
+          "space-2xl": "3rem",
+          "space-sm": "0.5rem",
+          "gutter": "1.25rem",
+          "space-xs": "0.25rem"
+        },
+        "fontFamily": {
+          "title-md": [
+            "Hanken Grotesk"
+          ],
+          "mono-label": [
+            "JetBrains Mono"
+          ],
+          "headline-sm": [
+            "Space Grotesk"
+          ],
+          "body-lg": [
+            "Hanken Grotesk"
+          ],
+          "headline-lg-mobile": [
+            "Space Grotesk"
+          ],
+          "title-sm": [
+            "Hanken Grotesk"
+          ],
+          "headline-lg": [
+            "Space Grotesk"
+          ],
+          "body-md": [
+            "Hanken Grotesk"
+          ],
+          "body-sm": [
+            "Hanken Grotesk"
+          ],
+          "mono-crypto": [
+            "JetBrains Mono"
+          ],
+          "headline-md": [
+            "Space Grotesk"
+          ],
+          "display-lg-mobile": [
+            "Space Grotesk"
+          ],
+          "display-lg": [
+            "Space Grotesk"
+          ]
+        },
+        "fontSize": {
+          "title-md": [
+            "16px",
+            {
+              "lineHeight": "24px",
+              "fontWeight": "600"
+            }
+          ],
+          "mono-label": [
+            "10px",
+            {
+              "lineHeight": "14px",
+              "letterSpacing": "0.08em",
+              "fontWeight": "500"
+            }
+          ],
+          "headline-sm": [
+            "20px",
+            {
+              "lineHeight": "28px",
+              "fontWeight": "500"
+            }
+          ],
+          "body-lg": [
+            "16px",
+            {
+              "lineHeight": "24px",
+              "fontWeight": "400"
+            }
+          ],
+          "headline-lg-mobile": [
+            "24px",
+            {
+              "lineHeight": "32px",
+              "letterSpacing": "-0.01em",
+              "fontWeight": "600"
+            }
+          ],
+          "title-sm": [
+            "14px",
+            {
+              "lineHeight": "20px",
+              "fontWeight": "600"
+            }
+          ],
+          "headline-lg": [
+            "32px",
+            {
+              "lineHeight": "40px",
+              "letterSpacing": "-0.02em",
+              "fontWeight": "600"
+            }
+          ],
+          "body-md": [
+            "14px",
+            {
+              "lineHeight": "20px",
+              "fontWeight": "400"
+            }
+          ],
+          "body-sm": [
+            "12px",
+            {
+              "lineHeight": "16px",
+              "fontWeight": "400"
+            }
+          ],
+          "mono-crypto": [
+            "12px",
+            {
+              "lineHeight": "16px",
+              "letterSpacing": "0.04em",
+              "fontWeight": "500"
+            }
+          ],
+          "headline-md": [
+            "24px",
+            {
+              "lineHeight": "32px",
+              "letterSpacing": "-0.01em",
+              "fontWeight": "600"
+            }
+          ],
+          "display-lg-mobile": [
+            "32px",
+            {
+              "lineHeight": "40px",
+              "letterSpacing": "-0.02em",
+              "fontWeight": "700"
+            }
+          ],
+          "display-lg": [
+            "48px",
+            {
+              "lineHeight": "56px",
+              "letterSpacing": "-0.03em",
+              "fontWeight": "700"
+            }
+          ]
+        }
+      },
+    },
+  };</script></head><body class="bg-surface font-body-md text-body-md text-on-surface antialiased selection:bg-primary-container selection:text-on-primary-container"><header class="fixed top-0 left-0 right-0 w-full z-50 bg-surface/85 backdrop-blur-xl shadow-[0_1px_8px_rgba(0,0,0,0.4)]"><div class="h-20 w-full px-margin-desktop flex items-center justify-between gap-space-lg"><div class="flex items-center gap-space-md"><div class="flex items-center justify-center w-10 h-10 rounded-xl bg-surface-container-high text-secondary shadow-[0_0_16px_rgba(2,80,152,0.35)]"><span class="material-symbols-outlined text-[22px]">lock</span></div><div class="flex flex-col"><div class="flex items-center gap-space-xs"><span class="font-headline-sm text-headline-sm tracking-tight text-on-surface font-bold">MusicLock</span><span class="material-symbols-outlined text-secondary text-[18px]">graphic_eq</span></div><span class="font-mono-label text-mono-label text-secondary uppercase">Criptografía Zero-Knowledge</span></div></div><nav class="hidden lg:flex items-center gap-space-xl" data-active-classes="text-secondary font-title-sm"><a class="font-title-sm text-title-sm text-on-surface-variant hover:text-on-surface transition-colors" data-path="como-funciona" href="#">¿Cómo funciona?</a><a class="font-title-sm text-title-sm text-on-surface-variant hover:text-on-surface transition-colors" data-path="beneficios" href="#">Beneficios</a><a class="font-title-sm text-title-sm text-on-surface-variant hover:text-on-surface transition-colors" data-path="planes" href="#">Planes</a><a class="font-title-sm text-title-sm text-on-surface-variant hover:text-on-surface transition-colors" data-path="seguridad-facil" href="#">Seguridad fácil</a></nav><div class="flex items-center gap-space-md"><a class="hidden sm:inline-flex items-center justify-center font-title-sm text-title-sm px-space-md py-space-sm rounded-lg text-on-surface-variant hover:bg-surface-container hover:text-on-surface transition-all" data-path="login" href="#">Iniciar Sesión</a><a class="inline-flex items-center justify-center gap-space-xs font-title-sm text-title-sm px-space-lg py-space-sm rounded-lg bg-primary-container text-on-primary font-semibold shadow-[0_0_20px_rgba(2,80,152,0.4)] hover:bg-secondary-container hover:text-on-secondary-container transition-all" data-path="registro" href="#"><span class="material-symbols-outlined text-[18px]">lock_open</span><span class="">Comenzar Gratis</span></a><div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center"><span class="material-symbols-outlined text-on-primary text-[18px]">person</span></div></div></div></header><main class="w-full pt-20 bg-surface min-h-[calc(100vh-80px)]"><div class="flex flex-col w-full">
+<!-- HERO SECTION -->
+<section class="relative w-full overflow-hidden px-margin-desktop py-space-3xl flex flex-col items-center">
+<!-- Atmospheric glows -->
+<div class="absolute -top-32 left-1/2 -translate-x-1/2 w-[720px] h-[380px] bg-primary-container/20 blur-[130px] rounded-full pointer-events-none"></div>
+<div class="absolute top-96 -right-24 w-[420px] h-[420px] bg-secondary-container/15 blur-[120px] rounded-full pointer-events-none"></div>
+<div class="relative z-10 max-w-5xl w-full text-center flex flex-col items-center">
+<!-- Friendly reassurance badge -->
+<div class="inline-flex items-center gap-space-sm px-space-md py-space-xs rounded-full bg-surface-container-high shadow-sm mb-space-lg">
+<span class="w-2 h-2 rounded-full bg-secondary animate-pulse"></span>
+<span class="font-mono-crypto text-mono-crypto text-secondary uppercase font-semibold">Nube Segura de Audio Soberano</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant">• 0% Espionaje</span>
+</div>
+<!-- Main Catchy Title -->
+<h1 class="font-display-lg text-display-lg text-on-surface tracking-tight max-w-4xl font-bold">
+        Tu música, tus archivos, <span class="text-secondary">100% tuyos.</span> Guarda y escucha con total privacidad.
+      </h1>
+<!-- Clear & simple subtitle -->
+<p class="mt-space-lg font-body-lg text-body-lg text-on-surface-variant max-w-2xl text-center">
+        MusicLock guarda tus canciones, maquetas y grabaciones en una nube privada donde solo tú tienes la llave. Ni siquiera nosotros podemos escuchar lo que subes.
+      </p>
+<!-- CTAs -->
+<div class="mt-space-2xl flex flex-col sm:flex-row items-center justify-center gap-space-md w-full">
+<a class="w-full sm:w-auto inline-flex items-center justify-center gap-space-sm px-space-2xl py-space-md rounded-xl bg-primary-container text-on-primary font-title-md text-title-md font-semibold shadow-xl hover:bg-secondary-container hover:text-on-secondary-container transition-all" href="#planes">
+<span class="material-symbols-outlined text-[20px]" style="font-variation-settings: 'FILL' 1;">cloud_upload</span>
+<span class="">Crear Cuenta Gratis (500 MB)</span>
+</a>
+<a class="w-full sm:w-auto inline-flex items-center justify-center gap-space-sm px-space-xl py-space-md rounded-xl bg-surface-container-high text-on-surface font-title-md text-title-md hover:bg-surface-container-highest transition-all" href="#como-funciona">
+<span class="material-symbols-outlined text-secondary text-[22px]">play_circle</span>
+<span class="">Ver cómo funciona</span>
+</a>
+</div>
+<!-- Trust badges (Simple, user-friendly) -->
+<div class="mt-space-2xl grid grid-cols-2 sm:grid-cols-4 gap-space-md w-full max-w-3xl pt-space-lg">
+<div class="flex items-center justify-center gap-space-xs text-on-surface-variant">
+<span class="material-symbols-outlined text-secondary text-[20px]">block</span>
+<span class="font-body-sm text-body-sm">Sin anuncios</span>
+</div>
+<div class="flex items-center justify-center gap-space-xs text-on-surface-variant">
+<span class="material-symbols-outlined text-secondary text-[20px]">devices</span>
+<span class="font-body-sm text-body-sm">Cualquier navegador</span>
+</div>
+<div class="flex items-center justify-center gap-space-xs text-on-surface-variant">
+<span class="material-symbols-outlined text-secondary text-[20px]">equalizer</span>
+<span class="font-body-sm text-body-sm">Máxima fidelidad FLAC/WAV</span>
+</div>
+<div class="flex items-center justify-center gap-space-xs text-on-surface-variant">
+<span class="material-symbols-outlined text-secondary text-[20px]">visibility_off</span>
+<span class="font-body-sm text-body-sm">Nunca se comparten</span>
+</div>
+</div>
+</div>
+<!-- Interactive Mockup Canvas -->
+<div class="relative z-10 w-full max-w-5xl mt-space-3xl rounded-2xl bg-surface-container-low shadow-2xl p-space-md sm:p-space-lg">
+<!-- Player window header -->
+<div class="flex items-center justify-between pb-space-md mb-space-md">
+<div class="flex items-center gap-space-sm">
+<div class="w-3 h-3 rounded-full bg-error"></div>
+<div class="w-3 h-3 rounded-full bg-secondary-fixed"></div>
+<div class="w-3 h-3 rounded-full bg-secondary"></div>
+<span class="ml-space-sm font-mono-crypto text-mono-crypto text-outline">Bóveda Cifrada • Reproductor Local</span>
+</div>
+<!-- Safe Device Indicator Badge -->
+<div class="inline-flex items-center gap-space-xs px-space-md py-space-xxs rounded-full bg-surface-container-high shadow-inner">
+<span class="material-symbols-outlined text-secondary text-[16px]">verified_user</span>
+<span class="font-title-sm text-title-sm text-secondary font-semibold">Protegido en tu dispositivo</span>
+</div>
+</div>
+<!-- Main Player Grid -->
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-space-lg">
+<!-- Now Playing Artwork & Meta -->
+<div class="lg:col-span-5 flex flex-col gap-space-md bg-surface-container rounded-xl p-space-md">
+<div class="relative w-full aspect-square rounded-lg overflow-hidden bg-surface-container-highest shadow-md">
+<img class="w-full h-full object-cover" data-alt="Dark obsidian vinyl record cover artwork illuminated by soft neon cyan and violet reflections in a high-end music studio" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBXuFMRbuYA5mANn-Dlun6RiF_2dT-19SaAvHS_yU6BHZqrZv-_C_70tEGwv_Cxn8bzQBVVy3SXxmJ6f8L38Lviq45JGiedPLimRTCjUrrG9V0gk2MDnXpddOeAzFNaqlyg3YcjOkDUIXYdwGcCMhDvLLLBkTJ2_W-ZMMPSCKYVcldlSPrPLvhY59zF7V38BNMcGa47SnAnNl5k9boLcwnR_OM2XiAkmYMbD_fjqv1MXCxr0QGzTqGfFg">
+<div class="absolute top-space-sm left-space-sm px-space-sm py-space-xxs rounded bg-surface-container-lowest/80 backdrop-blur-md">
+<span class="font-mono-crypto text-mono-crypto text-secondary">24-bit / 96kHz Lossless</span>
+</div>
+<div class="absolute bottom-space-sm right-space-sm w-10 h-10 rounded-full bg-secondary text-on-secondary flex items-center justify-center shadow-lg">
+<span class="material-symbols-outlined text-[24px]" style="font-variation-settings: 'FILL' 1;">volume_up</span>
+</div>
+</div>
+<div>
+<div class="flex items-center justify-between">
+<h3 class="font-headline-sm text-headline-sm text-on-surface font-bold">Maqueta Master - Nocturno #4</h3>
+<span class="material-symbols-outlined text-secondary text-[20px]">favorite</span>
+</div>
+<p class="font-body-md text-body-md text-on-surface-variant">Estudio Personal • Versión Pre-mezcla 2025</p>
+</div>
+<div class="flex items-center justify-between text-on-surface-variant font-mono-crypto text-mono-crypto pt-space-xs">
+<span class="flex items-center gap-space-xs text-secondary">
+<span class="material-symbols-outlined text-[16px]">lock</span>
+              Llave única activa
+            </span>
+<span class="">WAV • 84.2 MB</span>
+</div>
+</div>
+<!-- Waveform, Controls & Vault Playlist -->
+<div class="lg:col-span-7 flex flex-col justify-between gap-space-lg">
+<!-- Live Interactive Waveform visualization -->
+<div class="bg-surface-container rounded-xl p-space-md flex flex-col gap-space-sm">
+<div class="flex items-center justify-between text-on-surface-variant font-body-sm text-body-sm">
+<span class="font-mono-crypto text-mono-crypto text-secondary font-bold">02:44</span>
+<span class="font-mono-crypto text-mono-crypto">04:12</span>
+</div>
+<!-- SVG Waveform Simulation -->
+<div class="w-full h-16 flex items-center gap-[3px] py-2 overflow-hidden" id="waveform-container">
+<!-- Render audio bar bars -->
+<div class="w-1.5 h-6 rounded-full bg-secondary"></div>
+<div class="w-1.5 h-10 rounded-full bg-secondary"></div>
+<div class="w-1.5 h-4 rounded-full bg-secondary"></div>
+<div class="w-1.5 h-12 rounded-full bg-secondary"></div>
+<div class="w-1.5 h-8 rounded-full bg-secondary"></div>
+<div class="w-1.5 h-14 rounded-full bg-secondary"></div>
+<div class="w-1.5 h-11 rounded-full bg-secondary"></div>
+<div class="w-1.5 h-7 rounded-full bg-secondary"></div>
+<div class="w-1.5 h-13 rounded-full bg-secondary"></div>
+<div class="w-1.5 h-9 rounded-full bg-secondary"></div>
+<div class="w-1.5 h-14 rounded-full bg-secondary"></div>
+<div class="w-1.5 h-10 rounded-full bg-secondary"></div>
+<div class="w-1.5 h-5 rounded-full bg-secondary"></div>
+<!-- Playhead position -->
+<div class="w-1.5 h-16 rounded-full bg-primary-fixed shadow-md animate-pulse"></div>
+<!-- Unplayed / Decrypted queue in RAM -->
+<div class="w-1.5 h-12 rounded-full bg-surface-container-highest"></div>
+<div class="w-1.5 h-8 rounded-full bg-surface-container-highest"></div>
+<div class="w-1.5 h-14 rounded-full bg-surface-container-highest"></div>
+<div class="w-1.5 h-6 rounded-full bg-surface-container-highest"></div>
+<div class="w-1.5 h-11 rounded-full bg-surface-container-highest"></div>
+<div class="w-1.5 h-7 rounded-full bg-surface-container-highest"></div>
+<div class="w-1.5 h-13 rounded-full bg-surface-container-highest"></div>
+<div class="w-1.5 h-5 rounded-full bg-surface-container-highest"></div>
+<div class="w-1.5 h-10 rounded-full bg-surface-container-highest"></div>
+<div class="w-1.5 h-6 rounded-full bg-surface-container-highest"></div>
+<div class="w-1.5 h-8 rounded-full bg-surface-container-highest"></div>
+</div>
+<!-- Transport Control Bar -->
+<div class="flex items-center justify-between pt-space-xs">
+<div class="flex items-center gap-space-sm text-on-surface-variant">
+<button class="hover:text-on-surface transition-colors"><span class="material-symbols-outlined text-[20px]">shuffle</span></button>
+<button class="hover:text-on-surface transition-colors"><span class="material-symbols-outlined text-[20px]">skip_previous</span></button>
+</div>
+<button class="w-12 h-12 rounded-full bg-primary-container text-on-primary flex items-center justify-center shadow-lg hover:bg-secondary-container transition-transform active:scale-95">
+<span class="material-symbols-outlined text-[28px]" style="font-variation-settings: 'FILL' 1;">pause</span>
+</button>
+<div class="flex items-center gap-space-sm text-on-surface-variant">
+<button class="hover:text-on-surface transition-colors"><span class="material-symbols-outlined text-[20px]">skip_next</span></button>
+<button class="hover:text-on-surface transition-colors"><span class="material-symbols-outlined text-[20px]">repeat</span></button>
+</div>
+</div>
+</div>
+<!-- Quick Vault Song Selector -->
+<div class="flex flex-col gap-space-xs">
+<span class="font-title-sm text-title-sm text-on-surface-variant font-semibold">Canciones guardadas en tu bóveda</span>
+<div class="flex flex-col gap-space-xs">
+<!-- Item 1 (Active) -->
+<div class="flex items-center justify-between p-space-sm rounded-lg bg-surface-container-high">
+<div class="flex items-center gap-space-md">
+<span class="material-symbols-outlined text-secondary text-[18px]">graphic_eq</span>
+<div class="flex flex-col">
+<span class="font-title-sm text-title-sm text-secondary font-semibold">Nocturno #4 (Take 03)</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant">FLAC • Privado</span>
+</div>
+</div>
+<span class="font-mono-crypto text-mono-crypto text-on-surface-variant">04:12</span>
+</div>
+<!-- Item 2 -->
+<div class="flex items-center justify-between p-space-sm rounded-lg bg-surface-container hover:bg-surface-container-high transition-colors">
+<div class="flex items-center gap-space-md">
+<span class="material-symbols-outlined text-outline text-[18px]">lock</span>
+<div class="flex flex-col">
+<span class="font-title-sm text-title-sm text-on-surface font-semibold">Guitarra Acústica - Arreglo B</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant">WAV • Privado</span>
+</div>
+</div>
+<span class="font-mono-crypto text-mono-crypto text-on-surface-variant">02:50</span>
+</div>
+<!-- Item 3 -->
+<div class="flex items-center justify-between p-space-sm rounded-lg bg-surface-container hover:bg-surface-container-high transition-colors">
+<div class="flex items-center gap-space-md">
+<span class="material-symbols-outlined text-outline text-[18px]">lock</span>
+<div class="flex flex-col">
+<span class="font-title-sm text-title-sm text-on-surface font-semibold">Voz Principal Limpia (Sin Afinar)</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant">WAV • Privado</span>
+</div>
+</div>
+<span class="font-mono-crypto text-mono-crypto text-on-surface-variant">03:15</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- SECTION: ¿CÓMO FUNCIONA? (3 SENCILLOS PASOS) -->
+<section class="w-full px-margin-desktop py-space-3xl bg-surface-container-lowest" id="como-funciona">
+<div class="max-w-6xl mx-auto flex flex-col items-center">
+<div class="text-center max-w-2xl mb-space-3xl">
+<span class="font-mono-crypto text-mono-crypto text-secondary uppercase font-bold tracking-wider">Cero Complicaciones</span>
+<h2 class="mt-space-xs font-headline-lg text-headline-lg text-on-surface font-bold">
+          ¿Cómo funciona MusicLock?
+        </h2>
+<p class="mt-space-sm font-body-lg text-body-lg text-on-surface-variant">
+          Seguridad de alta fidelidad explicada en el lenguaje de los amantes de la música.
+        </p>
+</div>
+<!-- 3 Steps Cards -->
+<div class="grid grid-cols-1 md:grid-cols-3 gap-space-lg w-full">
+<!-- Step 1 -->
+<div class="flex flex-col bg-surface-container-low p-space-xl rounded-2xl shadow-lg relative group hover:bg-surface-container transition-all">
+<div class="w-14 h-14 rounded-xl bg-surface-container-high text-secondary flex items-center justify-center mb-space-lg shadow-sm">
+<span class="material-symbols-outlined text-[32px]">upload_file</span>
+</div>
+<span class="font-mono-crypto text-mono-crypto text-secondary font-bold mb-space-xs">PASO 01</span>
+<h3 class="font-headline-sm text-headline-sm text-on-surface font-bold mb-space-sm">
+            Sube tus pistas
+          </h3>
+<p class="font-body-md text-body-md text-on-surface-variant">
+            Arrastra tus archivos de cualquier tipo (MP3, WAV, FLAC). Se protegen automáticamente en tu equipo antes de viajar por internet. Nadie puede interceptarlos en el camino.
+          </p>
+<div class="mt-space-xl pt-space-md flex items-center gap-space-xs text-on-surface-variant font-mono-crypto text-mono-crypto">
+<span class="material-symbols-outlined text-secondary text-[16px]">verified</span>
+<span class="">Cifrado previo al envío</span>
+</div>
+</div>
+<!-- Step 2 -->
+<div class="flex flex-col bg-surface-container-low p-space-xl rounded-2xl shadow-lg relative group hover:bg-surface-container transition-all">
+<div class="w-14 h-14 rounded-xl bg-surface-container-high text-secondary flex items-center justify-center mb-space-lg shadow-sm">
+<span class="material-symbols-outlined text-[32px]">key</span>
+</div>
+<span class="font-mono-crypto text-mono-crypto text-secondary font-bold mb-space-xs">PASO 02</span>
+<h3 class="font-headline-sm text-headline-sm text-on-surface font-bold mb-space-sm">
+            Solo tú tienes la llave
+          </h3>
+<p class="font-body-md text-body-md text-on-surface-variant">
+            Tu contraseña genera una llave digital que solo existe en tu teléfono o computadora. Sin esa llave, nadie en el mundo (ni siquiera nosotros) puede abrir ni escuchar tus canciones.
+          </p>
+<div class="mt-space-xl pt-space-md flex items-center gap-space-xs text-on-surface-variant font-mono-crypto text-mono-crypto">
+<span class="material-symbols-outlined text-secondary text-[16px]">vpn_key</span>
+<span class="">Tú eres el único dueño</span>
+</div>
+</div>
+<!-- Step 3 -->
+<div class="flex flex-col bg-surface-container-low p-space-xl rounded-2xl shadow-lg relative group hover:bg-surface-container transition-all">
+<div class="w-14 h-14 rounded-xl bg-surface-container-high text-secondary flex items-center justify-center mb-space-lg shadow-sm">
+<span class="material-symbols-outlined text-[32px]">headphones</span>
+</div>
+<span class="font-mono-crypto text-mono-crypto text-secondary font-bold mb-space-xs">PASO 03</span>
+<h3 class="font-headline-sm text-headline-sm text-on-surface font-bold mb-space-sm">
+            Escucha y comparte a tu manera
+          </h3>
+<p class="font-body-md text-body-md text-on-surface-variant">
+            Disfruta de tu música en cualquier lugar con fidelidad pura de estudio. Si quieres compartir una maqueta con un productor o amigo, tú decides a quién darle acceso y puedes revocarlo con un clic.
+          </p>
+<div class="mt-space-xl pt-space-md flex items-center gap-space-xs text-on-surface-variant font-mono-crypto text-mono-crypto">
+<span class="material-symbols-outlined text-secondary text-[16px]">share</span>
+<span class="">Permisos 100% revocables</span>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- SECTION: BENEFICIOS CLAVE -->
+<section class="w-full px-margin-desktop py-space-3xl bg-surface" id="beneficios">
+<div class="max-w-6xl mx-auto flex flex-col items-center">
+<div class="text-center max-w-2xl mb-space-3xl">
+<span class="font-mono-crypto text-mono-crypto text-secondary uppercase font-bold tracking-wider">Ventajas Directas</span>
+<h2 class="mt-space-xs font-headline-lg text-headline-lg text-on-surface font-bold">
+          Diseñado para quienes aman y cuidan su sonido
+        </h2>
+<p class="mt-space-sm font-body-lg text-body-lg text-on-surface-variant">
+          Todo lo bueno de una nube moderna sin las trampas de la vigilancia digital.
+        </p>
+</div>
+<!-- Bento Grid Layout for Benefits -->
+<div class="grid grid-cols-1 md:grid-cols-2 gap-space-lg w-full">
+<!-- Card 1 -->
+<div class="bg-surface-container-low p-space-xl rounded-2xl flex flex-col sm:flex-row gap-space-lg items-start shadow-md">
+<div class="w-12 h-12 rounded-xl bg-surface-container-high text-secondary flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-[28px]">shield</span>
+</div>
+<div class="flex flex-col">
+<h3 class="font-headline-sm text-headline-sm text-on-surface font-bold mb-space-xs">
+              Privacidad real, sin secretos
+            </h3>
+<p class="font-body-md text-body-md text-on-surface-variant">
+              A diferencia de las nubes comerciales populares, nadie escanea tus archivos ni analiza tus letras o pistas de audio para venderte anuncios ni alimentar inteligencias artificiales de terceros.
+            </p>
+</div>
+</div>
+<!-- Card 2 -->
+<div class="bg-surface-container-low p-space-xl rounded-2xl flex flex-col sm:flex-row gap-space-lg items-start shadow-md">
+<div class="w-12 h-12 rounded-xl bg-surface-container-high text-secondary flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-[28px]">surround_sound</span>
+</div>
+<div class="flex flex-col">
+<h3 class="font-headline-sm text-headline-sm text-on-surface font-bold mb-space-xs">
+              Calidad de audio original
+            </h3>
+<p class="font-body-md text-body-md text-on-surface-variant">
+              Tus canciones suenan exactamente como las grabaste en tu software o consola. Nada de recortes a 128 kbps ni compresiones destructivas que apaguen los agudos o el rango dinámico.
+            </p>
+</div>
+</div>
+<!-- Card 3 -->
+<div class="bg-surface-container-low p-space-xl rounded-2xl flex flex-col sm:flex-row gap-space-lg items-start shadow-md">
+<div class="w-12 h-12 rounded-xl bg-surface-container-high text-secondary flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-[28px]">admin_panel_settings</span>
+</div>
+<div class="flex flex-col">
+<h3 class="font-headline-sm text-headline-sm text-on-surface font-bold mb-space-xs">
+              Control total de acceso
+            </h3>
+<p class="font-body-md text-body-md text-on-surface-variant">
+              Comparte canciones o mezclas específicas con colaboradores sin tener que darles acceso a todo tu catálogo. Si cambias de opinión, apagas el enlace y su acceso se cierra en el acto.
+            </p>
+</div>
+</div>
+<!-- Card 4 -->
+<div class="bg-surface-container-low p-space-xl rounded-2xl flex flex-col sm:flex-row gap-space-lg items-start shadow-md">
+<div class="w-12 h-12 rounded-xl bg-surface-container-high text-secondary flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-[28px]">download_for_offline</span>
+</div>
+<div class="flex flex-col">
+<h3 class="font-headline-sm text-headline-sm text-on-surface font-bold mb-space-xs">
+              Libre de pérdidas y ataduras
+            </h3>
+<p class="font-body-md text-body-md text-on-surface-variant">
+              Tus audios no quedan atrapados en formatos propietarios. Descarga tus pistas y proyectos originales cuando quieras en un solo clic, sin límites de velocidad artificiales.
+            </p>
+</div>
+</div>
+</div>
+<!-- Graphic Break / Studio Visual -->
+<div class="w-full mt-space-2xl rounded-2xl overflow-hidden bg-surface-container relative shadow-xl">
+<div class="grid grid-cols-1 md:grid-cols-2 items-center">
+<div class="p-space-2xl flex flex-col gap-space-md">
+<span class="font-mono-crypto text-mono-crypto text-secondary uppercase font-semibold">Hecho para Creadores &amp; Audiófilos</span>
+<h3 class="font-headline-md text-headline-md text-on-surface font-bold">
+              Tus borradores antes de salir al público son sagrados.
+            </h3>
+<p class="font-body-md text-body-md text-on-surface-variant">
+              Protege tus proyectos contra filtraciones accidentales. Con MusicLock, la confidencialidad de tu próximo lanzamiento está matemáticamente asegurada.
+            </p>
+<div class="flex items-center gap-space-md pt-space-xs">
+<div class="flex items-center gap-space-xs">
+<span class="material-symbols-outlined text-secondary text-[20px]">security</span>
+<span class="font-title-sm text-title-sm text-on-surface font-semibold">Cero fugas</span>
+</div>
+<div class="flex items-center gap-space-xs">
+<span class="material-symbols-outlined text-secondary text-[20px]">audio_file</span>
+<span class="font-title-sm text-title-sm text-on-surface font-semibold">Formatos Hi-Res</span>
+</div>
+</div>
+</div>
+<div class="h-72 md:h-full relative overflow-hidden">
+<img class="w-full h-full object-cover" data-alt="Close up of modern analog mixing console faders illuminated with soft blue ambient studio lights, professional audio mastering environment" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDIEbLIXB-Bdz5hcCweXm5LuSX6T81o9oTyDqgQ1zvn0kOJfwLT1RbbD8gCE3HYaJumnMkRchZS60ndP0Ec0ldFfs6-8GV2tNx5ci9niEyWtPocl_sDlWuQ9QJHraDIv1oKe-HvlNTeNKjFtkoktG1gonColLTGqTPa-8193y2ODx2XDTNoA2xBJvArjoGUBvzQl5beiXoob3lt7AT8VGMYlwSNs3_8atSdArC-o4i17CQ2yGuIyj7L1w">
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- SECTION: ¿POR QUÉ ELEGIR MUSICLOCK? (COMPARATIVA CLARA) -->
+<section class="w-full px-margin-desktop py-space-3xl bg-surface-container-lowest">
+<div class="max-w-4xl mx-auto flex flex-col items-center">
+<div class="text-center max-w-2xl mb-space-3xl">
+<span class="font-mono-crypto text-mono-crypto text-secondary uppercase font-bold tracking-wider">Comparación Directa</span>
+<h2 class="mt-space-xs font-headline-lg text-headline-lg text-on-surface font-bold">
+          ¿Por qué elegir MusicLock?
+        </h2>
+<p class="mt-space-sm font-body-lg text-body-lg text-on-surface-variant">
+          Mira la diferencia entre almacenar tu arte en una nube genérica frente a una bóveda especializada.
+        </p>
+</div>
+<!-- Comparison Matrix -->
+<div class="w-full rounded-2xl bg-surface-container-low shadow-xl overflow-hidden">
+<!-- Header row -->
+<div class="grid grid-cols-12 bg-surface-container p-space-md sm:p-space-lg text-on-surface font-title-md text-title-md font-bold">
+<div class="col-span-6 sm:col-span-5">Característica</div>
+<div class="col-span-3 sm:col-span-3 text-center text-outline">Nubes Comunes<br class="hidden sm:inline"><span class="text-body-sm font-normal text-on-surface-variant">(Google Drive / Dropbox)</span></div>
+<div class="col-span-3 sm:col-span-4 text-center text-secondary">MusicLock<br class="hidden sm:inline"><span class="text-body-sm font-normal text-secondary font-semibold">(Bóveda Soberana)</span></div>
+</div>
+<!-- Row 1 -->
+<div class="grid grid-cols-12 p-space-md sm:p-space-lg items-center bg-surface-container-low hover:bg-surface-container transition-colors">
+<div class="col-span-6 sm:col-span-5 flex flex-col">
+<span class="font-title-sm text-title-sm text-on-surface font-semibold">¿Escanean tus archivos para publicidad?</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant">Privacidad de tu contenido</span>
+</div>
+<div class="col-span-3 sm:col-span-3 flex flex-col items-center justify-center text-error">
+<span class="material-symbols-outlined text-[24px]">visibility</span>
+<span class="font-title-sm text-title-sm font-semibold">Sí pueden</span>
+</div>
+<div class="col-span-3 sm:col-span-4 flex flex-col items-center justify-center text-secondary">
+<span class="material-symbols-outlined text-[24px]" style="font-variation-settings: 'FILL' 1;">lock</span>
+<span class="font-title-sm text-title-sm font-semibold">Imposible</span>
+</div>
+</div>
+<!-- Row 2 -->
+<div class="grid grid-cols-12 p-space-md sm:p-space-lg items-center bg-surface-container-lowest/40 hover:bg-surface-container transition-colors">
+<div class="col-span-6 sm:col-span-5 flex flex-col">
+<span class="font-title-sm text-title-sm text-on-surface font-semibold">Fidelidad y compresión sonora</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant">Calidad del archivo al reproducir</span>
+</div>
+<div class="col-span-3 sm:col-span-3 flex flex-col items-center justify-center text-on-surface-variant">
+<span class="material-symbols-outlined text-[24px]">music_off</span>
+<span class="font-title-sm text-title-sm">Compresión frecuente</span>
+</div>
+<div class="col-span-3 sm:col-span-4 flex flex-col items-center justify-center text-secondary">
+<span class="material-symbols-outlined text-[24px]">graphic_eq</span>
+<span class="font-title-sm text-title-sm font-semibold">100% Calidad Original</span>
+</div>
+</div>
+<!-- Row 3 -->
+<div class="grid grid-cols-12 p-space-md sm:p-space-lg items-center bg-surface-container-low hover:bg-surface-container transition-colors">
+<div class="col-span-6 sm:col-span-5 flex flex-col">
+<span class="font-title-sm text-title-sm text-on-surface font-semibold">Diseñado específicamente para audio</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant">Herramientas pensadas para músicos</span>
+</div>
+<div class="col-span-3 sm:col-span-3 flex flex-col items-center justify-center text-outline">
+<span class="material-symbols-outlined text-[24px]">close</span>
+<span class="font-title-sm text-title-sm">Genérico</span>
+</div>
+<div class="col-span-3 sm:col-span-4 flex flex-col items-center justify-center text-secondary">
+<span class="material-symbols-outlined text-[24px]">check_circle</span>
+<span class="font-title-sm text-title-sm font-semibold">Reproductor Hi-Fi Integrado</span>
+</div>
+</div>
+<!-- Row 4 -->
+<div class="grid grid-cols-12 p-space-md sm:p-space-lg items-center bg-surface-container-lowest/40 hover:bg-surface-container transition-colors">
+<div class="col-span-6 sm:col-span-5 flex flex-col">
+<span class="font-title-sm text-title-sm text-on-surface font-semibold">Control de enlaces compartidos</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant">Protección contra filtraciones</span>
+</div>
+<div class="col-span-3 sm:col-span-3 flex flex-col items-center justify-center text-outline">
+<span class="font-title-sm text-title-sm">Básico</span>
+</div>
+<div class="col-span-3 sm:col-span-4 flex flex-col items-center justify-center text-secondary">
+<span class="material-symbols-outlined text-[24px]">link_off</span>
+<span class="font-title-sm text-title-sm font-semibold">Revocación instantánea</span>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- SECTION: PLANES CLAROS Y SIN SORPRESAS -->
+<section class="w-full px-margin-desktop py-space-3xl bg-surface" id="planes">
+<div class="max-w-5xl mx-auto flex flex-col items-center">
+<div class="text-center max-w-2xl mb-space-3xl">
+<span class="font-mono-crypto text-mono-crypto text-secondary uppercase font-bold tracking-wider">Tarifas Transparentes</span>
+<h2 class="mt-space-xs font-headline-lg text-headline-lg text-on-surface font-bold">
+          Planes claros y sin sorpresas
+        </h2>
+<p class="mt-space-sm font-body-lg text-body-lg text-on-surface-variant">
+          Empieza gratis hoy mismo y amplía solo si necesitas guardar toda tu discografía.
+        </p>
+</div>
+<!-- Pricing Cards -->
+<div class="grid grid-cols-1 md:grid-cols-2 gap-space-xl w-full max-w-4xl">
+<!-- Free Plan -->
+<div class="bg-surface-container-low p-space-2xl rounded-2xl flex flex-col justify-between shadow-lg relative hover:bg-surface-container transition-all">
+<div class="flex flex-col">
+<div class="flex items-center justify-between mb-space-sm">
+<h3 class="font-headline-sm text-headline-sm text-on-surface font-bold">Plan Gratis</h3>
+<span class="px-space-sm py-space-xxs rounded bg-surface-container-high text-on-surface-variant font-mono-crypto text-mono-crypto">Esencial</span>
+</div>
+<div class="flex items-baseline gap-space-xs mb-space-lg">
+<span class="font-display-lg text-display-lg text-on-surface font-bold">$0</span>
+<span class="font-body-md text-body-md text-on-surface-variant">/ mes para siempre</span>
+</div>
+<p class="font-body-md text-body-md text-on-surface-variant mb-space-lg">
+              Ideal para guardar tus maquetas más importantes y probar la tranquilidad de la privacidad total.
+            </p>
+<!-- Feature list -->
+<ul class="flex flex-col gap-space-md mb-space-xl">
+<li class="flex items-center gap-space-sm font-body-md text-body-md text-on-surface">
+<span class="material-symbols-outlined text-secondary text-[20px]">check</span>
+<span class=""><strong>500 MB</strong> de almacenamiento privado</span>
+</li>
+<li class="flex items-center gap-space-sm font-body-md text-body-md text-on-surface">
+<span class="material-symbols-outlined text-secondary text-[20px]">check</span>
+<span class="">Reproductor web completo</span>
+</li>
+<li class="flex items-center gap-space-sm font-body-md text-body-md text-on-surface">
+<span class="material-symbols-outlined text-secondary text-[20px]">check</span>
+<span class="">Protección automática en tu equipo</span>
+</li>
+<li class="flex items-center gap-space-sm font-body-md text-body-md text-on-surface">
+<span class="material-symbols-outlined text-secondary text-[20px]">check</span>
+<span class="">Sin publicidad de ningún tipo</span>
+</li>
+</ul>
+</div>
+<a class="w-full inline-flex items-center justify-center py-space-md rounded-xl bg-surface-container-high text-on-surface font-title-md text-title-md font-semibold hover:bg-surface-container-highest transition-all shadow-sm" href="#">
+            Empezar Gratis
+          </a>
+</div>
+<!-- Pro Plan (Recommended) -->
+<div class="bg-surface-container p-space-2xl rounded-2xl flex flex-col justify-between shadow-2xl relative">
+<!-- Recommended Pill -->
+<div class="absolute -top-3 right-space-xl px-space-md py-space-xxs rounded-full bg-secondary text-on-secondary font-mono-crypto text-mono-crypto font-bold shadow-md">
+            RECOMENDADO
+          </div>
+<div class="flex flex-col">
+<div class="flex items-center justify-between mb-space-sm">
+<h3 class="font-headline-sm text-headline-sm text-secondary font-bold">Plan Pro</h3>
+<span class="px-space-sm py-space-xxs rounded bg-secondary/15 text-secondary font-mono-crypto text-mono-crypto font-semibold">Sin Límites</span>
+</div>
+<div class="flex items-baseline gap-space-xs mb-space-lg">
+<span class="font-display-lg text-display-lg text-on-surface font-bold">$9.99</span>
+<span class="font-body-md text-body-md text-on-surface-variant">/ mes</span>
+</div>
+<p class="font-body-md text-body-md text-on-surface-variant mb-space-lg">
+              Para productores, músicos independientes y coleccionistas que exigen espacio y calidad de estudio.
+            </p>
+<!-- Feature list -->
+<ul class="flex flex-col gap-space-md mb-space-xl">
+<li class="flex items-center gap-space-sm font-body-md text-body-md text-on-surface">
+<span class="material-symbols-outlined text-secondary text-[20px]">check</span>
+<span class=""><strong>10 GB</strong> para álbumes completos y maquetas</span>
+</li>
+<li class="flex items-center gap-space-sm font-body-md text-body-md text-on-surface">
+<span class="material-symbols-outlined text-secondary text-[20px]">check</span>
+<span class="">Audio en alta resolución ilimitado (FLAC/WAV 24-bit)</span>
+</li>
+<li class="flex items-center gap-space-sm font-body-md text-body-md text-on-surface">
+<span class="material-symbols-outlined text-secondary text-[20px]">check</span>
+<span class="">Enlaces compartidos sin límite y con contraseña</span>
+</li>
+<li class="flex items-center gap-space-sm font-body-md text-body-md text-on-surface">
+<span class="material-symbols-outlined text-secondary text-[20px]">check</span>
+<span class="">Descargas de catálogo en un solo clic</span>
+</li>
+</ul>
+</div>
+<a class="w-full inline-flex items-center justify-center py-space-md rounded-xl bg-primary-container text-on-primary font-title-md text-title-md font-semibold hover:bg-secondary-container hover:text-on-secondary-container transition-all shadow-xl" href="#">
+            Probar Plan Pro (14 días gratis)
+          </a>
+</div>
+</div>
+</div>
+</section>
+<!-- SECTION: FAQ AMIGABLE -->
+<section class="w-full px-margin-desktop py-space-3xl bg-surface-container-lowest">
+<div class="max-w-3xl mx-auto flex flex-col items-center">
+<div class="text-center max-w-xl mb-space-2xl">
+<span class="font-mono-crypto text-mono-crypto text-secondary uppercase font-bold tracking-wider">Resolvemos tus dudas</span>
+<h2 class="mt-space-xs font-headline-lg text-headline-lg text-on-surface font-bold">
+          Preguntas Frecuentes
+        </h2>
+<p class="mt-space-sm font-body-lg text-body-lg text-on-surface-variant">
+          Respuestas sencillas y directas sobre cómo protegemos tu arte.
+        </p>
+</div>
+<!-- FAQ Accordion items -->
+<div class="flex flex-col gap-space-md w-full">
+<!-- FAQ 1 -->
+<div class="bg-surface-container-low rounded-xl p-space-lg shadow-sm">
+<div class="flex items-start gap-space-md">
+<span class="material-symbols-outlined text-secondary text-[24px] shrink-0 mt-0.5">key</span>
+<div class="flex flex-col">
+<h3 class="font-headline-sm text-headline-sm text-on-surface font-bold mb-space-xs">
+                ¿Qué significa que solo yo tengo la llave?
+              </h3>
+<p class="font-body-md text-body-md text-on-surface-variant">
+                Significa que tu música se guarda bajo un candado digital que solo se abre cuando tú inicias sesión con tu clave personal. Si nuestros servidores sufrieran un ataque o alguien intentara entrar, tus canciones siguen siendo ruido totalmente ilegible para cualquier extraño.
+              </p>
+</div>
+</div>
+</div>
+<!-- FAQ 2 -->
+<div class="bg-surface-container-low rounded-xl p-space-lg shadow-sm">
+<div class="flex items-start gap-space-md">
+<span class="material-symbols-outlined text-secondary text-[24px] shrink-0 mt-0.5">smartphone</span>
+<div class="flex flex-col">
+<h3 class="font-headline-sm text-headline-sm text-on-surface font-bold mb-space-xs">
+                ¿Puedo escuchar mis canciones desde mi celular?
+              </h3>
+<p class="font-body-md text-body-md text-on-surface-variant">
+                Sí, con total fluidez. MusicLock funciona directamente en el navegador de cualquier teléfono iPhone o Android sin que tengas que descargar aplicaciones pesadas que ralenticen tu memoria.
+              </p>
+</div>
+</div>
+</div>
+<!-- FAQ 3 -->
+<div class="bg-surface-container-low rounded-xl p-space-lg shadow-sm">
+<div class="flex items-start gap-space-md">
+<span class="material-symbols-outlined text-secondary text-[24px] shrink-0 mt-0.5">download_done</span>
+<div class="flex flex-col">
+<h3 class="font-headline-sm text-headline-sm text-on-surface font-bold mb-space-xs">
+                ¿Puedo cancelar o descargar mi música cuando quiera?
+              </h3>
+<p class="font-body-md text-body-md text-on-surface-variant">
+                Por supuesto. Eres libre en todo momento. Puedes exportar o descargar todas tus pistas originales en su formato de origen en un solo clic y eliminar tu cuenta cuando lo desees, sin preguntas ni penalizaciones.
+              </p>
+</div>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- SECTION: CALL TO ACTION FINAL -->
+<section class="w-full px-margin-desktop py-space-3xl bg-surface relative overflow-hidden">
+<div class="absolute inset-0 bg-primary-container/10 pointer-events-none"></div>
+<div class="relative z-10 max-w-4xl mx-auto rounded-3xl bg-surface-container-high p-space-2xl md:p-space-3xl text-center flex flex-col items-center shadow-2xl">
+<div class="w-16 h-16 rounded-2xl bg-primary-container text-on-primary flex items-center justify-center mb-space-lg shadow-lg">
+<span class="material-symbols-outlined text-[36px]" style="font-variation-settings: 'FILL' 1;">lock_open</span>
+</div>
+<h2 class="font-headline-lg text-headline-lg text-on-surface font-bold max-w-2xl">
+        Empieza a proteger tu música hoy mismo.
+      </h2>
+<p class="mt-space-md font-body-lg text-body-lg text-on-surface-variant max-w-xl">
+        Únete a cientos de músicos, productores y apasionados del sonido que decidieron recuperar la propiedad de sus pistas.
+      </p>
+<div class="mt-space-2xl flex flex-col sm:flex-row items-center gap-space-md">
+<a class="inline-flex items-center justify-center gap-space-sm px-space-2xl py-space-md rounded-xl bg-primary-container text-on-primary font-title-md text-title-md font-semibold shadow-xl hover:bg-secondary-container hover:text-on-secondary-container transition-all" href="#">
+<span class="material-symbols-outlined text-[20px]">music_note</span>
+<span class="">Crear mi cuenta gratis</span>
+</a>
+</div>
+<div class="mt-space-lg flex items-center justify-center gap-space-xs text-on-surface-variant font-mono-crypto text-mono-crypto">
+<span class="material-symbols-outlined text-secondary text-[16px]">credit_card_off</span>
+<span class="">Sin tarjeta de crédito requerida • 500 MB libres para siempre</span>
+</div>
+</div>
+</section>
+</div></main><footer class="w-full bg-surface-container-lowest text-on-surface-variant"><div class="w-full px-margin-desktop py-space-3xl"><div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-space-2xl mb-space-3xl"><div class="lg:col-span-2 flex flex-col gap-space-md pr-space-lg"><div class="flex items-center gap-space-sm"><div class="flex items-center justify-center w-8 h-8 rounded-lg bg-surface-container-high text-secondary"><span class="material-symbols-outlined text-[18px]">lock</span></div><span class="font-headline-sm text-headline-sm text-on-surface font-bold">MusicLock</span><span class="material-symbols-outlined text-secondary text-[16px]">graphic_eq</span></div><p class="font-body-md text-body-md text-on-surface-variant max-w-sm">Plataforma de audio de privacidad absoluta. Cifrado AES-GCM 256 en cliente, verificación ACRCloud y resguardo soberano para audiófilos, productores y creadores independientes.</p><div class="inline-flex items-center gap-space-xs px-space-sm py-space-xxs rounded-full bg-surface-container-high w-fit"><span class="w-2 h-2 rounded-full bg-secondary animate-pulse"></span><span class="font-mono-label text-mono-label text-secondary">RAM Decrypt: AES-GCM Active</span></div></div><div class="flex flex-col gap-space-md"><span class="font-title-sm text-title-sm text-on-surface uppercase font-bold tracking-wider">Producto</span><ul class="flex flex-col gap-space-sm"><li class="font-body-md text-body-md"><a class="hover:text-on-surface transition-colors" data-path="como-funciona" href="#">¿Cómo funciona?</a></li><li class="font-body-md text-body-md"><a class="hover:text-on-surface transition-colors" data-path="beneficios" href="#">Beneficios clave</a></li><li class="font-body-md text-body-md"><a class="hover:text-on-surface transition-colors" data-path="planes" href="#">Planes y Cuotas</a></li><li class="font-body-md text-body-md"><a class="hover:text-on-surface transition-colors" data-path="reproductor-web" href="#">Reproductor Web</a></li></ul></div><div class="flex flex-col gap-space-md"><span class="font-title-sm text-title-sm text-on-surface uppercase font-bold tracking-wider">Criptografía</span><ul class="flex flex-col gap-space-sm"><li class="font-body-md text-body-md"><a class="hover:text-on-surface transition-colors" data-path="seguridad-facil" href="#">Seguridad fácil</a></li><li class="font-body-md text-body-md"><a class="hover:text-on-surface transition-colors" data-path="arquitectura-zero-knowledge" href="#">Zero-Knowledge</a></li><li class="font-body-md text-body-md"><a class="hover:text-on-surface transition-colors" data-path="auditoria-seguridad" href="#">Auditoría Externa</a></li><li class="font-body-md text-body-md"><a class="hover:text-on-surface transition-colors" data-path="verificacion-derechos" href="#">Filtro ACRCloud</a></li></ul></div><div class="flex flex-col gap-space-md"><span class="font-title-sm text-title-sm text-on-surface uppercase font-bold tracking-wider">Legal &amp; Cuenta</span><ul class="flex flex-col gap-space-sm"><li class="font-body-md text-body-md"><a class="hover:text-on-surface transition-colors" data-path="privacidad" href="#">Política de Privacidad</a></li><li class="font-body-md text-body-md"><a class="hover:text-on-surface transition-colors" data-path="terminos" href="#">Términos del Servicio</a></li><li class="font-body-md text-body-md"><a class="hover:text-on-surface transition-colors" data-path="login" href="#">Iniciar Sesión</a></li><li class="font-body-md text-body-md"><a class="hover:text-on-surface transition-colors" data-path="registro" href="#">Crear Bóveda</a></li></ul></div></div><div class="pt-space-xl flex flex-col sm:flex-row items-center justify-between gap-space-md"><span class="font-body-sm text-body-sm text-on-surface-variant">© 2025 MusicLock. Todos los derechos reservados. Cifrado soberano de extremo a extremo.</span><div class="flex items-center gap-space-lg"><a class="font-body-sm text-body-sm text-on-surface-variant hover:text-on-surface transition-colors" data-path="privacidad" href="#">Privacidad</a><a class="font-body-sm text-body-sm text-on-surface-variant hover:text-on-surface transition-colors" data-path="terminos" href="#">Términos</a><span class="font-mono-label text-mono-label text-outline">SHA256-CLIENT-VERIFIED</span></div></div></div></footer>
+
+</body></html>
