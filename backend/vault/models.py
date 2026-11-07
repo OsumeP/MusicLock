@@ -10,6 +10,7 @@ import uuid
 
 from django.conf import settings
 from django.db import models
+from django.utils import timezone
 
 
 def build_storage_key(owner_id: int, song_uuid: uuid.UUID) -> str:
@@ -71,3 +72,23 @@ class Favorite(models.Model):
 
     def __str__(self) -> str:
         return f"{self.user} ♥ {self.song}"
+
+
+class ListeningHistory(models.Model):
+    """
+    Una reproducción: usuario, canción y momento (Estadísticas FR-01). Alimenta
+    "Reproducido recientemente" (Interfaz FR-05, Estadísticas FR-06) y, más
+    adelante, las estadísticas y tendencias.
+    """
+
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="listening_history")
+    song = models.ForeignKey(Song, on_delete=models.CASCADE, related_name="plays")
+    played_at = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        ordering = ["-played_at", "-id"]
+        indexes = [models.Index(fields=["user", "-played_at"])]
+        verbose_name_plural = "listening history"
+
+    def __str__(self) -> str:
+        return f"{self.user} ▶ {self.song} ({self.played_at:%Y-%m-%d %H:%M})"

@@ -9,7 +9,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from . import services
-from .serializers import SongSerializer, SongUpdateSerializer, SongUploadSerializer
+from .serializers import HistoryEntrySerializer, SongSerializer, SongUpdateSerializer, SongUploadSerializer
 
 logger = logging.getLogger(__name__)
 
@@ -166,3 +166,33 @@ class SongFavoriteView(APIView):
         except services.SongNotFound:
             return _not_found()
         return Response(SongSerializer(song).data)
+
+
+class SongPlaysView(APIView):
+    """POST /api/songs/{id}/plays — registra una reproducción (la llama el reproductor al empezar a sonar)."""
+
+    def post(self, request, song_id):
+        try:
+            entry = services.record_play(request.user, song_id)
+        except services.SongNotFound:
+            return _not_found()
+        entry = services.history_for(request.user).get(pk=entry.pk)
+        return Response(HistoryEntrySerializer(entry).data, status=status.HTTP_201_CREATED)
+
+
+class HistoryView(APIView):
+    """
+    GET    /api/history?distinct=&page=&page_size= — reproducciones propias, la más
+           reciente primero; `distinct=1` deja solo la última de cada canción.
+    DELETE /api/history — borra todo el historial del usuario.
+    """
+
+    def get(self, request):
+        entries = services.history_for(request.user, distinct=request.query_params.get("distinct") in ("1", "true"))
+        paginator = SongPagination()
+        page = paginator.paginate_queryset(entries, request, view=self)
+        return paginator.get_paginated_response(HistoryEntrySerializer(page, many=True).data)
+
+    def delete(self, request):
+        services.clear_history(request.user)
+        return Response(status=status.HTTP_204_NO_CONTENT)

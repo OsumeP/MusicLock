@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router'
 
-import { listSongs, type SongPage } from '../api/songs'
+import { listHistory, type HistoryPage } from '../api/history'
+import { listSongs, type Song, type SongPage } from '../api/songs'
 import { useAuth } from '../auth/session'
 import { Alert } from '../components/ui'
 import { MIN_PBKDF2_ITERATIONS } from '../crypto'
@@ -11,11 +12,46 @@ import { UploadModal } from '../vault/UploadModal'
 
 const RECENT_COUNT = 5
 
+/** Lista corta de canciones reproducibles (secciones del dashboard). La cola es la propia lista. */
+function CompactSongList({ songs, dateOf, label }: { songs: Song[]; dateOf: (song: Song, index: number) => string; label: string }) {
+  const player = usePlayer()
+  return (
+    <ul className="divide-y divide-border-subtle/60">
+      {songs.map((song, i) => {
+        const isCurrent = player.current?.id === song.id
+        const isPlaying = isCurrent && player.status === 'playing'
+        const date = dateOf(song, i)
+        return (
+          <li key={song.id} className={`flex items-center gap-4 px-5 py-3 ${isCurrent ? 'bg-primary-container/30' : ''}`}>
+            <button
+              type="button"
+              onClick={() => (isCurrent && player.status !== 'loading' && player.status !== 'error' ? player.togglePlay() : player.play(song, songs))}
+              aria-label={`${isPlaying ? 'Pausar' : 'Reproducir'} ${song.title}`}
+              className={`grid size-10 shrink-0 place-items-center rounded-lg transition ${isCurrent ? 'bg-primary text-white' : 'bg-surface-container-lowest text-primary-light hover:bg-primary hover:text-white'}`}
+            >
+              <span aria-hidden className="material-symbols-outlined">{isPlaying ? 'pause' : 'play_arrow'}</span>
+            </button>
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-title-sm font-semibold">{song.title}</p>
+              <p className="truncate text-body-sm text-on-surface-variant">{song.artist || 'Artista desconocido'}</p>
+            </div>
+            <span className="hidden font-mono text-mono-crypto text-on-surface-variant sm:block">{formatDuration(song.duration)}</span>
+            <span className="hidden font-mono text-mono-crypto text-on-surface-variant md:block" title={`${label} ${new Date(date).toLocaleString('es-CO')}`}>
+              {formatRelativeDate(date)}
+            </span>
+          </li>
+        )
+      })}
+    </ul>
+  )
+}
+
 type LoadResult = { key: number; page: SongPage } | { key: number; error: true }
+type PlayedResult = { key: string; page: HistoryPage } | { key: string; error: true }
 
 /**
  * Dashboard "Inicio" (mockup musiclock_inicio_vertical_archivos_tendencias_y_cuota),
- * simplificado al alcance del MVP: recientes, cuota y estado del cifrado.
+ * simplificado al alcance del MVP+: reproducido y subido recientemente, cuota y estado del cifrado.
  */
 export function HomePage() {
   const { session, refreshUser } = useAuth()
@@ -23,6 +59,17 @@ export function HomePage() {
   const [reloadKey, setReloadKey] = useState(0)
   const [result, setResult] = useState<LoadResult | null>(null)
   const [uploadOpen, setUploadOpen] = useState(false)
+  const [playedResult, setPlayedResult] = useState<PlayedResult | null>(null)
+  // Se recarga con "Reintentar" y cada vez que se registra una reproducción.
+  const playedKey = `${reloadKey}|${player.historyVersion}`
+
+  useEffect(() => {
+    const controller = new AbortController()
+    listHistory({ pageSize: RECENT_COUNT, distinct: true }, controller.signal)
+      .then((page) => setPlayedResult({ key: playedKey, page }))
+      .catch(() => !controller.signal.aborted && setPlayedResult({ key: playedKey, error: true }))
+    return () => controller.abort()
+  }, [playedKey])
 
   useEffect(() => {
     const controller = new AbortController()
@@ -41,6 +88,8 @@ export function HomePage() {
   const { user } = session
   const page = result && 'page' in result ? result.page : null
   const failed = result && 'error' in result
+  const played = playedResult && 'page' in playedResult ? playedResult.page : null
+  const playedFailed = playedResult && 'error' in playedResult
   const percent = Math.min(100, (user.usedStorage / user.plan.maxStorageBytes) * 100)
 
   return (
@@ -72,59 +121,71 @@ export function HomePage() {
       </section>
 
       <div className="grid gap-6 lg:grid-cols-3">
-        {/* Recientes */}
-        <section className="flex flex-col rounded-xl bg-surface-card ring-1 ring-border-subtle lg:col-span-2" aria-labelledby="recientes">
-          <div className="flex items-center justify-between border-b border-border-subtle px-5 py-4">
-            <h2 id="recientes" className="font-display text-headline-sm font-medium">Subidos recientemente</h2>
-            {page && page.count > 0 && (
-              <Link to="/archivos" className="text-body-sm text-primary-light hover:text-on-surface">
-                Ver los {page.count} →
-              </Link>
+        <div className="flex flex-col gap-6 lg:col-span-2">
+          {/* Reproducido recientemente (Interfaz FR-05) */}
+          <section className="flex flex-col rounded-xl bg-surface-card ring-1 ring-border-subtle" aria-labelledby="reproducidos">
+            <div className="flex items-center justify-between border-b border-border-subtle px-5 py-4">
+              <h2 id="reproducidos" className="font-display text-headline-sm font-medium">Reproducido recientemente</h2>
+              {played && played.count > 0 && (
+                <Link to="/recientes" className="text-body-sm text-primary-light hover:text-on-surface">
+                  Ver historial →
+                </Link>
+              )}
+            </div>
+            {playedFailed && (
+              <div className="p-5">
+                <Alert tone="error">
+                  No se pudo cargar tu historial.{' '}
+                  <button type="button" className="font-semibold underline" onClick={() => setReloadKey((k) => k + 1)}>Reintentar</button>
+                </Alert>
+              </div>
             )}
-          </div>
-          {failed && (
-            <div className="p-5">
-              <Alert tone="error">
-                No se pudieron cargar tus canciones.{' '}
-                <button type="button" className="font-semibold underline" onClick={() => setReloadKey((k) => k + 1)}>Reintentar</button>
-              </Alert>
+            {!playedResult && <p className="px-5 py-10 text-center font-mono text-mono-crypto text-on-surface-variant" role="status">Cargando…</p>}
+            {played && played.entries.length === 0 && (
+              <div className="flex flex-col items-center gap-2 px-5 py-8 text-center">
+                <span aria-hidden className="material-symbols-outlined text-[40px] text-border-blue">history</span>
+                <p className="text-title-sm font-semibold">Aún no has reproducido nada</p>
+                <p className="text-body-md text-on-surface-variant">Pulsa ▶ en una canción y aparecerá aquí.</p>
+              </div>
+            )}
+            {played && played.entries.length > 0 && (
+              <CompactSongList
+                songs={played.entries.map((e) => e.song)}
+                dateOf={(_song, i) => played.entries[i].playedAt}
+                label="Reproducida"
+              />
+            )}
+          </section>
+
+          {/* Subidos recientemente */}
+          <section className="flex flex-col rounded-xl bg-surface-card ring-1 ring-border-subtle" aria-labelledby="recientes">
+            <div className="flex items-center justify-between border-b border-border-subtle px-5 py-4">
+              <h2 id="recientes" className="font-display text-headline-sm font-medium">Subidos recientemente</h2>
+              {page && page.count > 0 && (
+                <Link to="/archivos" className="text-body-sm text-primary-light hover:text-on-surface">
+                  Ver los {page.count} →
+                </Link>
+              )}
             </div>
-          )}
-          {!result && <p className="px-5 py-10 text-center font-mono text-mono-crypto text-on-surface-variant" role="status">Cargando…</p>}
-          {page && page.songs.length === 0 && (
-            <div className="flex flex-col items-center gap-2 px-5 py-10 text-center">
-              <span aria-hidden className="material-symbols-outlined text-[40px] text-border-blue">library_music</span>
-              <p className="text-title-sm font-semibold">Aún no tienes canciones</p>
-              <p className="text-body-md text-on-surface-variant">Sube tu primer MP3 con el botón “Subir audio”.</p>
-            </div>
-          )}
-          {page && page.songs.length > 0 && (
-            <ul className="divide-y divide-border-subtle/60">
-              {page.songs.map((song) => {
-                const isCurrent = player.current?.id === song.id
-                const isPlaying = isCurrent && player.status === 'playing'
-                return (
-                  <li key={song.id} className={`flex items-center gap-4 px-5 py-3 ${isCurrent ? 'bg-primary-container/30' : ''}`}>
-                    <button
-                      type="button"
-                      onClick={() => (isCurrent && player.status !== 'loading' && player.status !== 'error' ? player.togglePlay() : player.play(song, page.songs))}
-                      aria-label={`${isPlaying ? 'Pausar' : 'Reproducir'} ${song.title}`}
-                      className={`grid size-10 shrink-0 place-items-center rounded-lg transition ${isCurrent ? 'bg-primary text-white' : 'bg-surface-container-lowest text-primary-light hover:bg-primary hover:text-white'}`}
-                    >
-                      <span aria-hidden className="material-symbols-outlined">{isPlaying ? 'pause' : 'play_arrow'}</span>
-                    </button>
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate text-title-sm font-semibold">{song.title}</p>
-                      <p className="truncate text-body-sm text-on-surface-variant">{song.artist || 'Artista desconocido'}</p>
-                    </div>
-                    <span className="hidden font-mono text-mono-crypto text-on-surface-variant sm:block">{formatDuration(song.duration)}</span>
-                    <span className="hidden font-mono text-mono-crypto text-on-surface-variant md:block">{formatRelativeDate(song.createdAt)}</span>
-                  </li>
-                )
-              })}
-            </ul>
-          )}
-        </section>
+            {failed && (
+              <div className="p-5">
+                <Alert tone="error">
+                  No se pudieron cargar tus canciones.{' '}
+                  <button type="button" className="font-semibold underline" onClick={() => setReloadKey((k) => k + 1)}>Reintentar</button>
+                </Alert>
+              </div>
+            )}
+            {!result && <p className="px-5 py-10 text-center font-mono text-mono-crypto text-on-surface-variant" role="status">Cargando…</p>}
+            {page && page.songs.length === 0 && (
+              <div className="flex flex-col items-center gap-2 px-5 py-10 text-center">
+                <span aria-hidden className="material-symbols-outlined text-[40px] text-border-blue">library_music</span>
+                <p className="text-title-sm font-semibold">Aún no tienes canciones</p>
+                <p className="text-body-md text-on-surface-variant">Sube tu primer MP3 con el botón “Subir audio”.</p>
+              </div>
+            )}
+            {page && page.songs.length > 0 && <CompactSongList songs={page.songs} dateOf={(song) => song.createdAt} label="Subida" />}
+          </section>
+        </div>
 
         <div className="flex flex-col gap-6">
           {/* Cuota */}

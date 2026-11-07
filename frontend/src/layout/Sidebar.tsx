@@ -16,7 +16,7 @@ const NAV: NavItem[] = [
   { label: 'Favoritos', icon: 'favorite', to: '/favoritos' },
   { label: 'Playlists', icon: 'queue_music' },
   { label: 'Compartido conmigo', icon: 'share' },
-  { label: 'Recientes', icon: 'history' },
+  { label: 'Recientes', icon: 'history', to: '/recientes' },
   { label: 'Tendencias', icon: 'local_fire_department' },
   { label: 'Admin / Planes', icon: 'manage_accounts' },
 ]

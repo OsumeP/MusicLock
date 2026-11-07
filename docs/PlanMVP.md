@@ -219,6 +219,8 @@ Tablas `favorite`, `listening_history`, `playlist` y `playlist_song` se crean so
 | PATCH | `/api/songs/{id}` | Editar título / artista |
 | DELETE | `/api/songs/{id}` | Elimina el blob y libera la cuota |
 | PUT / DELETE | `/api/songs/{id}/favorite` | MVP+ (día 11): marcar / desmarcar favorita (idempotente). `GET /api/songs?favorites=1` lista solo favoritas |
+| POST | `/api/songs/{id}/plays` | MVP+ (día 12): registra una reproducción (la llama el reproductor al empezar a sonar) |
+| GET / DELETE | `/api/history` | MVP+ (día 12): historial paginado (`?distinct=1`: última reproducción de cada canción) / borrar todo el historial |
 
 ---
 

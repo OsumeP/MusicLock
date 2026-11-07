@@ -1,7 +1,7 @@
 from django.contrib import admin
 from django.template.defaultfilters import filesizeformat
 
-from .models import Favorite, Song
+from .models import Favorite, ListeningHistory, Song
 
 
 @admin.register(Song)
@@ -25,3 +25,10 @@ class FavoriteAdmin(admin.ModelAdmin):
     list_display = ("song", "user", "created_at")
     search_fields = ("song__title", "user__email")
     readonly_fields = ("user", "song", "created_at")
+
+
+@admin.register(ListeningHistory)
+class ListeningHistoryAdmin(admin.ModelAdmin):
+    list_display = ("song", "user", "played_at")
+    search_fields = ("song__title", "user__email")
+    readonly_fields = ("user", "song", "played_at")

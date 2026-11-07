@@ -2,7 +2,7 @@ from rest_framework import serializers
 
 from accounts.crypto_fields import IV_BYTES, WRAPPED_KEY_BYTES, Base64BytesField
 
-from .models import Song
+from .models import ListeningHistory, Song
 
 # Límite razonable para la duración declarada (6 h): evita valores absurdos.
 MAX_DURATION_SECONDS = 6 * 60 * 60
@@ -62,4 +62,22 @@ class SongSerializer(serializers.ModelSerializer):
             "is_favorite",
             "favorited_at",
         ]
+        read_only_fields = fields
+
+
+class HistoryEntrySerializer(serializers.ModelSerializer):
+    """Una reproducción con su canción completa (para poder reproducirla de nuevo)."""
+
+    song = serializers.SerializerMethodField()
+
+    def get_song(self, entry: ListeningHistory):
+        song = entry.song
+        # Anotaciones de `services.history_for` para el corazón de favoritos.
+        song.is_favorite = getattr(entry, "song_is_favorite", False)
+        song.favorited_at = getattr(entry, "song_favorited_at", None)
+        return SongSerializer(song).data
+
+    class Meta:
+        model = ListeningHistory
+        fields = ["id", "played_at", "song"]
         read_only_fields = fields

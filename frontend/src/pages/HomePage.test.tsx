@@ -28,6 +28,7 @@ function songDto(i: number) {
 
 let calls: string[]
 let listResponse: () => Response
+let historyResponse: () => Response
 
 async function renderHome() {
   const auth = {
@@ -50,9 +51,11 @@ describe('HomePage', () => {
   beforeEach(() => {
     calls = []
     listResponse = () => new Response(JSON.stringify({ count: 0, next: null, previous: null, results: [] }))
+    historyResponse = () => new Response(JSON.stringify({ count: 0, next: null, previous: null, results: [] }))
     vi.stubGlobal('fetch', vi.fn(async (url: string) => {
       calls.push(url)
-      return url.includes('/blob') ? new Response('{"code":"blob_missing"}', { status: 404 }) : listResponse()
+      if (url.includes('/blob')) return new Response('{"code":"blob_missing"}', { status: 404 })
+      return url.startsWith('/api/history') ? historyResponse() : listResponse()
     }))
   })
   afterEach(() => vi.unstubAllGlobals())
@@ -81,5 +84,24 @@ describe('HomePage', () => {
 
     await u.click(screen.getByRole('button', { name: 'Reproducir Canción 3' }))
     expect(calls).toContain(`/api/songs/${songDto(3).id}/blob`)
+  })
+
+  it('muestra lo reproducido recientemente: 5 canciones sin repetir, con enlace al historial', async () => {
+    const played = new Date(Date.now() - 2 * 60 * 1000).toISOString()
+    historyResponse = () =>
+      new Response(JSON.stringify({ count: 2, next: null, previous: null, results: [7, 8].map((i) => ({ id: i, played_at: played, song: songDto(i) })) }))
+    await renderHome()
+
+    const section = screen.getByRole('region', { name: 'Reproducido recientemente' })
+    expect(await within(section).findByText('Canción 7')).toBeInTheDocument()
+    expect(within(section).getAllByText('hace 2 minutos')).toHaveLength(2)
+    expect(within(section).getByRole('link', { name: 'Ver historial →' })).toHaveAttribute('href', '/recientes')
+    const params = new URL(calls.find((c) => c.startsWith('/api/history'))!, 'http://x').searchParams
+    expect([params.get('distinct'), params.get('page_size')]).toEqual(['1', '5'])
+  })
+
+  it('sin reproducciones invita a pulsar ▶', async () => {
+    await renderHome()
+    expect(await screen.findByText('Aún no has reproducido nada')).toBeInTheDocument()
   })
 })

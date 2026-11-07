@@ -12,6 +12,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 
 import { ApiError } from '../api/client'
+import { recordPlay } from '../api/history'
 import { downloadEncryptedSong, type Song } from '../api/songs'
 import { useAuth } from '../auth/session'
 import { DecryptionError, decryptAudio } from '../crypto'
@@ -46,6 +47,23 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   const [currentTime, setCurrentTime] = useState(0)
   const [duration, setDuration] = useState(0)
   const [volume, setVolumeState] = useState(1)
+  const [historyVersion, setHistoryVersion] = useState(0)
+  /** Canción cargada cuya reproducción aún no se registró (se registra al empezar a sonar). */
+  const unrecordedSongRef = useRef<string | null>(null)
+
+  /**
+   * Registra la reproducción solo la primera vez que suena cada canción cargada:
+   * pausar y reanudar no cuenta como otra reproducción. Si falla, no interrumpe el audio.
+   */
+  const handlePlaying = useCallback(() => {
+    setStatus('playing')
+    const songId = unrecordedSongRef.current
+    if (!songId) return
+    unrecordedSongRef.current = null
+    recordPlay(songId)
+      .then(() => setHistoryVersion((v) => v + 1))
+      .catch(() => {})
+  }, [])
 
   const releaseAudio = useCallback(() => {
     const audio = audioRef.current
@@ -68,6 +86,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
       loadControllerRef.current = controller
 
       releaseAudio()
+      unrecordedSongRef.current = null
       setStatus('loading')
       setError(null)
       setCurrentTime(0)
@@ -80,6 +99,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
 
         const url = URL.createObjectURL(mp3)
         objectUrlRef.current = url
+        unrecordedSongRef.current = song.id
         const audio = audioRef.current!
         audio.src = url
         try {
@@ -197,8 +217,9 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
       setVolume,
       forget,
       updateSong,
+      historyVersion,
     }),
-    [status, queue, index, error, currentTime, duration, volume, play, togglePlay, next, previous, seek, setVolume, forget, updateSong],
+    [status, queue, index, error, currentTime, duration, volume, play, togglePlay, next, previous, seek, setVolume, forget, updateSong, historyVersion],
   )
 
   return (
@@ -208,7 +229,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
         ref={audioRef}
         preload="auto"
         hidden
-        onPlay={() => setStatus('playing')}
+        onPlay={handlePlaying}
         onPause={() => setStatus((s) => (s === 'playing' ? 'paused' : s))}
         onTimeUpdate={(e) => setCurrentTime(e.currentTarget.currentTime)}
         onDurationChange={(e) => {

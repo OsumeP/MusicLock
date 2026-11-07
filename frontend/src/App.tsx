@@ -10,6 +10,7 @@ import { LandingPage } from './pages/LandingPage'
 import { LoginPage } from './pages/LoginPage'
 import { MyFilesPage } from './pages/MyFilesPage'
 import { NotFoundPage } from './pages/NotFoundPage'
+import { RecentPage } from './pages/RecentPage'
 import { RegisterPage } from './pages/RegisterPage'
 import { SystemStatusPage } from './pages/SystemStatusPage'
 
@@ -36,6 +37,7 @@ export default function App() {
               <Route path="/inicio" element={<HomePage />} />
               <Route path="/archivos" element={<MyFilesPage />} />
               <Route path="/favoritos" element={<FavoritesPage />} />
+              <Route path="/recientes" element={<RecentPage />} />
             </Route>
 
             <Route path="*" element={<NotFoundPage />} />

@@ -33,6 +33,8 @@ export interface PlayerContextValue {
   forget(songId: string): void
   /** Aplica cambios de metadatos (título/artista) a la canción si está en la cola. */
   updateSong(song: Song): void
+  /** Aumenta cada vez que se registra una reproducción: las listas de historial lo usan para recargarse. */
+  historyVersion: number
 }
 
 export const PlayerContext = createContext<PlayerContextValue | null>(null)

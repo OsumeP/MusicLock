@@ -9,8 +9,6 @@ export interface RowActions {
   toggleFavorite(song: Song): void
 }
 
-/** Qué fecha muestra la última columna: la de subida ("Mis Archivos") o la de marcado ("Favoritos"). */
-export type DateColumn = 'created' | 'favorited'
 
 function RowAction({
   icon,
@@ -62,7 +60,7 @@ function SongRow({
   queue,
   downloading,
   favoritePending,
-  dateColumn,
+  date,
   actions,
 }: {
   song: Song
@@ -70,7 +68,7 @@ function SongRow({
   queue: Song[]
   downloading: boolean
   favoritePending: boolean
-  dateColumn: DateColumn
+  date: string
   actions: RowActions
 }) {
   const player = usePlayer()
@@ -78,7 +76,6 @@ function SongRow({
   const isPlaying = isCurrent && player.status === 'playing'
   const isLoading = isCurrent && player.status === 'loading'
   const inMemory = isCurrent && (player.status === 'playing' || player.status === 'paused')
-  const date = dateColumn === 'favorited' ? song.favoritedAt ?? song.createdAt : song.createdAt
 
   function handleClick() {
     if (isCurrent && (player.status === 'playing' || player.status === 'paused')) player.togglePlay()
@@ -146,7 +143,7 @@ function SongRow({
         </span>
       </td>
       <td className="hidden px-4 py-3 text-right font-mono text-mono-crypto text-on-surface-variant xl:table-cell">
-        <time dateTime={date}>{formatRelativeDate(date)}</time>
+        <time dateTime={date} title={new Date(date).toLocaleString('es-CO')}>{formatRelativeDate(date)}</time>
       </td>
       <td className="px-2 py-3">
         <div className="flex justify-end gap-1">
@@ -175,14 +172,20 @@ function SongRow({
 }
 
 /**
- * Tabla de canciones cifradas (mockups "Mis Archivos" y "Favoritos"). ▶ en una fila
- * reproduce esa canción con `songs` como cola.
+ * Tabla de canciones cifradas (mockups "Mis Archivos", "Favoritos" y "Recientes").
+ * ▶ en una fila reproduce esa canción con `queue` (por defecto, `songs`) como cola.
+ *
+ * - `dateLabel` / `dateOf`: qué fecha muestra la última columna (por defecto, la de subida).
+ * - `rowKey`: necesario cuando una canción puede repetirse (historial de reproducción).
  */
 export function SongTable({
   songs,
   firstIndex,
   caption,
-  dateColumn = 'created',
+  queue = songs,
+  dateLabel = 'Subido',
+  dateOf = (song) => song.createdAt,
+  rowKey = (song) => song.id,
   downloadingId,
   favoritePending,
   actions,
@@ -190,7 +193,10 @@ export function SongTable({
   songs: Song[]
   firstIndex: number
   caption: string
-  dateColumn?: DateColumn
+  queue?: Song[]
+  dateLabel?: string
+  dateOf?: (song: Song, index: number) => string
+  rowKey?: (song: Song, index: number) => string
   downloadingId: string | null
   favoritePending: ReadonlySet<string>
   actions: RowActions
@@ -210,7 +216,7 @@ export function SongTable({
             <th scope="col" className="hidden px-4 py-3 text-right font-medium lg:table-cell">Tamaño</th>
             <th scope="col" className="hidden px-4 py-3 font-medium md:table-cell">Cifrado</th>
             <th scope="col" className="hidden px-4 py-3 text-right font-medium xl:table-cell">
-              {dateColumn === 'favorited' ? 'Marcado' : 'Subido'}
+              {dateLabel}
             </th>
             <th scope="col" className="px-2 py-3 text-right font-medium">
               <span className="sr-only">Acciones</span>
@@ -220,13 +226,13 @@ export function SongTable({
         <tbody>
           {songs.map((song, i) => (
             <SongRow
-              key={song.id}
+              key={rowKey(song, i)}
               song={song}
               index={firstIndex + i}
-              queue={songs}
+              queue={queue}
               downloading={downloadingId === song.id}
               favoritePending={favoritePending.has(song.id)}
-              dateColumn={dateColumn}
+              date={dateOf(song, i)}
               actions={actions}
             />
           ))}

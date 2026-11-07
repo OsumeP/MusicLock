@@ -112,7 +112,8 @@ export function FavoritesPage() {
             songs={songs}
             firstIndex={list.first}
             caption="Canciones favoritas"
-            dateColumn="favorited"
+            dateLabel="Marcado"
+            dateOf={(song) => song.favoritedAt ?? song.createdAt}
             downloadingId={songActions.downloadingId}
             favoritePending={songActions.favoritePending}
             actions={songActions.actions}

@@ -223,4 +223,42 @@ describe('PlayerProvider', () => {
 
     expect(revokedUrls).toContain(createdUrls[0].url)
   })
+
+  it('registra una reproducción por canción cargada (pausar y reanudar no cuenta) y avisa con historyVersion', async () => {
+    const realFetch = vi.mocked(fetch).getMockImplementation()!
+    vi.mocked(fetch).mockImplementation(async (url, init) => {
+      if (String(url).endsWith('/plays')) {
+        fetchCalls.push({ url: String(url) })
+        const id = String(url).split('/')[3]
+        return new Response(JSON.stringify({ id: 1, played_at: '2026-11-06T00:00:00Z', song: { id } }), { status: 201 })
+      }
+      return realFetch(url, init)
+    })
+    const a = await makeSong('a', masterKey, fakeMp3(1))
+    const b = await makeSong('b', masterKey, fakeMp3(2))
+    const harness = await renderPlayer(masterKey)
+    const plays = () => fetchCalls.filter((c) => c.url.endsWith('/plays')).map((c) => c.url)
+
+    act(() => harness.player.play(a, [a, b]))
+    await waitFor(() => expect(harness.player.historyVersion).toBe(1))
+    act(() => harness.player.togglePlay()) // pausa
+    act(() => harness.player.togglePlay()) // reanuda
+    await waitFor(() => expect(harness.player.status).toBe('playing'))
+    expect(plays()).toEqual(['/api/songs/a/plays'])
+
+    act(() => harness.player.next())
+    await waitFor(() => expect(harness.player.historyVersion).toBe(2))
+    expect(plays()).toEqual(['/api/songs/a/plays', '/api/songs/b/plays'])
+  })
+
+  it('si registrar la reproducción falla, el audio sigue sonando', async () => {
+    const song = await makeSong('s1', masterKey, fakeMp3(3)) // el mock responde a /plays con bytes no JSON
+    const harness = await renderPlayer(masterKey)
+
+    act(() => harness.player.play(song))
+
+    await waitFor(() => expect(fetchCalls.some((c) => c.url.endsWith('/plays'))).toBe(true))
+    expect(harness.player.status).toBe('playing')
+    expect(harness.player.historyVersion).toBe(0)
+  })
 })

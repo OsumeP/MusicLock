@@ -24,7 +24,7 @@ export interface Song {
   favoritedAt: string | null
 }
 
-interface SongDto {
+export interface SongDto {
   id: string
   title: string
   artist: string

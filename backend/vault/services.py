@@ -15,7 +15,7 @@ from django.db.models import Exists, F, OuterRef, Q, QuerySet, Subquery
 
 from accounts.models import User
 
-from .models import Favorite, Song, build_storage_key
+from .models import Favorite, ListeningHistory, Song, build_storage_key
 from .storage import get_blob_storage
 
 # AES-GCM añade 16 bytes de tag: un cifrado más pequeño que esto no puede contener audio.
@@ -217,3 +217,39 @@ def set_favorite(user: User, song_id, favorite: bool) -> Song:
     else:
         Favorite.objects.filter(user=user, song=song).delete()
     return get_own_song(user, song_id)
+
+
+# --- Historial de reproducción (día 12, MVP+) -------------------------------------------
+
+
+def record_play(user: User, song_id) -> ListeningHistory:
+    """Registra que el usuario empezó a escuchar una canción propia (Estadísticas FR-01)."""
+    song = get_own_song(user, song_id)
+    return ListeningHistory.objects.create(user=user, song=song)
+
+
+def history_for(user: User, distinct: bool = False) -> QuerySet[ListeningHistory]:
+    """
+    Reproducciones del usuario, la más reciente primero. Con `distinct`, solo la
+    última reproducción de cada canción ("Reproducido recientemente" sin repetidos).
+    Cada entrada lleva `song_is_favorite` / `song_favorited_at` para el corazón.
+    """
+    entries = ListeningHistory.objects.filter(user=user).select_related("song")
+    if distinct:
+        latest = (
+            ListeningHistory.objects.filter(user=user, song=OuterRef("song"))
+            .order_by("-played_at", "-id")
+            .values("id")[:1]
+        )
+        entries = entries.filter(id=Subquery(latest))
+    marks = Favorite.objects.filter(user=user, song=OuterRef("song"))
+    return entries.annotate(
+        song_is_favorite=Exists(marks),
+        song_favorited_at=Subquery(marks.values("created_at")[:1]),
+    ).order_by("-played_at", "-id")
+
+
+def clear_history(user: User) -> int:
+    """Borra todo el historial del usuario. Devuelve cuántas reproducciones se eliminaron."""
+    deleted, _ = ListeningHistory.objects.filter(user=user).delete()
+    return deleted
