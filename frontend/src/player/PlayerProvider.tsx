@@ -7,6 +7,9 @@
  *
  * El MP3 descifrado solo existe en la memoria de esta pestaña: la URL `blob:`
  * se revoca al cambiar de canción y al salir de la bóveda (logout).
+ *
+ * El orden (siguiente/anterior, aleatorio, repetir) lo decide un `SongIterator`
+ * (patrón Iterator, `iterators.ts`): el reproductor no sabe cómo se baraja.
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
@@ -16,10 +19,26 @@ import { recordPlay } from '../api/history'
 import { downloadEncryptedSong, type Song } from '../api/songs'
 import { useAuth } from '../auth/session'
 import { DecryptionError, decryptAudio } from '../crypto'
+import { SongQueue, type PlaybackMode, type SongIterator } from './iterators'
 import { PlayerContext, type PlayerContextValue, type PlayerStatus } from './playerContext'
 
 /** Al pulsar "anterior" pasados estos segundos, se reinicia la canción en lugar de retroceder. */
 const RESTART_THRESHOLD_SECONDS = 3
+
+interface Cursor {
+  song: Song | null
+  hasNext: boolean
+  hasPrevious: boolean
+  /** Canciones en el orden en que sonarán (el del iterador). */
+  queue: readonly Song[]
+}
+
+const EMPTY_CURSOR: Cursor = { song: null, hasNext: false, hasPrevious: false, queue: [] }
+
+function cursorOf(iterator: SongIterator | null): Cursor {
+  if (!iterator) return EMPTY_CURSOR
+  return { song: iterator.current(), hasNext: iterator.hasNext(), hasPrevious: iterator.hasPrevious(), queue: iterator.traversal() }
+}
 
 function playbackErrorMessage(error: unknown): string {
   if (error instanceof DecryptionError) return 'No se pudo descifrar esta canción: el archivo fue alterado o la clave no coincide.'
@@ -39,9 +58,15 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   const audioRef = useRef<HTMLAudioElement>(null)
   const objectUrlRef = useRef<string | null>(null)
   const loadControllerRef = useRef<AbortController | null>(null)
+  /** Id de la canción cuyo audio descifrado está en el <audio> (para reiniciarla sin volver a descargarla). */
+  const loadedSongIdRef = useRef<string | null>(null)
 
-  const [queue, setQueue] = useState<Song[]>([])
-  const [index, setIndex] = useState(-1)
+  /** Cola en el orden original (la lista visible cuando se pulsó ▶). */
+  const sourceRef = useRef<readonly Song[]>([])
+  const iteratorRef = useRef<SongIterator | null>(null)
+  const [cursor, setCursor] = useState<Cursor>(EMPTY_CURSOR)
+  const [mode, setMode] = useState<PlaybackMode>({ shuffle: false, repeat: false })
+  const modeRef = useRef(mode)
   const [status, setStatus] = useState<PlayerStatus>('idle')
   const [error, setError] = useState<string | null>(null)
   const [currentTime, setCurrentTime] = useState(0)
@@ -66,6 +91,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const releaseAudio = useCallback(() => {
+    loadedSongIdRef.current = null
     const audio = audioRef.current
     if (audio) {
       audio.pause()
@@ -99,6 +125,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
 
         const url = URL.createObjectURL(mp3)
         objectUrlRef.current = url
+        loadedSongIdRef.current = song.id
         unrecordedSongRef.current = song.id
         const audio = audioRef.current!
         audio.src = url
@@ -117,26 +144,63 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     [masterKey, releaseAudio],
   )
 
-  const playAt = useCallback(
-    (newQueue: Song[], newIndex: number) => {
-      setQueue(newQueue)
-      setIndex(newIndex)
-      void load(newQueue[newIndex])
+  /** Publica el estado del iterador para la interfaz. */
+  const sync = useCallback(() => setCursor(cursorOf(iteratorRef.current)), [])
+
+  /** Hace sonar `song`: si ya es la que está en el <audio>, la reinicia (p. ej. repetir con una sola canción). */
+  const start = useCallback(
+    (song: Song | null) => {
+      if (!song) return
+      const audio = audioRef.current
+      if (audio && objectUrlRef.current && loadedSongIdRef.current === song.id) {
+        audio.currentTime = 0
+        unrecordedSongRef.current = song.id // cada vuelta cuenta como otra reproducción
+        void audio.play().catch(() => setStatus('paused'))
+        return
+      }
+      void load(song)
     },
     [load],
   )
 
+  const startQueue = useCallback(
+    (songs: readonly Song[], startSongId: string, playbackMode: PlaybackMode) => {
+      sourceRef.current = songs
+      iteratorRef.current = new SongQueue(songs).createIterator(playbackMode, startSongId)
+      sync()
+      start(iteratorRef.current.current())
+    },
+    [sync, start],
+  )
+
   const play = useCallback(
     (song: Song, songs?: Song[]) => {
-      const newQueue = songs && songs.some((s) => s.id === song.id) ? songs : [song]
-      playAt(newQueue, newQueue.findIndex((s) => s.id === song.id))
+      const queue = songs && songs.some((s) => s.id === song.id) ? songs : [song]
+      startQueue(queue, song.id, modeRef.current)
     },
-    [playAt],
+    [startQueue],
+  )
+
+  const playAll = useCallback(
+    (songs: Song[], { shuffle }: { shuffle?: boolean } = {}) => {
+      if (songs.length === 0) return
+      const playbackMode = shuffle === undefined ? modeRef.current : { ...modeRef.current, shuffle }
+      modeRef.current = playbackMode
+      setMode(playbackMode)
+      // En aleatorio también la primera canción es al azar.
+      const first = playbackMode.shuffle ? songs[Math.floor(Math.random() * songs.length)] : songs[0]
+      startQueue(songs, first.id, playbackMode)
+    },
+    [startQueue],
   )
 
   const next = useCallback(() => {
-    if (index + 1 < queue.length) playAt(queue, index + 1)
-  }, [index, queue, playAt])
+    const iterator = iteratorRef.current
+    if (!iterator?.hasNext()) return
+    const song = iterator.next()
+    sync()
+    start(song)
+  }, [sync, start])
 
   const previous = useCallback(() => {
     const audio = audioRef.current
@@ -144,8 +208,46 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
       audio.currentTime = 0
       return
     }
-    if (index > 0) playAt(queue, index - 1)
-  }, [index, queue, playAt])
+    const iterator = iteratorRef.current
+    if (!iterator?.hasPrevious()) return
+    const song = iterator.previous()
+    sync()
+    start(song)
+  }, [sync, start])
+
+  /** Sustituye el iterador conservando la canción actual (no interrumpe el audio). */
+  const rebuild = useCallback(
+    (songs: readonly Song[], playbackMode: PlaybackMode) => {
+      const currentId = iteratorRef.current?.current()?.id
+      if (currentId === undefined) return
+      iteratorRef.current = new SongQueue(songs).createIterator(playbackMode, currentId)
+      sync()
+    },
+    [sync],
+  )
+
+  const setShuffle = useCallback(
+    (shuffle: boolean) => {
+      const playbackMode = { ...modeRef.current, shuffle }
+      modeRef.current = playbackMode
+      setMode(playbackMode)
+      // Activar: se baraja el resto a partir de la actual. Desactivar: se vuelve al orden original.
+      rebuild(sourceRef.current, playbackMode)
+    },
+    [rebuild],
+  )
+
+  const setRepeat = useCallback(
+    (repeat: boolean) => {
+      const playbackMode = { ...modeRef.current, repeat }
+      modeRef.current = playbackMode
+      setMode(playbackMode)
+      // Se conserva el orden actual (si está barajado, no se vuelve a barajar).
+      const iterator = iteratorRef.current
+      if (iterator) rebuild(iterator.traversal(), { shuffle: false, repeat })
+    },
+    [rebuild],
+  )
 
   const togglePlay = useCallback(() => {
     const audio = audioRef.current
@@ -167,27 +269,38 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
 
   const forget = useCallback(
     (songId: string) => {
-      const position = queue.findIndex((s) => s.id === songId)
-      if (position === -1) return
-      if (position === index) {
+      const iterator = iteratorRef.current
+      if (!iterator || !iterator.traversal().some((s) => s.id === songId)) return
+      sourceRef.current = sourceRef.current.filter((s) => s.id !== songId)
+      if (iterator.current()?.id === songId) {
         loadControllerRef.current?.abort()
         releaseAudio()
         setStatus('idle')
         setError(null)
         setCurrentTime(0)
-        setQueue([])
-        setIndex(-1)
+        sourceRef.current = []
+        iteratorRef.current = null
+        sync()
         return
       }
-      setQueue(queue.filter((s) => s.id !== songId))
-      if (position < index) setIndex(index - 1)
+      rebuild(
+        iterator.traversal().filter((s) => s.id !== songId),
+        { shuffle: false, repeat: modeRef.current.repeat },
+      )
     },
-    [queue, index, releaseAudio],
+    [releaseAudio, rebuild, sync],
   )
 
-  const updateSong = useCallback((song: Song) => {
-    setQueue((current) => current.map((s) => (s.id === song.id ? song : s)))
-  }, [])
+  const updateSong = useCallback(
+    (song: Song) => {
+      const iterator = iteratorRef.current
+      if (!iterator || !iterator.traversal().some((s) => s.id === song.id)) return
+      const replace = (songs: readonly Song[]) => songs.map((s) => (s.id === song.id ? song : s))
+      sourceRef.current = replace(sourceRef.current)
+      rebuild(replace(iterator.traversal()), { shuffle: false, repeat: modeRef.current.repeat })
+    },
+    [rebuild],
+  )
 
   // Al salir de la bóveda (logout, sesión expirada): detener y liberar el audio descifrado.
   useEffect(
@@ -201,15 +314,20 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   const value = useMemo<PlayerContextValue>(
     () => ({
       status,
-      current: queue[index] ?? null,
-      queue,
+      current: cursor.song,
+      queue: cursor.queue,
       error,
       currentTime,
       duration,
       volume,
-      hasNext: index >= 0 && index + 1 < queue.length,
-      hasPrevious: index > 0,
+      hasNext: cursor.hasNext,
+      hasPrevious: cursor.hasPrevious,
+      shuffle: mode.shuffle,
+      repeat: mode.repeat,
       play,
+      playAll,
+      setShuffle,
+      setRepeat,
       togglePlay,
       next,
       previous,
@@ -219,7 +337,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
       updateSong,
       historyVersion,
     }),
-    [status, queue, index, error, currentTime, duration, volume, play, togglePlay, next, previous, seek, setVolume, forget, updateSong, historyVersion],
+    [status, cursor, mode, error, currentTime, duration, volume, play, playAll, setShuffle, setRepeat, togglePlay, next, previous, seek, setVolume, forget, updateSong, historyVersion],
   )
 
   return (
@@ -237,7 +355,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
           if (Number.isFinite(d) && d > 0) setDuration(d)
         }}
         onEnded={() => {
-          if (index + 1 < queue.length) next()
+          if (iteratorRef.current?.hasNext()) next()
           else setStatus('paused')
         }}
       />

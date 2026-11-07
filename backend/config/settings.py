@@ -161,6 +161,9 @@ SIMPLE_JWT = {
     "ROTATE_REFRESH_TOKENS": True,
     "BLACKLIST_AFTER_ROTATION": True,
     "UPDATE_LAST_LOGIN": True,
+    # Cada token lleva un resumen del hash del authKey: al cambiar la contraseña
+    # dejan de valer TODOS los access tokens emitidos antes (día 14, I81).
+    "CHECK_REVOKE_TOKEN": True,
 }
 
 

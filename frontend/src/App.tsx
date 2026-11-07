@@ -1,5 +1,6 @@
 import { BrowserRouter, Route, Routes } from 'react-router'
 
+import { AccountPage } from './pages/AccountPage'
 import { AuthProvider } from './auth/AuthProvider'
 import { RequireAuth } from './auth/RequireAuth'
 import { ErrorBoundary } from './components/ErrorBoundary'
@@ -42,6 +43,7 @@ export default function App() {
               <Route path="/recientes" element={<RecentPage />} />
               <Route path="/playlists" element={<PlaylistsPage />} />
               <Route path="/playlists/:playlistId" element={<PlaylistDetailPage />} />
+              <Route path="/cuenta" element={<AccountPage />} />
             </Route>
 
             <Route path="*" element={<NotFoundPage />} />

@@ -261,4 +261,105 @@ describe('PlayerProvider', () => {
     expect(harness.player.status).toBe('playing')
     expect(harness.player.historyVersion).toBe(0)
   })
+
+  describe('modos de reproducción (patrón Iterator)', () => {
+    async function fourSongs() {
+      return [
+        await makeSong('a', masterKey, fakeMp3(1)),
+        await makeSong('b', masterKey, fakeMp3(2)),
+        await makeSong('c', masterKey, fakeMp3(3)),
+        await makeSong('d', masterKey, fakeMp3(4)),
+      ]
+    }
+    const blobDownloads = () => fetchCalls.filter((c) => c.url.endsWith('/blob')).length
+
+    it('aleatorio: empieza por la elegida y "siguiente" recorre todas una vez; al desactivarlo vuelve al orden original', async () => {
+      const songs = await fourSongs()
+      const harness = await renderPlayer(masterKey)
+      act(() => harness.player.setShuffle(true))
+      act(() => harness.player.play(songs[0], songs))
+      await waitFor(() => expect(harness.player.status).toBe('playing'))
+      expect(harness.player.shuffle).toBe(true)
+      expect(harness.player.current?.id).toBe('a')
+      expect(harness.player.queue.map((s) => s.id).sort()).toEqual(['a', 'b', 'c', 'd'])
+
+      const heard = ['a']
+      while (harness.player.hasNext) {
+        act(() => harness.player.next())
+        heard.push(harness.player.current!.id)
+      }
+      expect([...heard].sort()).toEqual(['a', 'b', 'c', 'd'])
+      expect(heard).toEqual(harness.player.queue.map((s) => s.id))
+
+      // Sin aleatorio, se sigue por el orden original desde la canción actual.
+      const now = harness.player.current!.id
+      act(() => harness.player.setShuffle(false))
+      expect(harness.player.current?.id).toBe(now)
+      expect(harness.player.queue.map((s) => s.id)).toEqual(['a', 'b', 'c', 'd'])
+    })
+
+    it('playAll con shuffle activa el modo aleatorio', async () => {
+      const songs = await fourSongs()
+      const harness = await renderPlayer(masterKey)
+
+      act(() => harness.player.playAll(songs, { shuffle: true }))
+
+      await waitFor(() => expect(harness.player.status).toBe('playing'))
+      expect(harness.player.shuffle).toBe(true)
+      expect(harness.player.queue[0].id).toBe(harness.player.current?.id)
+    })
+
+    it('al terminar la última: sin repetir se detiene; con repetir vuelve a la primera', async () => {
+      const songs = await fourSongs()
+      const harness = await renderPlayer(masterKey)
+      act(() => harness.player.play(songs[3], songs))
+      await waitFor(() => expect(harness.player.status).toBe('playing'))
+
+      act(() => harness.audio().dispatchEvent(new Event('ended')))
+      expect(harness.player.status).toBe('paused')
+      expect(harness.player.current?.id).toBe('d')
+
+      act(() => harness.player.setRepeat(true))
+      expect(harness.player.hasNext).toBe(true)
+      act(() => harness.audio().dispatchEvent(new Event('ended')))
+      await waitFor(() => expect(harness.player.current?.id).toBe('a'))
+      await waitFor(() => expect(harness.player.status).toBe('playing'))
+    })
+
+    it('repetir con una sola canción la reinicia sin volver a descargarla y cuenta otra reproducción', async () => {
+      const realFetch = vi.mocked(fetch).getMockImplementation()!
+      vi.mocked(fetch).mockImplementation(async (url, init) => {
+        if (String(url).endsWith('/plays')) {
+          fetchCalls.push({ url: String(url) })
+          return new Response(JSON.stringify({ id: 1, played_at: '2026-11-06T00:00:00Z', song: { id: 's1' } }), { status: 201 })
+        }
+        return realFetch(url, init)
+      })
+      const song = await makeSong('s1', masterKey, fakeMp3(1))
+      const harness = await renderPlayer(masterKey)
+      act(() => harness.player.setRepeat(true))
+      act(() => harness.player.play(song))
+      await waitFor(() => expect(harness.player.historyVersion).toBe(1))
+
+      act(() => harness.audio().dispatchEvent(new Event('ended')))
+
+      await waitFor(() => expect(harness.player.historyVersion).toBe(2))
+      expect(blobDownloads()).toBe(1)
+      expect(createdUrls).toHaveLength(1)
+      expect(harness.player.current?.id).toBe('s1')
+    })
+
+    it('activar repetir con la cola barajada conserva el orden', async () => {
+      const songs = await fourSongs()
+      const harness = await renderPlayer(masterKey)
+      act(() => harness.player.playAll(songs, { shuffle: true }))
+      await waitFor(() => expect(harness.player.status).toBe('playing'))
+      const order = harness.player.queue.map((s) => s.id)
+
+      act(() => harness.player.setRepeat(true))
+
+      expect(harness.player.queue.map((s) => s.id)).toEqual(order)
+      expect(harness.player.hasPrevious).toBe(true) // en bucle, "anterior" desde la primera va a la última
+    })
+  })
 })

@@ -71,7 +71,7 @@ export function FavoritesPage() {
           <button
             type="button"
             disabled={songs.length === 0}
-            onClick={() => player.play(songs[0], songs)}
+            onClick={() => player.playAll(songs)}
             className="flex items-center gap-2 rounded-xl bg-primary px-5 py-3 text-title-sm font-semibold shadow-lg shadow-primary/20 enabled:hover:bg-primary-hover disabled:opacity-40"
           >
             <span aria-hidden className="material-symbols-outlined" style={{ fontVariationSettings: '"FILL" 1' }}>play_arrow</span>

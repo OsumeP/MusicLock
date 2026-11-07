@@ -1,5 +1,5 @@
 import { useEffect, useState, type FormEvent } from 'react'
-import { useLocation, useNavigate, useSearchParams } from 'react-router'
+import { Link, useLocation, useNavigate, useSearchParams } from 'react-router'
 
 import { useAuth } from '../auth/session'
 
@@ -71,10 +71,18 @@ export function Topbar({ onOpenMenu }: { onOpenMenu: () => void }) {
           <span className="size-2 rounded-full bg-accent-cyan" />
           Sesión cifrada / PBKDF2
         </span>
-        <div className="hidden text-right sm:block">
-          <p className="text-title-sm font-semibold text-on-surface">{user.username}</p>
-          <p className="font-mono text-mono-label text-on-surface-variant">{user.email}</p>
-        </div>
+        <Link
+          to="/cuenta"
+          title="Mi cuenta"
+          aria-label={`Mi cuenta (${user.username})`}
+          className="flex items-center gap-2 rounded-lg p-2 text-on-surface-variant ring-1 ring-border-subtle hover:text-on-surface sm:px-3 sm:py-1 sm:ring-0 sm:hover:bg-surface-card"
+        >
+          <span className="hidden text-right sm:block">
+            <span className="block text-title-sm font-semibold text-on-surface">{user.username}</span>
+            <span className="block font-mono text-mono-label text-on-surface-variant">{user.email}</span>
+          </span>
+          <span aria-hidden className="material-symbols-outlined text-[20px]">manage_accounts</span>
+        </Link>
         <button
           type="button"
           onClick={() => void logout()}

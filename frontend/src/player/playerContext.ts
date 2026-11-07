@@ -14,16 +14,27 @@ export interface PlayerContextValue {
   status: PlayerStatus
   /** Canción actual (cargada o cargándose). */
   current: Song | null
-  /** Cola de reproducción (la lista visible cuando se pulsó ▶). */
-  queue: Song[]
+  /** Cola de reproducción en el orden en que sonará (barajada si `shuffle`). */
+  queue: readonly Song[]
   error: string | null
   currentTime: number
   duration: number
   volume: number
   hasNext: boolean
   hasPrevious: boolean
-  /** Reproduce `song`; `queue` define qué suena con anterior/siguiente. */
+  /** Orden aleatorio (ShuffleIterator). */
+  shuffle: boolean
+  /** Al terminar la cola vuelve a empezar (LoopIterator). */
+  repeat: boolean
+  /** Reproduce `song`; `queue` define qué suena con anterior/siguiente (según el modo actual). */
   play(song: Song, queue?: Song[]): void
+  /**
+   * Reproduce toda la lista (botón "Reproducir" de una playlist o pantalla). Con
+   * `shuffle` se fija el modo aleatorio; en aleatorio la primera canción también es al azar.
+   */
+  playAll(songs: Song[], options?: { shuffle?: boolean }): void
+  setShuffle(shuffle: boolean): void
+  setRepeat(repeat: boolean): void
   togglePlay(): void
   next(): void
   previous(): void

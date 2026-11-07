@@ -14,4 +14,4 @@ export {
   type KdfParams,
 } from './constants'
 export { DecryptionError, UnsupportedKdfError } from './errors'
-export { createVault, prepareLogin, type CreatedVault, type VaultRegistration } from './vault'
+export { createVault, prepareLogin, prepareRewrap, type CreatedVault, type VaultRegistration } from './vault'

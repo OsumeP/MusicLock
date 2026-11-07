@@ -16,6 +16,7 @@ import { clearMasterKey, loadMasterKey } from './keyStore'
 import { LoginPage } from '../pages/LoginPage'
 import { RegisterPage } from '../pages/RegisterPage'
 import { AppLayout } from '../layout/AppLayout'
+import { AccountPage } from '../pages/AccountPage'
 import { HomePage } from '../pages/HomePage'
 import { AuthProvider } from './AuthProvider'
 import { RequireAuth } from './RequireAuth'
@@ -95,6 +96,27 @@ function createFakeServer() {
         return json(null, 204)
       case '/api/songs':
         return auth ? json({ count: 0, next: null, previous: null, results: [] }) : json({ detail: 'auth' }, 401)
+      case '/api/me/vault': {
+        const u = [...users.values()][0]
+        if (!auth || !u) return json({ detail: 'auth' }, 401)
+        if (u.auth_key !== body.auth_key) return json({ detail: 'x', code: 'invalid_password' }, 400)
+        const { kdf_salt, kdf_params, wrapped_master_key, master_key_iv } = u
+        return json({ kdf_salt, kdf_params, wrapped_master_key, master_key_iv })
+      }
+      case '/api/me/password': {
+        const u = [...users.values()][0]
+        if (!auth || !u) return json({ detail: 'auth' }, 401)
+        if (u.auth_key !== body.current_auth_key) return json({ detail: 'x', code: 'invalid_password' }, 400)
+        validRefresh.clear() // se cierran todas las sesiones
+        Object.assign(u, {
+          auth_key: body.new_auth_key,
+          kdf_salt: body.kdf_salt,
+          kdf_params: body.kdf_params,
+          wrapped_master_key: body.wrapped_master_key,
+          master_key_iv: body.master_key_iv,
+        })
+        return json(session(u))
+      }
       case '/api/me': {
         const u = [...users.values()][0]
         return auth && u ? json(userDto(u)) : json({ detail: 'auth' }, 401)
@@ -115,6 +137,7 @@ function renderApp(initialPath: string) {
           <Route path="/registro" element={<RegisterPage />} />
           <Route element={<RequireAuth><AppLayout /></RequireAuth>}>
             <Route path="/inicio" element={<HomePage />} />
+            <Route path="/cuenta" element={<AccountPage />} />
           </Route>
         </Routes>
       </AuthProvider>
@@ -250,5 +273,89 @@ describe('flujo de autenticación', () => {
     await user.click(screen.getByRole('button', { name: /^iniciar sesión$/i }))
 
     expect(await screen.findByText(/cuenta está bloqueada/, {}, { timeout: 5000 })).toBeInTheDocument()
+  })
+
+  describe('cambio de contraseña', () => {
+    const NEW_PASSWORD = 'Otra frase distinta y larga 2026'
+
+    async function openAccount(user: ReturnType<typeof userEvent.setup>) {
+      await user.click(screen.getByRole('link', { name: /mi cuenta/i }))
+      await screen.findByRole('heading', { name: 'Cambiar contraseña' })
+    }
+
+    async function login(user: ReturnType<typeof userEvent.setup>, password: string) {
+      await user.type(await screen.findByLabelText('Correo electrónico'), 'ana@example.com')
+      await user.type(screen.getByLabelText('Contraseña'), password)
+      await user.click(screen.getByRole('button', { name: /^iniciar sesión$/i }))
+    }
+
+    it('re-envuelve la Master Key: la nueva contraseña abre la bóveda y la anterior ya no', async () => {
+      const user = userEvent.setup()
+      await registerAna(user)
+      const before = { ...server.users.get('ana@example.com')! }
+      const oldRefresh = tokenStore.getRefresh()
+      await openAccount(user)
+
+      await user.type(screen.getByLabelText('Contraseña actual'), PASSWORD)
+      await user.type(screen.getByLabelText('Nueva contraseña'), NEW_PASSWORD)
+      await user.type(screen.getByLabelText('Confirmar nueva contraseña'), NEW_PASSWORD)
+      await user.click(screen.getByRole('button', { name: /^cambiar contraseña$/i }))
+
+      expect(await screen.findByText(/Contraseña cambiada/, {}, { timeout: 8000 })).toBeInTheDocument()
+      const after = server.users.get('ana@example.com')!
+      expect(after.kdf_salt).not.toBe(before.kdf_salt)
+      expect(after.auth_key).not.toBe(before.auth_key)
+      expect(after.wrapped_master_key).not.toBe(before.wrapped_master_key)
+      // La sesión de este navegador sigue con tokens nuevos; nunca viajó ninguna contraseña.
+      expect(tokenStore.getRefresh()).not.toBe(oldRefresh)
+      expect(await loadMasterKey(1)).not.toBeNull()
+      expect(JSON.stringify(server.requests)).not.toContain(PASSWORD)
+      expect(JSON.stringify(server.requests)).not.toContain(NEW_PASSWORD)
+
+      await user.click(screen.getByRole('button', { name: /cerrar sesión/i }))
+      await login(user, PASSWORD)
+      expect(await screen.findByText('Correo o contraseña incorrectos.', {}, { timeout: 5000 })).toBeInTheDocument()
+
+      await user.clear(screen.getByLabelText('Contraseña'))
+      await user.type(screen.getByLabelText('Contraseña'), NEW_PASSWORD)
+      await user.click(screen.getByRole('button', { name: /^iniciar sesión$/i }))
+      // Vuelve a donde estaba (Mi cuenta), con la bóveda abierta.
+      expect(await screen.findByRole('heading', { name: 'Mi cuenta' }, { timeout: 5000 })).toBeInTheDocument()
+    }, 20_000)
+
+    it('con la contraseña actual incorrecta no cambia nada', async () => {
+      const user = userEvent.setup()
+      await registerAna(user)
+      const before = { ...server.users.get('ana@example.com')! }
+      await openAccount(user)
+
+      await user.type(screen.getByLabelText('Contraseña actual'), 'no es la contraseña')
+      await user.type(screen.getByLabelText('Nueva contraseña'), NEW_PASSWORD)
+      await user.type(screen.getByLabelText('Confirmar nueva contraseña'), NEW_PASSWORD)
+      await user.click(screen.getByRole('button', { name: /^cambiar contraseña$/i }))
+
+      expect(await screen.findByText('La contraseña actual no es correcta.', {}, { timeout: 5000 })).toBeInTheDocument()
+      expect(server.users.get('ana@example.com')).toEqual(before)
+      expect(server.requests.some((r) => r.url === '/api/me/password')).toBe(false)
+      expect(screen.getByRole('heading', { name: 'Cambiar contraseña' })).toBeInTheDocument() // la sesión sigue
+    }, 15_000)
+
+    it('valida en el navegador: nueva igual a la actual, débil o sin confirmar', async () => {
+      const user = userEvent.setup()
+      await registerAna(user)
+      await openAccount(user)
+
+      await user.type(screen.getByLabelText('Contraseña actual'), PASSWORD)
+      await user.type(screen.getByLabelText('Nueva contraseña'), PASSWORD)
+      await user.type(screen.getByLabelText('Confirmar nueva contraseña'), PASSWORD)
+      await user.click(screen.getByRole('button', { name: /^cambiar contraseña$/i }))
+      expect(screen.getByText('Debe ser distinta de la contraseña actual.')).toBeInTheDocument()
+
+      await user.clear(screen.getByLabelText('Nueva contraseña'))
+      await user.type(screen.getByLabelText('Nueva contraseña'), 'corta')
+      expect(screen.getByText(/al menos 12 caracteres/)).toBeInTheDocument()
+      expect(screen.getByText('Las contraseñas no coinciden.')).toBeInTheDocument()
+      expect(server.requests.some((r) => r.url.startsWith('/api/me/'))).toBe(false)
+    }, 15_000)
   })
 })

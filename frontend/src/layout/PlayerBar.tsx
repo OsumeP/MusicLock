@@ -1,6 +1,23 @@
 import { formatDuration } from '../lib/format'
 import { usePlayer } from '../player/playerContext'
 
+/** Botón de modo (aleatorio / repetir): resaltado y con `aria-pressed` cuando está activo. */
+function ToggleButton({ icon, label, pressed, onClick }: { icon: string; label: string; pressed: boolean; onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-label={label}
+      aria-pressed={pressed}
+      title={`${label}: ${pressed ? 'activado' : 'desactivado'}`}
+      className={`relative hidden size-9 place-items-center rounded-full transition sm:grid ${pressed ? 'text-accent-cyan' : 'text-on-surface-variant hover:text-on-surface'}`}
+    >
+      <span aria-hidden className="material-symbols-outlined text-[20px]">{icon}</span>
+      {pressed && <span aria-hidden className="absolute bottom-0.5 size-1 rounded-full bg-accent-cyan" />}
+    </button>
+  )
+}
+
 function IconButton({ icon, label, onClick, disabled, primary = false }: { icon: string; label: string; onClick: () => void; disabled?: boolean; primary?: boolean }) {
   return (
     <button
@@ -62,6 +79,7 @@ export function PlayerBar() {
       {/* Controles y posición */}
       <div className="flex flex-col items-center gap-1">
         <div className="flex items-center gap-2">
+          <ToggleButton icon="shuffle" label="Aleatorio" pressed={player.shuffle} onClick={() => player.setShuffle(!player.shuffle)} />
           <IconButton icon="skip_previous" label="Anterior" onClick={player.previous} disabled={!current || status === 'loading'} />
           <IconButton
             primary
@@ -71,6 +89,7 @@ export function PlayerBar() {
             disabled={!ready}
           />
           <IconButton icon="skip_next" label="Siguiente" onClick={player.next} disabled={!player.hasNext || status === 'loading'} />
+          <ToggleButton icon="repeat" label="Repetir" pressed={player.repeat} onClick={() => player.setRepeat(!player.repeat)} />
         </div>
         <div className="hidden w-full max-w-xl items-center gap-3 md:flex">
           <span className="w-10 text-right font-mono text-mono-label text-on-surface-variant">{formatDuration(currentTime)}</span>

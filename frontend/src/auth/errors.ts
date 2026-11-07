@@ -5,6 +5,7 @@ import { DecryptionError, UnsupportedKdfError } from '../crypto'
 export function authErrorMessage(error: unknown): string {
   if (error instanceof ApiError) {
     if (error.code === 'invalid_credentials') return 'Correo o contraseña incorrectos.'
+    if (error.code === 'invalid_password') return 'La contraseña actual no es correcta.'
     if (error.code === 'account_blocked') return 'Esta cuenta está bloqueada. Contacta al administrador.'
     if (error.status === 429) return 'Demasiados intentos. Espera un minuto antes de volver a intentarlo.'
     if (error.status === 400) return 'Revisa los datos del formulario.'

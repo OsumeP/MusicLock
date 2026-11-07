@@ -112,3 +112,37 @@ export function logout(refresh: string): Promise<void> {
 export async function fetchMe(signal?: AbortSignal): Promise<User> {
   return toUser(await apiRequest<UserDto>('/me', { signal }))
 }
+
+// --- Cambio de contraseña (día 14) --------------------------------------------------
+// Ambas exigen el authKey actual; si no coincide responden 400 con code "invalid_password".
+
+export interface KeyMaterial {
+  kdfSalt: string
+  kdfParams: KdfParams
+  wrappedMasterKey: string
+  masterKeyIv: string
+}
+
+/** Paso 1: Master Key envuelta (y su salt) a cambio del authKey de la contraseña actual. */
+export async function fetchKeyMaterial(authKey: string): Promise<KeyMaterial> {
+  const dto = await apiRequest<{ kdf_salt: string; kdf_params: KdfParams; wrapped_master_key: string; master_key_iv: string }>(
+    '/me/vault',
+    { json: { auth_key: authKey } },
+  )
+  return { kdfSalt: dto.kdf_salt, kdfParams: dto.kdf_params, wrappedMasterKey: dto.wrapped_master_key, masterKeyIv: dto.master_key_iv }
+}
+
+/** Paso 2: guarda el material de la nueva contraseña. Devuelve una sesión nueva; las demás se cierran. */
+export async function changePassword(currentAuthKey: string, vault: VaultRegistration): Promise<SessionResponse> {
+  const dto = await apiRequest<SessionDto>('/me/password', {
+    json: {
+      current_auth_key: currentAuthKey,
+      new_auth_key: vault.authKey,
+      kdf_salt: vault.kdfSalt,
+      kdf_params: vault.kdfParams,
+      wrapped_master_key: vault.wrappedMasterKey,
+      master_key_iv: vault.masterKeyIv,
+    },
+  })
+  return toSession(dto)
+}

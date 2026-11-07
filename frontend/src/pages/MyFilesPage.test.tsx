@@ -46,6 +46,7 @@ async function renderPage(path = '/archivos') {
     login: vi.fn(),
     register: vi.fn(),
     logout: vi.fn(),
+    changePassword: vi.fn(),
     refreshUser: vi.fn(),
   }
   render(

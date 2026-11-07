@@ -11,12 +11,15 @@ from rest_framework_simplejwt.views import TokenRefreshView
 
 from . import services
 from .serializers import (
+    ChangePasswordSerializer,
+    KeyMaterialSerializer,
     LoginSerializer,
     LogoutSerializer,
     MeSerializer,
     PreloginSerializer,
     RegisterSerializer,
     SafeTokenRefreshSerializer,
+    VerifyPasswordSerializer,
     session_payload,
 )
 
@@ -101,3 +104,54 @@ class MeView(APIView):
 
     def get(self, request):
         return Response(MeSerializer(request.user).data)
+
+
+# --- Cambio de contraseña (día 14) ---------------------------------------------------
+
+INVALID_PASSWORD = {"detail": "La contraseña actual no es correcta.", "code": "invalid_password"}
+
+
+class PasswordCheckView(APIView):
+    """
+    Base de los dos pasos: requieren sesión Y el authKey actual. Responden 400 (no
+    401) si no coincide, para que el cliente no lo confunda con un token caducado.
+    Con límite de peticiones por usuario: un access token robado no basta para
+    probar contraseñas sin freno.
+    """
+
+    throttle_scope = "auth"
+
+
+class KeyMaterialView(PasswordCheckView):
+    """POST /api/me/vault {auth_key} → {kdf_salt, kdf_params, wrapped_master_key, master_key_iv}."""
+
+    def post(self, request):
+        serializer = VerifyPasswordSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        try:
+            user = services.verify_password(request.user, serializer.validated_data["auth_key"])
+        except services.InvalidPassword:
+            return Response(INVALID_PASSWORD, status=status.HTTP_400_BAD_REQUEST)
+        return Response(KeyMaterialSerializer(user).data)
+
+
+class ChangePasswordView(PasswordCheckView):
+    """
+    POST /api/me/password {current_auth_key, new_auth_key, kdf_salt, kdf_params,
+    wrapped_master_key, master_key_iv} → sesión nueva (como el login). Cierra las demás.
+    """
+
+    def post(self, request):
+        serializer = ChangePasswordSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        data = dict(serializer.validated_data)
+        try:
+            result = services.change_password(
+                request.user,
+                current_auth_key=data.pop("current_auth_key"),
+                new_auth_key=data.pop("new_auth_key"),
+                vault=data,
+            )
+        except services.InvalidPassword:
+            return Response(INVALID_PASSWORD, status=status.HTTP_400_BAD_REQUEST)
+        return Response(session_payload(result))

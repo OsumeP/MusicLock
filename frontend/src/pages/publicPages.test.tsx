@@ -11,7 +11,7 @@ import { NotFoundPage } from './NotFoundPage'
 const user = { id: 1, email: 'a@x.com', username: 'ana' } as User
 
 function renderWithSession(ui: React.ReactNode, session: Session, path = '/') {
-  const auth = { session, login: vi.fn(), register: vi.fn(), logout: vi.fn(), refreshUser: vi.fn() } as AuthContextValue
+  const auth = { session, login: vi.fn(), register: vi.fn(), logout: vi.fn(), changePassword: vi.fn(), refreshUser: vi.fn() } as AuthContextValue
   return render(
     <AuthContext.Provider value={auth}>
       <MemoryRouter initialEntries={[path]}>{ui}</MemoryRouter>

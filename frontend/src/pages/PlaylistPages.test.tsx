@@ -108,6 +108,7 @@ function renderAt(path: string) {
     login: vi.fn(),
     register: vi.fn(),
     logout: vi.fn(),
+    changePassword: vi.fn(),
     refreshUser: vi.fn(),
   }
   render(
@@ -193,6 +194,18 @@ describe('PlaylistDetailPage', () => {
     expect(screen.queryByRole('button', { name: 'Eliminar Canción 1' })).not.toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Subir Canción 1' })).toBeDisabled()
     expect(screen.getByRole('button', { name: 'Bajar Canción 2' })).toBeDisabled()
+  })
+
+  it('"Aleatorio" reproduce la playlist empezando por una canción al azar', async () => {
+    const u = userEvent.setup()
+    vi.spyOn(Math, 'random').mockReturnValue(0.99) // el azar elige la última
+    renderAt(`/playlists/${PL1}`)
+
+    await u.click(await screen.findByRole('button', { name: /aleatorio/i }))
+
+    await waitFor(() => expect(calls.some((c) => c.url === `/api/songs/${songId(2)}/blob`)).toBe(true))
+    expect(calls.some((c) => c.url === `/api/songs/${songId(1)}/blob`)).toBe(false)
+    vi.mocked(Math.random).mockRestore()
   })
 
   it('bajar una canción la mueve y envía la nueva posición', async () => {

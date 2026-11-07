@@ -42,6 +42,7 @@ function renderPage(path = '/favoritos') {
     login: vi.fn(),
     register: vi.fn(),
     logout: vi.fn(),
+    changePassword: vi.fn(),
     refreshUser: vi.fn(),
   }
   render(

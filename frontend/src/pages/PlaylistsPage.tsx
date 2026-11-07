@@ -79,7 +79,7 @@ export function PlaylistsPage() {
     setPlayError(null)
     try {
       const { songs } = await getPlaylist(playlist.id)
-      if (songs.length > 0) player.play(songs[0], songs)
+      if (songs.length > 0) player.playAll(songs)
     } catch {
       setPlayError(`No se pudo abrir “${playlist.name}”.`)
     } finally {

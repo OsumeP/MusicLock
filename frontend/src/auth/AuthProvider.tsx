@@ -3,7 +3,7 @@ import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react
 import * as authApi from '../api/auth'
 import { ApiError, onSessionExpired, refreshAccessToken } from '../api/client'
 import { tokenStore } from '../api/tokens'
-import { createVault, prepareLogin } from '../crypto'
+import { createVault, prepareLogin, prepareRewrap } from '../crypto'
 import { clearMasterKey, loadMasterKey, saveMasterKey } from './keyStore'
 import { AuthContext, type AuthContextValue, type Session } from './session'
 
@@ -103,6 +103,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [])
 
+  const changePassword = useCallback(
+    async (currentPassword: string, newPassword: string) => {
+      if (session.status !== 'ready') throw new Error('La bóveda no está abierta.')
+      const { kdfSalt, kdfParams } = await authApi.prelogin(session.user.email)
+      const change = await prepareRewrap(currentPassword, kdfSalt, kdfParams)
+      const material = await authApi.fetchKeyMaterial(change.authKey)
+      const registration = await change.rewrap(material.wrappedMasterKey, material.masterKeyIv, newPassword)
+      const result = await authApi.changePassword(change.authKey, registration)
+      // La Master Key es la misma (la de IndexedDB sigue sirviendo); solo cambian los tokens.
+      tokenStore.set(result)
+      setSession((current) => (current.status === 'ready' ? { ...current, user: result.user } : current))
+    },
+    [session],
+  )
+
   /** Vuelve a pedir /api/me (p. ej. tras subir un archivo, para actualizar la cuota). */
   const refreshUser = useCallback(async () => {
     const user = await authApi.fetchMe()
@@ -110,8 +125,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const value = useMemo<AuthContextValue>(
-    () => ({ session, login, register, logout, refreshUser }),
-    [session, login, register, logout, refreshUser],
+    () => ({ session, login, register, logout, changePassword, refreshUser }),
+    [session, login, register, logout, changePassword, refreshUser],
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

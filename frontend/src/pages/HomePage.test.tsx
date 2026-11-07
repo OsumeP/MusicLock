@@ -33,7 +33,7 @@ let historyResponse: () => Response
 async function renderHome() {
   const auth = {
     session: { status: 'ready', user, masterKey: {} as CryptoKey },
-    login: vi.fn(), register: vi.fn(), logout: vi.fn(), refreshUser: vi.fn().mockResolvedValue(undefined),
+    login: vi.fn(), register: vi.fn(), logout: vi.fn(), changePassword: vi.fn(), refreshUser: vi.fn().mockResolvedValue(undefined),
   } as AuthContextValue
   render(
     <AuthContext.Provider value={auth}>

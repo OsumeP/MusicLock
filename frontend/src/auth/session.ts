@@ -22,6 +22,12 @@ export interface AuthContextValue {
   login(email: string, password: string): Promise<void>
   register(email: string, username: string, password: string): Promise<void>
   logout(): Promise<void>
+  /**
+   * Cambia la contraseña re-envolviendo la Master Key (no se vuelve a cifrar nada).
+   * Las demás sesiones se cierran. Lanza ApiError con code "invalid_password" si la
+   * actual no es correcta.
+   */
+  changePassword(currentPassword: string, newPassword: string): Promise<void>
   /** Recarga el perfil (cuota usada) desde la API. */
   refreshUser(): Promise<void>
 }

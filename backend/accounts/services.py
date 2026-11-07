@@ -13,6 +13,7 @@ from django.contrib.auth.hashers import make_password
 from django.contrib.auth.models import update_last_login
 from django.db import transaction
 from rest_framework_simplejwt.exceptions import TokenError
+from rest_framework_simplejwt.token_blacklist.models import BlacklistedToken, OutstandingToken
 from rest_framework_simplejwt.tokens import RefreshToken
 
 from .crypto_fields import MIN_PBKDF2_ITERATIONS, SALT_BYTES
@@ -102,3 +103,44 @@ def logout(refresh_token: str) -> None:
         RefreshToken(refresh_token).blacklist()
     except TokenError:
         pass
+
+
+# --- Cambio de contraseña (día 14) ---------------------------------------------------
+#
+# La Master Key NO cambia: el navegador la desenvuelve con la KEK actual y la vuelve
+# a envolver con la KEK de la nueva contraseña (PlanMVP §4.2). Ninguna canción se
+# vuelve a cifrar. El servidor solo ve authKeys y la Master Key envuelta.
+
+
+class InvalidPassword(Exception):
+    """El authKey de la contraseña actual no coincide."""
+
+
+def verify_password(user: User, auth_key: str) -> User:
+    """Comprueba el authKey actual antes de entregar la Master Key envuelta (paso 1)."""
+    if not user.has_vault or not user.check_password(auth_key):
+        raise InvalidPassword
+    return user
+
+
+@transaction.atomic
+def change_password(user: User, *, current_auth_key: str, new_auth_key: str, vault: dict) -> LoginResult:
+    """
+    Paso 2: guarda el nuevo authKey y la Master Key re-envuelta, e invalida TODAS
+    las sesiones (refresh tokens a la lista negra; los access tokens dejan de valer
+    porque llevan el resumen del hash anterior, CHECK_REVOKE_TOKEN). La sesión que
+    hizo el cambio recibe tokens nuevos.
+    """
+    user = User.objects.select_for_update().select_related("active_plan").get(pk=user.pk)
+    verify_password(user, current_auth_key)
+
+    user.set_password(new_auth_key)
+    for field, value in vault.items():
+        setattr(user, field, value)
+    user.save(update_fields=["password", *vault])
+
+    pending = OutstandingToken.objects.filter(user=user, blacklistedtoken__isnull=True)
+    BlacklistedToken.objects.bulk_create(
+        [BlacklistedToken(token=token) for token in pending], ignore_conflicts=True
+    )
+    return issue_tokens(user)

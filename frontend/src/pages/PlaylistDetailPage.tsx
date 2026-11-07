@@ -178,7 +178,16 @@ export function PlaylistDetailPage() {
                 <button
                   type="button"
                   disabled={songs.length === 0}
-                  onClick={() => player.play(songs[0], songs)}
+                  onClick={() => player.playAll(songs, { shuffle: true })}
+                  className="flex items-center gap-2 rounded-xl px-4 py-3 text-title-sm ring-1 ring-border-subtle enabled:hover:text-on-surface disabled:opacity-40"
+                >
+                  <span aria-hidden className="material-symbols-outlined">shuffle</span>
+                  Aleatorio
+                </button>
+                <button
+                  type="button"
+                  disabled={songs.length === 0}
+                  onClick={() => player.playAll(songs, { shuffle: false })}
                   className="flex items-center gap-2 rounded-xl bg-primary px-5 py-3 text-title-sm font-semibold shadow-lg shadow-primary/20 enabled:hover:bg-primary-hover disabled:opacity-40"
                 >
                   <span aria-hidden className="material-symbols-outlined" style={{ fontVariationSettings: '"FILL" 1' }}>play_arrow</span>
