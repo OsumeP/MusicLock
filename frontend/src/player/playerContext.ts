@@ -29,6 +29,10 @@ export interface PlayerContextValue {
   previous(): void
   seek(seconds: number): void
   setVolume(volume: number): void
+  /** Quita una canción de la cola (p. ej. porque se eliminó); si es la actual, detiene y libera el audio. */
+  forget(songId: string): void
+  /** Aplica cambios de metadatos (título/artista) a la canción si está en la cola. */
+  updateSong(song: Song): void
 }
 
 export const PlayerContext = createContext<PlayerContextValue | null>(null)

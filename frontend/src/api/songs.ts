@@ -70,6 +70,16 @@ export async function listSongs(
   return { count: dto.count, songs: dto.results.map(toSong), hasNext: !!dto.next, hasPrevious: !!dto.previous }
 }
 
+/** PATCH /api/songs/{id} — solo título y artista (metadatos en claro). */
+export async function updateSong(id: string, changes: { title?: string; artist?: string }): Promise<Song> {
+  return toSong(await apiRequest<SongDto>(`/songs/${encodeURIComponent(id)}`, { method: 'PATCH', json: changes }))
+}
+
+/** DELETE /api/songs/{id} — borra la canción y su blob; libera la cuota. */
+export function deleteSong(id: string): Promise<void> {
+  return apiRequest<void>(`/songs/${encodeURIComponent(id)}`, { method: 'DELETE' })
+}
+
 export interface SongMetadata {
   title: string
   artist: string

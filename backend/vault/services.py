@@ -145,3 +145,36 @@ def open_song_blob(user: User, song_id) -> tuple[Song, BinaryIO]:
         raise BlobMissing(song.storage_key) from exc
     except Exception as exc:
         raise StorageUnavailable(str(exc)) from exc
+
+
+# --- Edición y eliminación (día 8) ----------------------------------------------------
+
+
+def update_song(user: User, song_id, *, title: str | None = None, artist: str | None = None) -> Song:
+    """Solo se editan metadatos en claro (D10); el audio y sus claves no cambian."""
+    song = get_own_song(user, song_id)
+    fields = []
+    if title is not None:
+        song.title = title
+        fields.append("title")
+    if artist is not None:
+        song.artist = artist
+        fields.append("artist")
+    if fields:
+        song.save(update_fields=fields)
+    return song
+
+
+def delete_song(user: User, song_id) -> None:
+    """
+    Borra la canción y libera su espacio en la cuota, de forma atómica. El blob
+    se borra al confirmar la transacción (ver `vault/signals.py`).
+    """
+    from django.db.models.functions import Greatest
+
+    with transaction.atomic():
+        User.objects.select_for_update().filter(pk=user.pk).first()  # serializa con subidas simultáneas
+        song = get_own_song(user, song_id)
+        size = song.size
+        song.delete()
+        User.objects.filter(pk=user.pk).update(used_storage=Greatest(F("used_storage") - size, 0))

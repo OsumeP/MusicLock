@@ -9,7 +9,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from . import services
-from .serializers import SongSerializer, SongUploadSerializer
+from .serializers import SongSerializer, SongUpdateSerializer, SongUploadSerializer
 
 logger = logging.getLogger(__name__)
 
@@ -95,7 +95,7 @@ class SongBlobView(APIView):
         try:
             song, blob = services.open_song_blob(request.user, song_id)
         except services.SongNotFound:
-            return Response({"detail": "Canción no encontrada.", "code": "not_found"}, status=status.HTTP_404_NOT_FOUND)
+            return _not_found()
         except services.BlobMissing as error:
             logger.error("Falta el blob de una canción existente: %s", error)
             return Response(
@@ -112,3 +112,31 @@ class SongBlobView(APIView):
         response["Cache-Control"] = "private, no-store"
         response["X-Content-Type-Options"] = "nosniff"
         return response
+
+
+def _not_found() -> Response:
+    return Response({"detail": "Canción no encontrada.", "code": "not_found"}, status=status.HTTP_404_NOT_FOUND)
+
+
+class SongDetailView(APIView):
+    """
+    PATCH  /api/songs/{id} — editar título y/o artista.
+    DELETE /api/songs/{id} — eliminar la canción, su blob y liberar la cuota.
+    Canciones ajenas: 404 (igual que inexistentes).
+    """
+
+    def patch(self, request, song_id):
+        serializer = SongUpdateSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        try:
+            song = services.update_song(request.user, song_id, **serializer.validated_data)
+        except services.SongNotFound:
+            return _not_found()
+        return Response(SongSerializer(song).data)
+
+    def delete(self, request, song_id):
+        try:
+            services.delete_song(request.user, song_id)
+        except services.SongNotFound:
+            return _not_found()
+        return Response(status=status.HTTP_204_NO_CONTENT)

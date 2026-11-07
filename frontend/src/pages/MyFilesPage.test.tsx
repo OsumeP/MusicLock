@@ -32,7 +32,8 @@ function songDto(i: number) {
 }
 
 let calls: string[] = []
-let respond: (url: URL) => Response
+let respond: (url: URL, init?: RequestInit) => Response
+let requests: { url: string; method: string; body: unknown }[] = []
 
 function LocationProbe() {
   const location = useLocation()
@@ -58,17 +59,20 @@ async function renderPage(path = '/archivos') {
       </PlayerProvider>
     </AuthContext.Provider>,
   )
+  return auth
 }
 
 describe('MyFilesPage', () => {
   beforeEach(() => {
     calls = []
+    requests = []
     respond = () => new Response(JSON.stringify({ count: 0, next: null, previous: null, results: [] }))
     vi.stubGlobal(
       'fetch',
-      vi.fn(async (input: string) => {
+      vi.fn(async (input: string, init?: RequestInit) => {
         calls.push(input)
-        return respond(new URL(input, 'http://localhost'))
+        requests.push({ url: input, method: init?.method ?? 'GET', body: init?.body ? JSON.parse(init.body as string) : null })
+        return respond(new URL(input, 'http://localhost'), init)
       }),
     )
   })
@@ -147,6 +151,75 @@ describe('MyFilesPage', () => {
 
     await waitFor(() => expect(calls).toContain(`/api/songs/${songDto(2).id}/blob`))
     expect(screen.getByRole('row', { current: true })).toHaveTextContent('Canción 2')
+  })
+
+  /** Servidor con dos canciones que acepta PATCH y DELETE. */
+  function crudServer() {
+    let songs = [songDto(1), songDto(2)]
+    respond = (url, init) => {
+      const id = url.pathname.split('/')[3]
+      if (init?.method === 'PATCH') {
+        const changes = JSON.parse(init.body as string)
+        songs = songs.map((s) => (s.id === id ? { ...s, ...changes } : s))
+        return new Response(JSON.stringify(songs.find((s) => s.id === id)))
+      }
+      if (init?.method === 'DELETE') {
+        songs = songs.filter((s) => s.id !== id)
+        return new Response(null, { status: 204 })
+      }
+      return new Response(JSON.stringify({ count: songs.length, next: null, previous: null, results: songs }))
+    }
+  }
+
+  it('edita el título y el artista de una canción', async () => {
+    crudServer()
+    const u = userEvent.setup()
+    await renderPage()
+
+    await u.click(await screen.findByRole('button', { name: 'Editar Canción 1' }))
+    const dialog = screen.getByRole('dialog', { name: 'Editar canción' })
+    const title = within(dialog).getByLabelText('Título')
+    await u.clear(title)
+    await u.type(title, 'Starlight Odyssey')
+    await u.click(within(dialog).getByRole('button', { name: /guardar cambios/i }))
+
+    expect(await screen.findByText('Starlight Odyssey')).toBeInTheDocument()
+    expect(requests.find((r) => r.method === 'PATCH')).toEqual({
+      url: `/api/songs/${songDto(1).id}`,
+      method: 'PATCH',
+      body: { title: 'Starlight Odyssey', artist: 'Aethel Audio' },
+    })
+    expect(screen.getByText(/Se guardaron los cambios/)).toBeInTheDocument()
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+  })
+
+  it('eliminar pide confirmación; "Cancelar" (con el foco por defecto) no borra nada', async () => {
+    crudServer()
+    const u = userEvent.setup()
+    await renderPage()
+
+    await u.click(await screen.findByRole('button', { name: 'Eliminar Canción 2' }))
+    const dialog = screen.getByRole('dialog', { name: /¿Eliminar “Canción 2”\?/ })
+    expect(within(dialog).getByRole('button', { name: 'Cancelar' })).toHaveFocus()
+    await u.click(within(dialog).getByRole('button', { name: 'Cancelar' }))
+
+    expect(requests.some((r) => r.method === 'DELETE')).toBe(false)
+    expect(screen.getByText('Canción 2')).toBeInTheDocument()
+  })
+
+  it('al confirmar elimina la canción, recarga la lista y actualiza la cuota', async () => {
+    crudServer()
+    const u = userEvent.setup()
+    const auth = await renderPage()
+
+    await u.click(await screen.findByRole('button', { name: 'Eliminar Canción 2' }))
+    await u.click(screen.getByRole('button', { name: /eliminar definitivamente/i }))
+
+    await waitFor(() => expect(screen.queryByText('Canción 2')).not.toBeInTheDocument())
+    expect(requests.find((r) => r.method === 'DELETE')?.url).toBe(`/api/songs/${songDto(2).id}`)
+    expect(auth.refreshUser).toHaveBeenCalled()
+    expect(screen.getByText(/se eliminó y se liberó su espacio/)).toBeInTheDocument()
+    expect(screen.getByText('1 elemento')).toBeInTheDocument()
   })
 
   it('abre el modal de subida y lo cierra con Escape', async () => {

@@ -5,13 +5,29 @@ import { ApiError } from '../api/client'
 import { listSongs, SONGS_PAGE_SIZE, type Song, type SongPage } from '../api/songs'
 import { Alert } from '../components/ui'
 import { formatBytes, formatDuration, formatRelativeDate } from '../lib/format'
+import { useAuth } from '../auth/session'
 import { usePlayer } from '../player/playerContext'
+import { DeleteSongModal } from '../vault/DeleteSongModal'
+import { downloadOriginalSong } from '../vault/downloadSong'
+import { EditSongModal } from '../vault/EditSongModal'
 import { UploadModal } from '../vault/UploadModal'
 
 /** Resultado de la última carga, etiquetado con la petición que lo produjo. */
 type LoadResult = { key: string; page: SongPage } | { key: string; error: string }
 
-function SongRow({ song, index, queue }: { song: Song; index: number; queue: Song[] }) {
+function SongRow({
+  song,
+  index,
+  queue,
+  downloading,
+  actions,
+}: {
+  song: Song
+  index: number
+  queue: Song[]
+  downloading: boolean
+  actions: RowActions
+}) {
   const player = usePlayer()
   const isCurrent = player.current?.id === song.id
   const isPlaying = isCurrent && player.status === 'playing'
@@ -86,7 +102,41 @@ function SongRow({ song, index, queue }: { song: Song; index: number; queue: Son
       <td className="hidden px-4 py-3 text-right font-mono text-mono-crypto text-on-surface-variant xl:table-cell">
         <time dateTime={song.createdAt}>{formatRelativeDate(song.createdAt)}</time>
       </td>
+      <td className="px-2 py-3">
+        <div className="flex justify-end gap-1">
+          <RowAction
+            icon={downloading ? 'progress_activity' : 'download'}
+            spinning={downloading}
+            label={`Descargar ${song.title}`}
+            onClick={() => actions.download(song)}
+            disabled={downloading}
+          />
+          <RowAction icon="edit" label={`Editar ${song.title}`} onClick={() => actions.edit(song)} />
+          <RowAction icon="delete" label={`Eliminar ${song.title}`} onClick={() => actions.remove(song)} danger />
+        </div>
+      </td>
     </tr>
+  )
+}
+
+interface RowActions {
+  download(song: Song): void
+  edit(song: Song): void
+  remove(song: Song): void
+}
+
+function RowAction({ icon, label, onClick, disabled, danger, spinning }: { icon: string; label: string; onClick: () => void; disabled?: boolean; danger?: boolean; spinning?: boolean }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      aria-label={label}
+      title={label}
+      className={`grid size-8 place-items-center rounded-lg text-on-surface-variant transition disabled:opacity-60 ${danger ? 'hover:bg-security-danger/15 hover:text-security-danger' : 'hover:bg-surface-container-high hover:text-on-surface'}`}
+    >
+      <span aria-hidden className={`material-symbols-outlined text-[20px] ${spinning ? 'animate-spin' : ''}`}>{icon}</span>
+    </button>
   )
 }
 
@@ -124,7 +174,30 @@ export function MyFilesPage() {
   const [result, setResult] = useState<LoadResult | null>(null)
   const [reloadKey, setReloadKey] = useState(0)
   const [uploadOpen, setUploadOpen] = useState(false)
+  const [editing, setEditing] = useState<Song | null>(null)
+  const [deleting, setDeleting] = useState<Song | null>(null)
+  const [downloadingId, setDownloadingId] = useState<string | null>(null)
+  const [notice, setNotice] = useState<{ tone: 'error' | 'info'; text: string } | null>(null)
+  const { session, refreshUser } = useAuth()
+  const player = usePlayer()
   const requestKey = `${query}|${pageNumber}|${reloadKey}`
+
+  const rowActions: RowActions = {
+    async download(song) {
+      if (session.status !== 'ready') return
+      setDownloadingId(song.id)
+      setNotice(null)
+      try {
+        await downloadOriginalSong(song, session.masterKey)
+      } catch {
+        setNotice({ tone: 'error', text: `No se pudo descargar “${song.title}”.` })
+      } finally {
+        setDownloadingId(null)
+      }
+    },
+    edit: setEditing,
+    remove: setDeleting,
+  }
 
   useEffect(() => {
     const controller = new AbortController()
@@ -199,6 +272,17 @@ export function MyFilesPage() {
         </div>
       )}
 
+      {notice && (
+        <Alert tone={notice.tone}>
+          <span className="flex items-center justify-between gap-3">
+            {notice.text}
+            <button type="button" onClick={() => setNotice(null)} aria-label="Cerrar aviso" className="opacity-70 hover:opacity-100">
+              <span aria-hidden className="material-symbols-outlined text-[18px]">close</span>
+            </button>
+          </span>
+        </Alert>
+      )}
+
       {state.kind === 'error' && (
         <Alert tone="error">
           {state.message}{' '}
@@ -228,11 +312,21 @@ export function MyFilesPage() {
                   <th scope="col" className="hidden px-4 py-3 text-right font-medium lg:table-cell">Tamaño</th>
                   <th scope="col" className="px-4 py-3 font-medium">Cifrado</th>
                   <th scope="col" className="hidden px-4 py-3 text-right font-medium xl:table-cell">Subido</th>
+                  <th scope="col" className="px-2 py-3 text-right font-medium">
+                    <span className="sr-only">Acciones</span>
+                  </th>
                 </tr>
               </thead>
               <tbody>
                 {page.songs.map((song, i) => (
-                  <SongRow key={song.id} song={song} index={first + i} queue={page.songs} />
+                  <SongRow
+                    key={song.id}
+                    song={song}
+                    index={first + i}
+                    queue={page.songs}
+                    downloading={downloadingId === song.id}
+                    actions={rowActions}
+                  />
                 ))}
               </tbody>
             </table>
@@ -263,6 +357,31 @@ export function MyFilesPage() {
           onUploaded={() => {
             if (pageNumber !== 1 || query) setParams({}) // volver a la primera página para ver la canción nueva
             setReloadKey((k) => k + 1)
+          }}
+        />
+      )}
+
+      {editing && (
+        <EditSongModal
+          song={editing}
+          onClose={() => setEditing(null)}
+          onSaved={(song) => {
+            player.updateSong(song)
+            setNotice({ tone: 'info', text: `Se guardaron los cambios de “${song.title}”.` })
+            setReloadKey((k) => k + 1)
+          }}
+        />
+      )}
+
+      {deleting && (
+        <DeleteSongModal
+          song={deleting}
+          onClose={() => setDeleting(null)}
+          onDeleted={(song) => {
+            player.forget(song.id)
+            setNotice({ tone: 'info', text: `“${song.title}” se eliminó y se liberó su espacio.` })
+            setReloadKey((k) => k + 1)
+            void refreshUser()
           }}
         />
       )}

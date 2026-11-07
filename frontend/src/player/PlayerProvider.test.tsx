@@ -192,6 +192,27 @@ describe('PlayerProvider', () => {
     await waitFor(() => expect(harness.player.error).toMatch(/no está disponible/))
   })
 
+  it('forget: si se elimina la canción actual, se detiene y se libera su audio; si es otra, sale de la cola', async () => {
+    const songs: Song[] = [
+      await makeSong('a', masterKey, fakeMp3(1)),
+      await makeSong('b', masterKey, fakeMp3(2)),
+      await makeSong('c', masterKey, fakeMp3(3)),
+    ]
+    const harness = await renderPlayer(masterKey)
+    act(() => harness.player.play(songs[1], songs))
+    await waitFor(() => expect(harness.player.status).toBe('playing'))
+
+    act(() => harness.player.forget('a'))
+    expect(harness.player.queue.map((s) => s.id)).toEqual(['b', 'c'])
+    expect(harness.player.current?.id).toBe('b')
+    expect(harness.player.hasPrevious).toBe(false)
+
+    act(() => harness.player.forget('b'))
+    expect(harness.player.status).toBe('idle')
+    expect(harness.player.current).toBeNull()
+    expect(revokedUrls).toContain(createdUrls[0].url)
+  })
+
   it('al salir de la bóveda (desmontar) libera el audio descifrado', async () => {
     const song = await makeSong('s1', masterKey, fakeMp3(1))
     const harness = await renderPlayer(masterKey)

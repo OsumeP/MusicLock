@@ -20,6 +20,18 @@ class SongUploadSerializer(serializers.Serializer):
     wrapped_key_iv = Base64BytesField(IV_BYTES)
 
 
+class SongUpdateSerializer(serializers.Serializer):
+    """PATCH: solo metadatos en claro. El título no puede quedar vacío."""
+
+    title = serializers.CharField(max_length=150, required=False)
+    artist = serializers.CharField(max_length=150, required=False, allow_blank=True)
+
+    def validate(self, attrs):
+        if not attrs:
+            raise serializers.ValidationError("Envía al menos `title` o `artist`.")
+        return attrs
+
+
 class SongSerializer(serializers.ModelSerializer):
     """Representación pública. El identificador expuesto es el UUID (no se pueden enumerar canciones)."""
 

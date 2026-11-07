@@ -145,6 +145,30 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     setVolumeState(clamped)
   }, [])
 
+  const forget = useCallback(
+    (songId: string) => {
+      const position = queue.findIndex((s) => s.id === songId)
+      if (position === -1) return
+      if (position === index) {
+        loadControllerRef.current?.abort()
+        releaseAudio()
+        setStatus('idle')
+        setError(null)
+        setCurrentTime(0)
+        setQueue([])
+        setIndex(-1)
+        return
+      }
+      setQueue(queue.filter((s) => s.id !== songId))
+      if (position < index) setIndex(index - 1)
+    },
+    [queue, index, releaseAudio],
+  )
+
+  const updateSong = useCallback((song: Song) => {
+    setQueue((current) => current.map((s) => (s.id === song.id ? song : s)))
+  }, [])
+
   // Al salir de la bóveda (logout, sesión expirada): detener y liberar el audio descifrado.
   useEffect(
     () => () => {
@@ -171,8 +195,10 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
       previous,
       seek,
       setVolume,
+      forget,
+      updateSong,
     }),
-    [status, queue, index, error, currentTime, duration, volume, play, togglePlay, next, previous, seek, setVolume],
+    [status, queue, index, error, currentTime, duration, volume, play, togglePlay, next, previous, seek, setVolume, forget, updateSong],
   )
 
   return (
