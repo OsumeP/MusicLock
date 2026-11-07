@@ -10,12 +10,12 @@ almacenamiento de blobs queden consistentes entre sí.
 from dataclasses import dataclass
 from typing import BinaryIO
 
-from django.db import transaction
-from django.db.models import F, Q
+from django.db import IntegrityError, transaction
+from django.db.models import Exists, F, OuterRef, Q, QuerySet, Subquery
 
 from accounts.models import User
 
-from .models import Song, build_storage_key
+from .models import Favorite, Song, build_storage_key
 from .storage import get_blob_storage
 
 # AES-GCM añade 16 bytes de tag: un cifrado más pequeño que esto no puede contener audio.
@@ -61,12 +61,30 @@ class SongMetadata:
 MAX_QUERY_LENGTH = 100
 
 
-def songs_for(user: User, query: str = ""):
-    """Canciones del usuario (las más recientes primero), filtradas por título o artista."""
-    songs = Song.objects.filter(owner=user)
+def own_songs(user: User) -> QuerySet[Song]:
+    """
+    Canciones del usuario anotadas con `is_favorite` y `favorited_at` (fecha en
+    que la marcó, o None). Es la base de todas las consultas de la API.
+    """
+    marks = Favorite.objects.filter(user=user, song=OuterRef("pk"))
+    return Song.objects.filter(owner=user).annotate(
+        is_favorite=Exists(marks),
+        favorited_at=Subquery(marks.values("created_at")[:1]),
+    )
+
+
+def songs_for(user: User, query: str = "", favorites_only: bool = False):
+    """
+    Canciones del usuario filtradas por título o artista. Normalmente las más
+    recientes primero; con `favorites_only`, solo las favoritas, ordenadas por
+    la fecha en que se marcaron (la más reciente primero).
+    """
+    songs = own_songs(user)
     query = query.strip()[:MAX_QUERY_LENGTH]
     if query:
         songs = songs.filter(Q(title__icontains=query) | Q(artist__icontains=query))
+    if favorites_only:
+        return songs.filter(is_favorite=True).order_by("-favorited_at", "-id")
     return songs.order_by("-creation_date", "-id")
 
 
@@ -124,7 +142,7 @@ class BlobMissing(Exception):
 
 
 def get_own_song(user: User, song_id) -> Song:
-    song = Song.objects.filter(owner=user, uuid=song_id).first()
+    song = own_songs(user).filter(uuid=song_id).first()
     if song is None:
         raise SongNotFound
     return song
@@ -178,3 +196,24 @@ def delete_song(user: User, song_id) -> None:
         size = song.size
         song.delete()
         User.objects.filter(pk=user.pk).update(used_storage=Greatest(F("used_storage") - size, 0))
+
+
+# --- Favoritos (día 11, MVP+) ---------------------------------------------------------
+
+
+def set_favorite(user: User, song_id, favorite: bool) -> Song:
+    """
+    Marca o desmarca una canción propia como favorita. Es idempotente: marcar
+    dos veces deja una sola marca y desmarcar algo no marcado no falla.
+    Devuelve la canción con `is_favorite` / `favorited_at` actualizados.
+    """
+    song = get_own_song(user, song_id)
+    if favorite:
+        try:
+            with transaction.atomic():
+                Favorite.objects.get_or_create(user=user, song=song)
+        except IntegrityError:
+            pass  # otra petición simultánea la creó primero: el resultado es el mismo
+    else:
+        Favorite.objects.filter(user=user, song=song).delete()
+    return get_own_song(user, song_id)

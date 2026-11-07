@@ -33,11 +33,16 @@ class SongListCreateView(APIView):
 
     def get(self, request):
         """
-        GET /api/songs?q=&page=&page_size= — canciones del usuario, más recientes primero.
-        `q` busca en título y artista (metadatos en claro, D10). Solo se listan las
-        canciones propias: no hay forma de pedir las de otro usuario.
+        GET /api/songs?q=&favorites=&page=&page_size= — canciones del usuario, más
+        recientes primero. `q` busca en título y artista (metadatos en claro, D10);
+        `favorites=1` deja solo las favoritas, ordenadas por fecha de marcado.
+        Solo se listan las canciones propias: no hay forma de pedir las de otro usuario.
         """
-        songs = services.songs_for(request.user, query=request.query_params.get("q", ""))
+        songs = services.songs_for(
+            request.user,
+            query=request.query_params.get("q", ""),
+            favorites_only=request.query_params.get("favorites") in ("1", "true"),
+        )
         paginator = SongPagination()
         page = paginator.paginate_queryset(songs, request, view=self)
         return paginator.get_paginated_response(SongSerializer(page, many=True).data)
@@ -140,3 +145,24 @@ class SongDetailView(APIView):
         except services.SongNotFound:
             return _not_found()
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class SongFavoriteView(APIView):
+    """
+    PUT    /api/songs/{id}/favorite — marcar como favorita (idempotente).
+    DELETE /api/songs/{id}/favorite — quitar la marca (idempotente).
+    Ambas responden la canción actualizada. Canciones ajenas: 404.
+    """
+
+    def put(self, request, song_id):
+        return self._set(request, song_id, favorite=True)
+
+    def delete(self, request, song_id):
+        return self._set(request, song_id, favorite=False)
+
+    def _set(self, request, song_id, *, favorite: bool) -> Response:
+        try:
+            song = services.set_favorite(request.user, song_id, favorite)
+        except services.SongNotFound:
+            return _not_found()
+        return Response(SongSerializer(song).data)

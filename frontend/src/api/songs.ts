@@ -19,6 +19,9 @@ export interface Song {
   fileIv: string
   wrappedFileKey: string
   wrappedKeyIv: string
+  isFavorite: boolean
+  /** Cuándo se marcó como favorita (null si no lo es). */
+  favoritedAt: string | null
 }
 
 interface SongDto {
@@ -31,6 +34,8 @@ interface SongDto {
   file_iv: string
   wrapped_file_key: string
   wrapped_key_iv: string
+  is_favorite?: boolean
+  favorited_at?: string | null
 }
 
 export function toSong(dto: SongDto): Song {
@@ -44,6 +49,8 @@ export function toSong(dto: SongDto): Song {
     fileIv: dto.file_iv,
     wrappedFileKey: dto.wrapped_file_key,
     wrappedKeyIv: dto.wrapped_key_iv,
+    isFavorite: dto.is_favorite ?? false,
+    favoritedAt: dto.favorited_at ?? null,
   }
 }
 
@@ -56,13 +63,22 @@ export interface SongPage {
 
 export const SONGS_PAGE_SIZE = 20
 
-/** GET /api/songs — canciones propias, más recientes primero. `query` busca en título y artista. */
+/**
+ * GET /api/songs — canciones propias, más recientes primero. `query` busca en título y artista;
+ * `favorites` deja solo las favoritas (ordenadas por la fecha en que se marcaron).
+ */
 export async function listSongs(
-  { query = '', page = 1, pageSize = SONGS_PAGE_SIZE }: { query?: string; page?: number; pageSize?: number } = {},
+  {
+    query = '',
+    page = 1,
+    pageSize = SONGS_PAGE_SIZE,
+    favorites = false,
+  }: { query?: string; page?: number; pageSize?: number; favorites?: boolean } = {},
   signal?: AbortSignal,
 ): Promise<SongPage> {
   const params = new URLSearchParams({ page: String(page), page_size: String(pageSize) })
   if (query.trim()) params.set('q', query.trim())
+  if (favorites) params.set('favorites', '1')
   const dto = await apiRequest<{ count: number; next: string | null; previous: string | null; results: SongDto[] }>(
     `/songs?${params}`,
     { signal },
@@ -78,6 +94,11 @@ export async function updateSong(id: string, changes: { title?: string; artist?:
 /** DELETE /api/songs/{id} — borra la canción y su blob; libera la cuota. */
 export function deleteSong(id: string): Promise<void> {
   return apiRequest<void>(`/songs/${encodeURIComponent(id)}`, { method: 'DELETE' })
+}
+
+/** PUT / DELETE /api/songs/{id}/favorite — marca o desmarca (idempotente). Devuelve la canción actualizada. */
+export async function setFavorite(id: string, favorite: boolean): Promise<Song> {
+  return toSong(await apiRequest<SongDto>(`/songs/${encodeURIComponent(id)}/favorite`, { method: favorite ? 'PUT' : 'DELETE' }))
 }
 
 export interface SongMetadata {

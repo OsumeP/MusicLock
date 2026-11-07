@@ -1,7 +1,7 @@
 from django.contrib import admin
 from django.template.defaultfilters import filesizeformat
 
-from .models import Song
+from .models import Favorite, Song
 
 
 @admin.register(Song)
@@ -18,3 +18,10 @@ class SongAdmin(admin.ModelAdmin):
     @admin.display(description="Tamaño cifrado", ordering="size")
     def encrypted_size(self, song):
         return filesizeformat(song.size)
+
+
+@admin.register(Favorite)
+class FavoriteAdmin(admin.ModelAdmin):
+    list_display = ("song", "user", "created_at")
+    search_fields = ("song__title", "user__email")
+    readonly_fields = ("user", "song", "created_at")

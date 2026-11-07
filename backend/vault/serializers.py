@@ -36,6 +36,16 @@ class SongSerializer(serializers.ModelSerializer):
     """Representación pública. El identificador expuesto es el UUID (no se pueden enumerar canciones)."""
 
     id = serializers.UUIDField(source="uuid", read_only=True)
+    # Anotaciones de `services.own_songs`; una canción recién subida aún no es favorita.
+    is_favorite = serializers.SerializerMethodField()
+    favorited_at = serializers.SerializerMethodField()
+
+    def get_is_favorite(self, song) -> bool:
+        return bool(getattr(song, "is_favorite", False))
+
+    def get_favorited_at(self, song):
+        value = getattr(song, "favorited_at", None)
+        return serializers.DateTimeField().to_representation(value) if value else None
 
     class Meta:
         model = Song
@@ -49,5 +59,7 @@ class SongSerializer(serializers.ModelSerializer):
             "file_iv",
             "wrapped_file_key",
             "wrapped_key_iv",
+            "is_favorite",
+            "favorited_at",
         ]
         read_only_fields = fields

@@ -46,7 +46,10 @@ class ListSongsApiTests(APITestCase):
         self.assertEqual([s["id"] for s in body["results"]], [str(new.uuid), str(old.uuid)])
         self.assertEqual(
             set(body["results"][0]),
-            {"id", "title", "artist", "duration", "size", "creation_date", "file_iv", "wrapped_file_key", "wrapped_key_iv"},
+            {
+                "id", "title", "artist", "duration", "size", "creation_date",
+                "file_iv", "wrapped_file_key", "wrapped_key_iv", "is_favorite", "favorited_at",
+            },
         )
         self.assertNotIn("Secreta de Beto", str(body))
 

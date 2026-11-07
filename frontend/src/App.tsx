@@ -4,6 +4,7 @@ import { AuthProvider } from './auth/AuthProvider'
 import { RequireAuth } from './auth/RequireAuth'
 import { ErrorBoundary } from './components/ErrorBoundary'
 import { AppLayout } from './layout/AppLayout'
+import { FavoritesPage } from './pages/FavoritesPage'
 import { HomePage } from './pages/HomePage'
 import { LandingPage } from './pages/LandingPage'
 import { LoginPage } from './pages/LoginPage'
@@ -34,6 +35,7 @@ export default function App() {
             >
               <Route path="/inicio" element={<HomePage />} />
               <Route path="/archivos" element={<MyFilesPage />} />
+              <Route path="/favoritos" element={<FavoritesPage />} />
             </Route>
 
             <Route path="*" element={<NotFoundPage />} />

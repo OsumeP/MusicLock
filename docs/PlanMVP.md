@@ -218,6 +218,7 @@ Tablas `favorite`, `listening_history`, `playlist` y `playlist_song` se crean so
 | GET | `/api/songs/{id}/blob` | Descarga del cifrado (solo el propietario; si no lo es → 404) |
 | PATCH | `/api/songs/{id}` | Editar título / artista |
 | DELETE | `/api/songs/{id}` | Elimina el blob y libera la cuota |
+| PUT / DELETE | `/api/songs/{id}/favorite` | MVP+ (día 11): marcar / desmarcar favorita (idempotente). `GET /api/songs?favorites=1` lista solo favoritas |
 
 ---
 
@@ -244,6 +245,18 @@ Tablas `favorite`, `listening_history`, `playlist` y `playlist_song` se crean so
 | 8 | Descarga del original, editar título/artista, eliminar (libera cuota); test "el usuario B no accede al archivo de A". | El SHA-256 del original y del archivo descargado coinciden. |
 | 9 | Dashboard "Inicio" simplificado (recientes + cuota), landing page, secciones "Próximamente", manejo de errores, README de instalación. MVP+ si hay tiempo (favoritos). | El guion de demo (§8) pasa completo. |
 | 10 | Margen para imprevistos; ensayo de la demo en una máquina limpia; diapositivas o resumen para el equipo. | Presentación lista. |
+
+### Semana 3 — MVP+ (extensión aprobada el 2026-11-06)
+
+> El MVP (§1.1) quedó completo el día 10. El equipo dispone de una semana más y decidió ejecutar el MVP+ (§1.2) y añadir el **cambio de contraseña**. Sin despliegue por ahora; compartir sigue en el backlog.
+
+| Día | Tareas | Entregable verificable |
+|---|---|---|
+| 11 | **Favoritos**: modelo `Favorite` (único por usuario y canción), `PUT`/`DELETE /api/songs/{id}/favorite`, `is_favorite` en el listado y filtro `?favorites=1`; corazón en "Mis Archivos" y pantalla `/favoritos`. | Marcar una canción, recargar y que siga marcada; Beto no puede marcar las de Ana (404). |
+| 12 | **Reproducido recientemente**: modelo `ListeningHistory`, `POST /api/songs/{id}/plays` (al empezar a sonar), `GET /api/history`; pantalla `/recientes` y sección "Recientes" de Inicio con datos reales. | Reproducir 3 canciones y verlas en orden en Inicio y `/recientes`. |
+| 13 | **Playlists privadas**: modelos `Playlist` y `PlaylistSong` (con posición), CRUD + añadir/quitar canciones (ajena = 404); pantallas de lista y detalle; "Añadir a playlist" desde "Mis Archivos". | Crear una playlist, añadir 3 canciones, quitar 1, borrarla; borrar una canción la quita de sus playlists. |
+| 14 | **Reproducir playlists con Iterator** (`Sequential`, `Shuffle`, `Loop`; Patrones §3.1) y botones aleatorio/repetir. **Cambio de contraseña**: re-envolver la Master Key con la nueva KEK, exigir el `authKey` actual e invalidar las otras sesiones. | Reproducir una playlist en aleatorio; tras cambiar la contraseña la anterior no sirve y las canciones suenan sin volver a cifrarse. |
+| 15 | Margen; guion de demo ampliado en entorno limpio; documentación y resumen para el equipo. | El guion ampliado pasa completo. |
 
 ---
 

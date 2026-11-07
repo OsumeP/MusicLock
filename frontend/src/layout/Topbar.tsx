@@ -1,12 +1,17 @@
 import { useEffect, useState, type FormEvent } from 'react'
-import { useNavigate, useSearchParams } from 'react-router'
+import { useLocation, useNavigate, useSearchParams } from 'react-router'
 
 import { useAuth } from '../auth/session'
+
+/** Secciones con lista filtrable por `?q=`; desde cualquier otra pantalla la búsqueda lleva a "Mis Archivos". */
+const SEARCHABLE = ['/archivos', '/favoritos']
 
 /** Barra superior: búsqueda en la bóveda, estado de la sesión cifrada y usuario. */
 export function Topbar({ onOpenMenu }: { onOpenMenu: () => void }) {
   const { session, logout } = useAuth()
   const navigate = useNavigate()
+  const { pathname } = useLocation()
+  const searchBase = SEARCHABLE.includes(pathname) ? pathname : '/archivos'
   const [params] = useSearchParams()
   const currentQuery = params.get('q') ?? ''
   const [query, setQuery] = useState(currentQuery)
@@ -23,14 +28,14 @@ export function Topbar({ onOpenMenu }: { onOpenMenu: () => void }) {
   useEffect(() => {
     if (query === currentQuery) return
     const timer = setTimeout(() => {
-      navigate(query.trim() ? `/archivos?q=${encodeURIComponent(query.trim())}` : '/archivos', { replace: true })
+      navigate(query.trim() ? `${searchBase}?q=${encodeURIComponent(query.trim())}` : searchBase, { replace: true })
     }, 300)
     return () => clearTimeout(timer)
-  }, [query, currentQuery, navigate])
+  }, [query, currentQuery, navigate, searchBase])
 
   function handleSubmit(event: FormEvent) {
     event.preventDefault()
-    navigate(query.trim() ? `/archivos?q=${encodeURIComponent(query.trim())}` : '/archivos')
+    navigate(query.trim() ? `${searchBase}?q=${encodeURIComponent(query.trim())}` : searchBase)
   }
 
   if (session.status !== 'ready') return null

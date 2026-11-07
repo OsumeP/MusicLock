@@ -52,3 +52,22 @@ class Song(models.Model):
         if not self.storage_key:
             self.storage_key = build_storage_key(self.owner_id, self.uuid)
         super().save(*args, **kwargs)
+
+
+class Favorite(models.Model):
+    """
+    Canción marcada como favorita (Interfaz FR-02, Accesos FR-13). En el MVP+ un
+    usuario solo puede marcar canciones propias; al borrar la canción o el
+    usuario, la marca desaparece en cascada.
+    """
+
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="favorites")
+    song = models.ForeignKey(Song, on_delete=models.CASCADE, related_name="favorites")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [models.UniqueConstraint(fields=["user", "song"], name="unique_favorite_per_user")]
+        indexes = [models.Index(fields=["user", "-created_at"])]
+
+    def __str__(self) -> str:
+        return f"{self.user} ♥ {self.song}"

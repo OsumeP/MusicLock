@@ -222,6 +222,35 @@ describe('MyFilesPage', () => {
     expect(screen.getByText('1 elemento')).toBeInTheDocument()
   })
 
+  it('el corazón marca la canción como favorita con PUT y queda pulsado', async () => {
+    respond = (_url, init) =>
+      init?.method === 'PUT'
+        ? new Response(JSON.stringify({ ...songDto(1), is_favorite: true, favorited_at: new Date().toISOString() }))
+        : new Response(JSON.stringify({ count: 1, next: null, previous: null, results: [songDto(1)] }))
+    const u = userEvent.setup()
+    await renderPage()
+
+    await u.click(await screen.findByRole('button', { name: 'Añadir Canción 1 a favoritos' }))
+
+    const heart = await screen.findByRole('button', { name: 'Quitar Canción 1 de favoritos' })
+    expect(heart).toHaveAttribute('aria-pressed', 'true')
+    expect(requests.find((r) => r.method === 'PUT')?.url).toBe(`/api/songs/${songDto(1).id}/favorite`)
+  })
+
+  it('si falla el favorito, revierte el corazón y muestra un aviso', async () => {
+    respond = (_url, init) =>
+      init?.method === 'DELETE'
+        ? new Response('{}', { status: 500 })
+        : new Response(JSON.stringify({ count: 1, next: null, previous: null, results: [{ ...songDto(1), is_favorite: true }] }))
+    const u = userEvent.setup()
+    await renderPage()
+
+    await u.click(await screen.findByRole('button', { name: 'Quitar Canción 1 de favoritos' }))
+
+    expect(await screen.findByText(/No se pudo quitar “Canción 1” de favoritos/)).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Quitar Canción 1 de favoritos' })).toHaveAttribute('aria-pressed', 'true')
+  })
+
   it('abre el modal de subida y lo cierra con Escape', async () => {
     const u = userEvent.setup()
     await renderPage()

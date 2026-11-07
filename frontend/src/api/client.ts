@@ -29,7 +29,7 @@ export class ApiError extends Error {
 }
 
 interface RequestOptions {
-  method?: 'GET' | 'POST' | 'PATCH' | 'DELETE'
+  method?: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE'
   /** Se envía como JSON. */
   json?: unknown
   /** Por defecto las peticiones llevan el JWT; las de login/registro no. */

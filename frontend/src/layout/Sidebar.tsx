@@ -9,11 +9,11 @@ interface NavItem {
   to?: string
 }
 
-/** Secciones de los mockups. En el MVP están "Inicio" y "Mis Archivos" (PlanMVP §1). */
+/** Secciones de los mockups. Las que aún no existen se muestran como "Pronto" (PlanMVP §1). */
 const NAV: NavItem[] = [
   { label: 'Inicio', icon: 'home', to: '/inicio' },
   { label: 'Mis Archivos', icon: 'folder_special', to: '/archivos' },
-  { label: 'Favoritos', icon: 'favorite' },
+  { label: 'Favoritos', icon: 'favorite', to: '/favoritos' },
   { label: 'Playlists', icon: 'queue_music' },
   { label: 'Compartido conmigo', icon: 'share' },
   { label: 'Recientes', icon: 'history' },
