@@ -17,6 +17,7 @@ const user: User = {
   plan: { code: 'free', name: 'Free', maxStorageBytes: 500 * 1024 * 1024, maxFileSizeBytes: 20 * 1024 * 1024 },
   usedStorage: 0,
   storageAvailable: 500 * 1024 * 1024,
+  hasKeyPair: true,
 }
 
 const songId = (i: number) => `00000000-0000-4000-8000-${String(i).padStart(12, '0')}`

@@ -16,6 +16,7 @@ const user: User = {
   plan: { code: 'free', name: 'Free', maxStorageBytes: 500 * MiB, maxFileSizeBytes: 20 * MiB },
   usedStorage: 100 * MiB,
   storageAvailable: 400 * MiB,
+  hasKeyPair: true,
 }
 
 function songDto(i: number) {

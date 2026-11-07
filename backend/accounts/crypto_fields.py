@@ -53,3 +53,51 @@ class KdfParamsField(serializers.JSONField):
         if not isinstance(iterations, int) or isinstance(iterations, bool) or iterations < MIN_PBKDF2_ITERATIONS:
             raise serializers.ValidationError(f"Se requieren al menos {MIN_PBKDF2_ITERATIONS} iteraciones.")
         return value
+
+
+# --- Par de claves para compartir (día 16) -------------------------------------------
+
+# SPKI DER de una clave RSA de 3072 bits con exponente 65537: siempre 422 bytes y
+# siempre empieza por la misma cabecera (SEQUENCE + AlgorithmIdentifier rsaEncryption).
+RSA_PUBLIC_KEY_BYTES = 422
+RSA_SPKI_PREFIX = bytes.fromhex("308201a2300d06092a864886f70d01010105000382018f00")
+# PKCS#8 de RSA-3072 ocupa ~1790-1796 bytes (varía con los ceros a la izquierda) + 16 de tag.
+WRAPPED_PRIVATE_KEY_MIN_BYTES = 1700
+WRAPPED_PRIVATE_KEY_MAX_BYTES = 1900
+
+
+def _decode(value: str) -> bytes:
+    try:
+        return base64.b64decode(value, validate=True)
+    except (binascii.Error, ValueError):
+        raise serializers.ValidationError("Debe ser base64 válido.")
+
+
+class RsaPublicKeyField(serializers.CharField):
+    """Clave pública RSA-OAEP 3072 en SPKI/base64 (la que genera el navegador)."""
+
+    def __init__(self, **kwargs):
+        kwargs.setdefault("max_length", 4 * ((RSA_PUBLIC_KEY_BYTES + 2) // 3))
+        super().__init__(**kwargs)
+
+    def to_internal_value(self, data):
+        value = super().to_internal_value(data)
+        decoded = _decode(value)
+        if len(decoded) != RSA_PUBLIC_KEY_BYTES or not decoded.startswith(RSA_SPKI_PREFIX):
+            raise serializers.ValidationError("Debe ser una clave pública RSA de 3072 bits (SPKI).")
+        return value
+
+
+class WrappedPrivateKeyField(serializers.CharField):
+    """Clave privada PKCS#8 envuelta con AES-GCM: solo se comprueba el tamaño."""
+
+    def __init__(self, **kwargs):
+        kwargs.setdefault("max_length", 4 * ((WRAPPED_PRIVATE_KEY_MAX_BYTES + 2) // 3))
+        super().__init__(**kwargs)
+
+    def to_internal_value(self, data):
+        value = super().to_internal_value(data)
+        size = len(_decode(value))
+        if not WRAPPED_PRIVATE_KEY_MIN_BYTES <= size <= WRAPPED_PRIVATE_KEY_MAX_BYTES:
+            raise serializers.ValidationError("Tamaño de clave privada envuelta inesperado.")
+        return value

@@ -1,11 +1,32 @@
-import { useMemo, useState, type FormEvent } from 'react'
+import { useEffect, useMemo, useState, type FormEvent } from 'react'
+
+import { fetchKeyPair } from '../api/auth'
 
 import { authErrorMessage } from '../auth/errors'
+import { publicKeyFingerprint } from '../crypto'
 import { checkPassword } from '../auth/password'
 import { useAuth } from '../auth/session'
 import { StrengthMeter } from '../components/StrengthMeter'
 import { Alert, PasswordField, SubmitButton } from '../components/ui'
 import { formatBytes } from '../lib/format'
+
+/**
+ * Huella de la clave pública propia (día 16). `undefined` mientras se calcula o
+ * mientras el par aún se está generando; `null` si no se pudo obtener.
+ */
+function useOwnFingerprint(hasKeyPair: boolean): string | null | undefined {
+  const [fingerprint, setFingerprint] = useState<string | null | undefined>(undefined)
+  useEffect(() => {
+    if (!hasKeyPair) return
+    const controller = new AbortController()
+    fetchKeyPair(controller.signal)
+      .then((keyPair) => publicKeyFingerprint(keyPair.publicKey))
+      .then((value) => !controller.signal.aborted && setFingerprint(value))
+      .catch(() => !controller.signal.aborted && setFingerprint(null))
+    return () => controller.abort()
+  }, [hasKeyPair])
+  return hasKeyPair ? fingerprint : undefined
+}
 
 /**
  * "Mi cuenta": datos de la cuenta y cambio de contraseña (día 14).
@@ -24,6 +45,7 @@ export function AccountPage() {
   const [done, setDone] = useState(false)
 
   const user = session.status === 'ready' ? session.user : null
+  const fingerprint = useOwnFingerprint(!!user?.hasKeyPair)
   const strength = useMemo(
     () => checkPassword(password, { email: user?.email, username: user?.username }),
     [password, user?.email, user?.username],
@@ -85,6 +107,18 @@ export function AccountPage() {
             </div>
           ))}
         </dl>
+      </section>
+
+      <section aria-labelledby="clave-compartir" className="flex flex-col gap-3 rounded-xl bg-surface-card p-6 ring-1 ring-border-subtle">
+        <h2 id="clave-compartir" className="text-title-md font-semibold">Clave para compartir</h2>
+        <p className="text-body-md text-on-surface-variant">
+          Cuando alguien comparte una canción contigo, la cifra para esta clave pública; tu clave privada está guardada envuelta
+          con tu Master Key. Si quieres asegurarte de que el servidor no la suplantó, compara esta huella con la que ve la otra
+          persona.
+        </p>
+        <p className="break-words rounded-lg bg-surface-container-lowest px-4 py-3 font-mono text-mono-crypto text-accent-cyan ring-1 ring-border-subtle" aria-live="polite">
+          {fingerprint === undefined ? 'Generando o cargando la clave…' : fingerprint === null ? 'No se pudo cargar la huella.' : fingerprint}
+        </p>
       </section>
 
       <section aria-labelledby="cambiar-contrasena" className="flex flex-col gap-4 rounded-xl bg-surface-card p-6 ring-1 ring-border-subtle">

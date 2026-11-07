@@ -15,6 +15,7 @@ const user: User = {
   plan: { code: 'free', name: 'Free', maxStorageBytes: 500 * 1024 * 1024, maxFileSizeBytes: 20 * 1024 * 1024 },
   usedStorage: 0,
   storageAvailable: 500 * 1024 * 1024,
+  hasKeyPair: true,
 }
 
 function favoriteDto(i: number) {

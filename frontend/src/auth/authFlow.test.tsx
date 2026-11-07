@@ -12,6 +12,7 @@ import { MemoryRouter, Route, Routes } from 'react-router'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { tokenStore } from '../api/tokens'
+import { publicKeyFingerprint, unlockPrivateKey } from '../crypto'
 import { clearMasterKey, loadMasterKey } from './keyStore'
 import { LoginPage } from '../pages/LoginPage'
 import { RegisterPage } from '../pages/RegisterPage'
@@ -32,6 +33,7 @@ interface StoredUser {
   wrapped_master_key: string
   master_key_iv: string
   active: boolean
+  keypair?: { public_key: string; wrapped_private_key: string; private_key_iv: string }
 }
 
 /** Servidor falso: misma forma de respuestas que la API de Django. */
@@ -50,6 +52,7 @@ function createFakeServer() {
     plan: { code: 'free', name: 'Free', max_storage_bytes: 500 * 1024 * 1024, max_file_size_bytes: 20 * 1024 * 1024 },
     used_storage: 0,
     storage_available: 500 * 1024 * 1024,
+    has_keypair: !!u.keypair,
   })
   const session = (u: StoredUser) => {
     const refresh = `refresh-${++refreshCounter}`
@@ -96,6 +99,16 @@ function createFakeServer() {
         return json(null, 204)
       case '/api/songs':
         return auth ? json({ count: 0, next: null, previous: null, results: [] }) : json({ detail: 'auth' }, 401)
+      case '/api/me/keypair': {
+        const u = [...users.values()][0]
+        if (!auth || !u) return json({ detail: 'auth' }, 401)
+        if (init?.method === 'PUT') {
+          if (u.keypair) return json({ detail: 'x', code: 'keypair_exists' }, 409)
+          u.keypair = body
+          return json(body, 201)
+        }
+        return u.keypair ? json(u.keypair) : json({ detail: 'x', code: 'no_keypair' }, 404)
+      }
       case '/api/me/vault': {
         const u = [...users.values()][0]
         if (!auth || !u) return json({ detail: 'auth' }, 401)
@@ -326,6 +339,7 @@ describe('flujo de autenticación', () => {
     it('con la contraseña actual incorrecta no cambia nada', async () => {
       const user = userEvent.setup()
       await registerAna(user)
+      await waitFor(() => expect(server.users.get('ana@example.com')!.keypair).toBeDefined(), { timeout: 10_000 })
       const before = { ...server.users.get('ana@example.com')! }
       await openAccount(user)
 
@@ -355,7 +369,43 @@ describe('flujo de autenticación', () => {
       await user.type(screen.getByLabelText('Nueva contraseña'), 'corta')
       expect(screen.getByText(/al menos 12 caracteres/)).toBeInTheDocument()
       expect(screen.getByText('Las contraseñas no coinciden.')).toBeInTheDocument()
-      expect(server.requests.some((r) => r.url.startsWith('/api/me/'))).toBe(false)
+      expect(server.requests.some((r) => r.url === '/api/me/vault' || r.url === '/api/me/password')).toBe(false)
     }, 15_000)
+  })
+
+  describe('par de claves para compartir (día 16)', () => {
+    it('al abrir la bóveda se genera y guarda el par; la privada solo la abre la Master Key', async () => {
+      const user = userEvent.setup()
+      await registerAna(user)
+
+      await waitFor(() => expect(server.users.get('ana@example.com')!.keypair).toBeDefined(), { timeout: 10_000 })
+      const stored = server.users.get('ana@example.com')!.keypair!
+      expect(server.requests.filter((r) => r.url === '/api/me/keypair')).toHaveLength(1)
+      // Lo guardado se abre con la Master Key de esta sesión (IndexedDB).
+      const masterKey = (await loadMasterKey(1))!
+      await expect(unlockPrivateKey(stored.wrapped_private_key, stored.private_key_iv, masterKey)).resolves.toBeDefined()
+
+      // "Mi cuenta" muestra la huella de esa clave pública.
+      await user.click(screen.getByRole('link', { name: /mi cuenta/i }))
+      expect(await screen.findByText(await publicKeyFingerprint(stored.public_key), {}, { timeout: 5000 })).toBeInTheDocument()
+    }, 20_000)
+
+    it('una cuenta anterior al día 16 lo genera al iniciar sesión', async () => {
+      const user = userEvent.setup()
+      await registerAna(user)
+      await waitFor(() => expect(server.users.get('ana@example.com')!.keypair).toBeDefined(), { timeout: 10_000 })
+      const first = server.users.get('ana@example.com')!.keypair!
+      await user.click(screen.getByRole('button', { name: /cerrar sesión/i }))
+
+      // Simula una cuenta antigua: sin par de claves.
+      delete server.users.get('ana@example.com')!.keypair
+      await user.type(await screen.findByLabelText('Correo electrónico'), 'ana@example.com')
+      await user.type(screen.getByLabelText('Contraseña'), PASSWORD)
+      await user.click(screen.getByRole('button', { name: /^iniciar sesión$/i }))
+
+      await waitFor(() => expect(server.users.get('ana@example.com')!.keypair).toBeDefined(), { timeout: 10_000 })
+      expect(server.users.get('ana@example.com')!.keypair!.public_key).not.toBe(first.public_key)
+      expect(server.requests.filter((r) => r.url === '/api/me/keypair')).toHaveLength(2)
+    }, 25_000)
   })
 })

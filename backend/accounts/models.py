@@ -56,7 +56,11 @@ class User(AbstractUser):
     kdf_params = models.JSONField(default=dict, blank=True)
     wrapped_master_key = models.TextField(blank=True)
     master_key_iv = models.CharField(max_length=32, blank=True)
-    public_key = models.TextField(blank=True, help_text="Reservado para compartir (backlog, BR-21).")
+    # Par de claves para compartir (Semana 4, PlanMVP §4.6): la pública en claro y
+    # la privada envuelta con la Master Key (el servidor no puede usarla).
+    public_key = models.TextField(blank=True, help_text="Clave pública RSA-OAEP 3072 (SPKI, base64).")
+    wrapped_private_key = models.TextField(blank=True, help_text="Clave privada PKCS#8 envuelta con la Master Key.")
+    private_key_iv = models.CharField(max_length=32, blank=True)
 
     USERNAME_FIELD = "email"
     REQUIRED_FIELDS = ["username"]
@@ -82,6 +86,11 @@ class User(AbstractUser):
             0 < size_bytes <= self.active_plan.max_file_size_bytes
             and size_bytes <= self.storage_available
         )
+
+    @property
+    def has_keypair(self) -> bool:
+        """True si ya generó su par de claves para compartir (día 16)."""
+        return bool(self.public_key)
 
     @property
     def has_vault(self) -> bool:

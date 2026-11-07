@@ -34,9 +34,16 @@
 2. **Reproducido recientemente** (insertar en `listening_history` al reproducir) → Interfaz FR-05, Estadísticas FR-01, FR-06.
 3. **Playlists privadas básicas** → Accesos FR-08..FR-12.
 
+### 1.2.1 Semana 4 (extensión aprobada el 2026-11-07)
+
+Completado el MVP+ y el cambio de contraseña (día 14), el equipo dispone de unos 5 días más y decidió:
+
+1. **Compartir canciones con usuarios concretos** (BR-21) → Accesos FR-01..FR-07 (rol único "Consulta"), Interfaz FR-04 ("Compartido conmigo"). Solo canciones; compartir playlists queda en el backlog.
+2. **Estadísticas personales** → Estadísticas FR-02..FR-05 (solo del propio usuario; las tendencias globales, FR-07, quedan en el backlog porque mostrarían títulos de canciones privadas de otros usuarios).
+
 ### 1.3 Fuera del MVP (backlog)
 
-Compartir con otros usuarios (intercambio de claves asimétricas, BR-21), contenido público + ACRCloud, comentarios (Composite), seguidores y notificaciones (Observer), álbumes y artistas, estadísticas y tendencias, upgrade/downgrade Premium y estado "Frozen", panel de administrador (salvo el admin de Django para bloquear usuarios), desencriptación programada, recuperación con seed phrase (BR-05), migración a Argon2id, cifrado por bloques para archivos > 20 MB, iteradores shuffle/loop.
+~~Compartir con otros usuarios~~ (entra en la Semana 4, solo canciones), compartir playlists, contenido público + ACRCloud, comentarios (Composite), seguidores y notificaciones (Observer), álbumes y artistas, tendencias globales, upgrade/downgrade Premium y estado "Frozen", panel de administrador (salvo el admin de Django para bloquear usuarios), desencriptación programada, recuperación con seed phrase (BR-05), migración a Argon2id, cifrado por bloques para archivos > 20 MB.
 
 > Las secciones de los mockups que no se implementan (Favoritos, Playlists, Compartido, Recientes, Tendencias, Admin) quedan visibles en el menú como **"Próximamente"**, para mostrar la visión completa sin implementarla.
 
@@ -187,13 +194,32 @@ File Key              ── cifra    (AES-GCM) ──►  MP3
 - Archivos de hasta 20 MB se cifran en un solo bloque en memoria; para los 100 MB de Premium hará falta cifrado por bloques.
 - Sin recuperación de contraseña (D8).
 
+### 4.6 Compartir (Semana 4, BR-21)
+
+```
+Registro / primer login tras el día 16:
+  navegador genera un par RSA-OAEP 3072 (SHA-256)
+    pública  ── SPKI base64 ──────────────────────────────► servidor (public_key)
+    privada  ── PKCS#8 envuelta con la Master Key (AES-GCM) ─► servidor (wrapped_private_key + private_key_iv)
+
+Ana comparte una canción con Beto:
+  File Key (la desenvuelve Ana con su Master Key) ── RSA-OAEP con la pública de Beto ──► servidor (share.wrapped_file_key)
+Beto reproduce:
+  desenvuelve su privada con su Master Key → desenvuelve la File Key → descifra el blob (el mismo de Ana)
+```
+
+- El blob no se copia ni se vuelve a cifrar; cada destinatario recibe solo la File Key de esa canción, envuelta para él. La Master Key de Ana nunca sale de su navegador.
+- La clave privada va envuelta con la Master Key, así que el cambio de contraseña no la afecta.
+- **Confianza en la clave pública:** el servidor entrega la clave pública del destinatario; un servidor malicioso podría entregar una suya. Mitigación: la huella (SHA-256 de la clave pública) se muestra en "Mi cuenta" y en el diálogo de compartir para comprobarla por otro canal.
+- **Revocar** borra el permiso en el servidor (deja de entregar el blob), pero no puede borrar lo que el destinatario ya descargó o descifró.
+
 ---
 
 ## 5. Modelo de datos (D5)
 
 **`plan`** — `plan_id`, **`code`** (`free`/`premium`), `name`, `monthly_price`, **`max_storage_bytes`**, **`max_file_size_bytes`**. Datos semilla (migración): Free = 500 MB / 20 MB, Premium = 5 GB / 100 MB.
 
-**`user`** (extiende `AbstractUser`) — `username`, `email` (único), `password` (hash de `authKey`), `active_plan` (FK, por defecto Free), `used_storage` (`BigInteger`), **`kdf_salt`**, **`kdf_params`** (JSON), **`wrapped_master_key`**, **`master_key_iv`**, `is_active` (para bloquear usuarios, BR-06), `public_key` (nullable, para compartir en el futuro).
+**`user`** (extiende `AbstractUser`) — `username`, `email` (único), `password` (hash de `authKey`), `active_plan` (FK, por defecto Free), `used_storage` (`BigInteger`), **`kdf_salt`**, **`kdf_params`** (JSON), **`wrapped_master_key`**, **`master_key_iv`**, `is_active` (para bloquear usuarios, BR-06), `public_key` (clave pública RSA-OAEP en SPKI/base64; Semana 4) y **`wrapped_private_key`** + **`private_key_iv`** (clave privada PKCS#8 envuelta con la Master Key; Semana 4, ver §4.6).
 
 **`song`** — `song_id`, **`uuid`** (nombre del objeto en MinIO), `owner` (FK), `title`, **`artist`**, `duration`, `size` (`BigInteger`, bytes del cifrado), **`storage_key`**, **`file_iv`**, **`wrapped_file_key`**, **`wrapped_key_iv`**, `creation_date`. Se crean pero no se usan aún: `is_public` (default `False`, BR-19), `copyright`. La FK `album` se añadirá junto con el modelo `Album` (backlog; ver decisión I14 en `desarrollo/README.md`).
 
@@ -263,7 +289,17 @@ Tablas `favorite`, `listening_history`, `playlist` y `playlist_song` se crean so
 | 12 | **Reproducido recientemente**: modelo `ListeningHistory`, `POST /api/songs/{id}/plays` (al empezar a sonar), `GET /api/history`; pantalla `/recientes` y sección "Recientes" de Inicio con datos reales. | Reproducir 3 canciones y verlas en orden en Inicio y `/recientes`. |
 | 13 | **Playlists privadas**: modelos `Playlist` y `PlaylistSong` (con posición), CRUD + añadir/quitar canciones (ajena = 404); pantallas de lista y detalle; "Añadir a playlist" desde "Mis Archivos". | Crear una playlist, añadir 3 canciones, quitar 1, borrarla; borrar una canción la quita de sus playlists. |
 | 14 | **Reproducir playlists con Iterator** (`Sequential`, `Shuffle`, `Loop`; Patrones §3.1) y botones aleatorio/repetir. **Cambio de contraseña**: re-envolver la Master Key con la nueva KEK, exigir el `authKey` actual e invalidar las otras sesiones. | Reproducir una playlist en aleatorio; tras cambiar la contraseña la anterior no sirve y las canciones suenan sin volver a cifrarse. |
-| 15 | Margen; guion de demo ampliado en entorno limpio; documentación y resumen para el equipo. | El guion ampliado pasa completo. |
+| 15 | Se une al día 20 (cierre de la Semana 4). | — |
+
+### Semana 4 — Compartir y estadísticas (extensión aprobada el 2026-11-07)
+
+| Día | Tareas | Entregable verificable |
+|---|---|---|
+| 16 | **Par de claves por usuario** (§4.6): generar RSA-OAEP en el navegador, guardar la pública y la privada envuelta (`PUT`/`GET /api/me/keypair`); las cuentas existentes lo generan al abrir la bóveda; primitivas cripto para envolver/desenvolver una File Key para otro usuario; huella en "Mi cuenta". | Ana y Beto tienen par de claves; un test cripto comparte una canción de Ana y Beto la descifra; el servidor solo ve la pública y la privada envuelta. |
+| 17 | **Compartir / revocar / listar accesos**: modelo `SongShare` (canción, destinatario, File Key envuelta, rol "Consulta"), API, modal "Compartir" (buscar usuario, ver su huella) en las tablas de canciones. | Ana comparte una canción con Beto, ve la lista de quién tiene acceso y revoca; un tercero → 404. |
+| 18 | **"Compartido conmigo"**: pantalla y sección en Inicio; reproducir y descargar canciones compartidas (el blob pasa por el Proxy, que acepta propietario o destinatario); permisos "Consulta" (sin editar/borrar). | Beto reproduce la canción de Ana; tras revocar, deja de poder. |
+| 19 | **Estadísticas personales**: top 7 y 30 días, artistas más escuchados, reproducciones por canción; pantalla "Tendencias" con datos del propio usuario. | Las cifras coinciden con el historial. |
+| 20 | Guion de demo ampliado (semanas 3 y 4) en entorno limpio; documentación y resumen para el equipo. | El guion ampliado pasa completo. |
 
 ---
 

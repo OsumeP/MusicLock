@@ -87,7 +87,11 @@ export function wrapFileKey(fileKey: CryptoKey, masterKey: CryptoKey): Promise<W
   return wrap(fileKey, masterKey, AAD_FILE_KEY)
 }
 
-/** Recupera la File Key de una canción, no extraíble y solo para descifrar. */
-export function unwrapFileKey(wrapped: WrappedKey, masterKey: CryptoKey): Promise<CryptoKey> {
-  return unwrap(wrapped, masterKey, AAD_FILE_KEY, false, ['decrypt'])
+/**
+ * Recupera la File Key de una canción, solo para descifrar. Por defecto no
+ * extraíble; `extractable` solo se usa para envolverla para otro usuario
+ * (compartir, `sharing.ts`) y la clave no sale de esa función.
+ */
+export function unwrapFileKey(wrapped: WrappedKey, masterKey: CryptoKey, { extractable = false } = {}): Promise<CryptoKey> {
+  return unwrap(wrapped, masterKey, AAD_FILE_KEY, extractable, ['decrypt'])
 }

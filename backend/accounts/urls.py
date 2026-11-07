@@ -11,4 +11,5 @@ urlpatterns = [
     path("me", views.MeView.as_view(), name="me"),
     path("me/vault", views.KeyMaterialView.as_view(), name="me-vault"),
     path("me/password", views.ChangePasswordView.as_view(), name="me-password"),
+    path("me/keypair", views.KeyPairView.as_view(), name="me-keypair"),
 ]

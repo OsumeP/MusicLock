@@ -27,7 +27,15 @@ class UserAdmin(DjangoUserAdmin):
     search_fields = ("email", "username")
     ordering = ("-date_joined",)
 
-    crypto_fields = ("kdf_salt", "kdf_params", "wrapped_master_key", "master_key_iv", "public_key")
+    crypto_fields = (
+        "kdf_salt",
+        "kdf_params",
+        "wrapped_master_key",
+        "master_key_iv",
+        "public_key",
+        "wrapped_private_key",
+        "private_key_iv",
+    )
     readonly_fields = ("used_storage", *crypto_fields, "last_login", "date_joined")
 
     fieldsets = (

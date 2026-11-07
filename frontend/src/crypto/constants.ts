@@ -38,3 +38,12 @@ export const HKDF_INFO_KEK = 'musiclock/v1/key-encryption-key'
 export const AAD_MASTER_KEY = 'musiclock/v1/master-key'
 export const AAD_FILE_KEY = 'musiclock/v1/file-key'
 export const AAD_AUDIO = 'musiclock/v1/audio'
+
+// --- Compartir (Semana 4, PlanMVP §4.6) --------------------------------------------
+
+/** Par de claves por usuario: RSA-OAEP 3072 con SHA-256 (nativo de Web Crypto). */
+export const RSA_MODULUS_BITS = 3072
+/** Clave privada PKCS#8 envuelta con la Master Key. */
+export const AAD_PRIVATE_KEY = 'musiclock/v1/private-key'
+/** "label" de RSA-OAEP (el equivalente a la AAD): ata la File Key envuelta a su propósito. */
+export const OAEP_LABEL_SHARED_FILE_KEY = 'musiclock/v1/shared-file-key'

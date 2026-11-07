@@ -3,7 +3,7 @@
  * traduce a camelCase para el resto del frontend.
  */
 
-import type { KdfParams, VaultRegistration } from '../crypto'
+import type { KdfParams, KeyPairRegistration, VaultRegistration } from '../crypto'
 import { apiRequest } from './client'
 
 export interface Plan {
@@ -20,6 +20,8 @@ export interface User {
   plan: Plan
   usedStorage: number
   storageAvailable: number
+  /** Ya generó su par de claves para compartir (día 16). */
+  hasKeyPair: boolean
 }
 
 export interface SessionResponse {
@@ -39,6 +41,7 @@ interface UserDto {
   plan: { code: Plan['code']; name: string; max_storage_bytes: number; max_file_size_bytes: number }
   used_storage: number
   storage_available: number
+  has_keypair: boolean
 }
 
 interface SessionDto {
@@ -61,6 +64,7 @@ function toUser(dto: UserDto): User {
     },
     usedStorage: dto.used_storage,
     storageAvailable: dto.storage_available,
+    hasKeyPair: dto.has_keypair,
   }
 }
 
@@ -145,4 +149,32 @@ export async function changePassword(currentAuthKey: string, vault: VaultRegistr
     },
   })
   return toSession(dto)
+}
+
+// --- Par de claves para compartir (día 16) ------------------------------------------
+
+interface KeyPairDto {
+  public_key: string
+  wrapped_private_key: string
+  private_key_iv: string
+}
+
+const fromKeyPairDto = (dto: KeyPairDto): KeyPairRegistration => ({
+  publicKey: dto.public_key,
+  wrappedPrivateKey: dto.wrapped_private_key,
+  privateKeyIv: dto.private_key_iv,
+})
+
+/** Par propio (la privada envuelta con la Master Key). 404 `no_keypair` si aún no existe. */
+export async function fetchKeyPair(signal?: AbortSignal): Promise<KeyPairRegistration> {
+  return fromKeyPairDto(await apiRequest<KeyPairDto>('/me/keypair', { signal }))
+}
+
+/** Guarda el par generado en este navegador. 409 `keypair_exists` si otra pestaña se adelantó. */
+export async function saveKeyPair(keyPair: KeyPairRegistration): Promise<KeyPairRegistration> {
+  const dto = await apiRequest<KeyPairDto>('/me/keypair', {
+    method: 'PUT',
+    json: { public_key: keyPair.publicKey, wrapped_private_key: keyPair.wrappedPrivateKey, private_key_iv: keyPair.privateKeyIv },
+  })
+  return fromKeyPairDto(dto)
 }

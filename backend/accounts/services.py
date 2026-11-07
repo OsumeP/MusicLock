@@ -144,3 +144,23 @@ def change_password(user: User, *, current_auth_key: str, new_auth_key: str, vau
         [BlacklistedToken(token=token) for token in pending], ignore_conflicts=True
     )
     return issue_tokens(user)
+
+
+# --- Par de claves para compartir (día 16) ---------------------------------------------
+
+
+class KeyPairAlreadyExists(Exception):
+    """El par no se reemplaza: invalidaría todo lo que ya se compartió con el usuario."""
+
+
+@transaction.atomic
+def set_keypair(user: User, *, public_key: str, wrapped_private_key: str, private_key_iv: str) -> User:
+    """Guarda el par generado en el navegador. Solo una vez por cuenta."""
+    user = User.objects.select_for_update().get(pk=user.pk)
+    if user.has_keypair:
+        raise KeyPairAlreadyExists
+    user.public_key = public_key
+    user.wrapped_private_key = wrapped_private_key
+    user.private_key_iv = private_key_iv
+    user.save(update_fields=["public_key", "wrapped_private_key", "private_key_iv"])
+    return user

@@ -13,6 +13,7 @@ from . import services
 from .serializers import (
     ChangePasswordSerializer,
     KeyMaterialSerializer,
+    KeyPairSerializer,
     LoginSerializer,
     LogoutSerializer,
     MeSerializer,
@@ -155,3 +156,32 @@ class ChangePasswordView(PasswordCheckView):
         except services.InvalidPassword:
             return Response(INVALID_PASSWORD, status=status.HTTP_400_BAD_REQUEST)
         return Response(session_payload(result))
+
+
+# --- Par de claves para compartir (día 16) -------------------------------------------
+
+
+class KeyPairView(APIView):
+    """
+    GET → par propio (404 `no_keypair` si aún no existe). La privada va envuelta con
+    la Master Key: no sirve sin la contraseña, así que basta con la sesión.
+    PUT → guarda el par generado en el navegador (201); si ya existe, 409
+    `keypair_exists` (reemplazarlo rompería lo ya compartido).
+    """
+
+    def get(self, request):
+        if not request.user.has_keypair:
+            return Response({"detail": "Aún no hay par de claves.", "code": "no_keypair"}, status=status.HTTP_404_NOT_FOUND)
+        return Response(KeyPairSerializer(request.user).data)
+
+    def put(self, request):
+        serializer = KeyPairSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        try:
+            user = services.set_keypair(request.user, **serializer.validated_data)
+        except services.KeyPairAlreadyExists:
+            return Response(
+                {"detail": "La cuenta ya tiene un par de claves.", "code": "keypair_exists"},
+                status=status.HTTP_409_CONFLICT,
+            )
+        return Response(KeyPairSerializer(user).data, status=status.HTTP_201_CREATED)

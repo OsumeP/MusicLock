@@ -73,9 +73,19 @@ export async function decryptAudio(
   mimeType = 'audio/mpeg',
 ): Promise<Blob> {
   const fileKey = await unwrapFileKey({ wrapped: material.wrappedFileKey, iv: material.wrappedKeyIv }, masterKey)
+  return decryptWithFileKey(ciphertext, material.fileIv, fileKey, mimeType)
+}
+
+/** Descifra con una File Key ya recuperada (propia o compartida, ver `sharing.ts`). */
+export async function decryptWithFileKey(
+  ciphertext: Blob | ArrayBuffer,
+  fileIv: string,
+  fileKey: CryptoKey,
+  mimeType = 'audio/mpeg',
+): Promise<Blob> {
   try {
     const plaintext = await crypto.subtle.decrypt(
-      { name: 'AES-GCM', iv: fromBase64(material.fileIv), additionalData: utf8(AAD_AUDIO) },
+      { name: 'AES-GCM', iv: fromBase64(fileIv), additionalData: utf8(AAD_AUDIO) },
       fileKey,
       await toBytes(ciphertext),
     )

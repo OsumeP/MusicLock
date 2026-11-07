@@ -13,6 +13,8 @@ from .crypto_fields import (
     WRAPPED_KEY_BYTES,
     Base64BytesField,
     KdfParamsField,
+    RsaPublicKeyField,
+    WrappedPrivateKeyField,
 )
 from .models import Plan, User
 from .services import normalize_email
@@ -85,7 +87,7 @@ class MeSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ["id", "email", "username", "plan", "used_storage", "storage_available"]
+        fields = ["id", "email", "username", "plan", "used_storage", "storage_available", "has_keypair"]
         read_only_fields = fields
 
 
@@ -105,6 +107,14 @@ class KeyMaterialSerializer(serializers.ModelSerializer):
         model = User
         fields = ["kdf_salt", "kdf_params", "wrapped_master_key", "master_key_iv"]
         read_only_fields = fields
+
+
+class KeyPairSerializer(serializers.Serializer):
+    """Par de claves: la pública en claro y la privada envuelta con la Master Key."""
+
+    public_key = RsaPublicKeyField()
+    wrapped_private_key = WrappedPrivateKeyField()
+    private_key_iv = Base64BytesField(IV_BYTES)
 
 
 def session_payload(result) -> dict:

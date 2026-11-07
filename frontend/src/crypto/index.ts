@@ -15,3 +15,13 @@ export {
 } from './constants'
 export { DecryptionError, UnsupportedKdfError } from './errors'
 export { createVault, prepareLogin, prepareRewrap, type CreatedVault, type VaultRegistration } from './vault'
+export {
+  createKeyPair,
+  decryptSharedAudio,
+  importPublicKey,
+  InvalidPublicKeyError,
+  publicKeyFingerprint,
+  unlockPrivateKey,
+  wrapFileKeyFor,
+  type KeyPairRegistration,
+} from './sharing'
