@@ -1,14 +1,17 @@
+import type { ReactNode } from 'react'
+
 import type { Song } from '../api/songs'
 import { formatBytes, formatDuration, formatRelativeDate } from '../lib/format'
 import { usePlayer } from '../player/playerContext'
 
+/** Acciones de cada fila. Las opcionales que no se pasen no muestran su botón. */
 export interface RowActions {
-  download(song: Song): void
-  edit(song: Song): void
-  remove(song: Song): void
   toggleFavorite(song: Song): void
+  download(song: Song): void
+  addToPlaylist?(song: Song): void
+  edit?(song: Song): void
+  remove?(song: Song): void
 }
-
 
 function RowAction({
   icon,
@@ -62,6 +65,7 @@ function SongRow({
   favoritePending,
   date,
   actions,
+  extras,
 }: {
   song: Song
   index: number
@@ -70,6 +74,7 @@ function SongRow({
   favoritePending: boolean
   date: string
   actions: RowActions
+  extras?: ReactNode
 }) {
   const player = usePlayer()
   const isCurrent = player.current?.id === song.id
@@ -147,6 +152,7 @@ function SongRow({
       </td>
       <td className="px-2 py-3">
         <div className="flex justify-end gap-1">
+          {extras}
           <RowAction
             icon="favorite"
             filled={song.isFavorite}
@@ -156,15 +162,20 @@ function SongRow({
             disabled={favoritePending}
             className={song.isFavorite ? '!text-accent-cyan' : ''}
           />
+          {actions.addToPlaylist && (
+            <RowAction icon="playlist_add" label={`Añadir ${song.title} a una playlist`} onClick={() => actions.addToPlaylist?.(song)} />
+          )}
+          {/* En móvil se ocultan descargar y editar para que la fila quepa a 390 px. */}
           <RowAction
             icon={downloading ? 'progress_activity' : 'download'}
             spinning={downloading}
             label={`Descargar ${song.title}`}
             onClick={() => actions.download(song)}
             disabled={downloading}
+            className="hidden sm:grid"
           />
-          <RowAction icon="edit" label={`Editar ${song.title}`} onClick={() => actions.edit(song)} />
-          <RowAction icon="delete" label={`Eliminar ${song.title}`} onClick={() => actions.remove(song)} danger />
+          {actions.edit && <RowAction icon="edit" label={`Editar ${song.title}`} onClick={() => actions.edit?.(song)} className="hidden sm:grid" />}
+          {actions.remove && <RowAction icon="delete" label={`Eliminar ${song.title}`} onClick={() => actions.remove?.(song)} danger />}
         </div>
       </td>
     </tr>
@@ -177,6 +188,7 @@ function SongRow({
  *
  * - `dateLabel` / `dateOf`: qué fecha muestra la última columna (por defecto, la de subida).
  * - `rowKey`: necesario cuando una canción puede repetirse (historial de reproducción).
+ * - `rowExtras`: botones adicionales al inicio de las acciones (p. ej. mover / quitar de una playlist).
  */
 export function SongTable({
   songs,
@@ -189,6 +201,7 @@ export function SongTable({
   downloadingId,
   favoritePending,
   actions,
+  rowExtras,
 }: {
   songs: Song[]
   firstIndex: number
@@ -200,6 +213,7 @@ export function SongTable({
   downloadingId: string | null
   favoritePending: ReadonlySet<string>
   actions: RowActions
+  rowExtras?: (song: Song, index: number) => ReactNode
 }) {
   return (
     <div className="relative overflow-x-auto">
@@ -234,6 +248,7 @@ export function SongTable({
               favoritePending={favoritePending.has(song.id)}
               date={dateOf(song, i)}
               actions={actions}
+              extras={rowExtras?.(song, i)}
             />
           ))}
         </tbody>

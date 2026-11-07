@@ -56,6 +56,7 @@ INSTALLED_APPS = [
     "core",
     "accounts",
     "vault",
+    "playlists",
 ]
 
 AUTH_USER_MODEL = "accounts.User"

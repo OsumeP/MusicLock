@@ -2,6 +2,7 @@ import { useState, type ReactNode } from 'react'
 
 import { setFavorite, type Song } from '../api/songs'
 import { useAuth } from '../auth/session'
+import { AddToPlaylistModal } from '../playlists/AddToPlaylistModal'
 import { usePlayer } from '../player/playerContext'
 import { DeleteSongModal } from './DeleteSongModal'
 import { downloadOriginalSong } from './downloadSong'
@@ -14,23 +15,26 @@ export interface Notice {
 }
 
 /**
- * Acciones de las filas de canciones (descargar, editar, eliminar, favorito),
+ * Acciones de las filas de canciones (descargar, añadir a playlist, editar, eliminar, favorito),
  * compartidas por "Mis Archivos" y "Favoritos".
  *
  * - `onSongChanged`: aplicar un cambio a la lista visible sin recargarla (favorito optimista).
  * - `onReload`: recargar la lista (tras editar, eliminar o confirmar un favorito, si la página lo necesita).
  * - `reloadOnFavorite`: en "Favoritos", desmarcar debe hacer desaparecer la fila.
+ * - `onPlaylistsChanged`: se llama al cerrar "Añadir a playlist" (el detalle de una playlist se recarga).
  */
 export function useSongActions({
   onSongChanged,
   onReload,
   reloadOnFavorite = false,
+  onPlaylistsChanged,
 }: {
   onSongChanged: (song: Song) => void
   onReload: () => void
   reloadOnFavorite?: boolean
+  onPlaylistsChanged?: () => void
 }): {
-  actions: RowActions
+  actions: Required<RowActions>
   downloadingId: string | null
   favoritePending: ReadonlySet<string>
   notice: Notice | null
@@ -41,6 +45,7 @@ export function useSongActions({
   const player = usePlayer()
   const [editing, setEditing] = useState<Song | null>(null)
   const [deleting, setDeleting] = useState<Song | null>(null)
+  const [addingToPlaylist, setAddingToPlaylist] = useState<Song | null>(null)
   const [downloadingId, setDownloadingId] = useState<string | null>(null)
   const [favoritePending, setFavoritePending] = useState<ReadonlySet<string>>(new Set())
   const [notice, setNotice] = useState<Notice | null>(null)
@@ -54,7 +59,7 @@ export function useSongActions({
     })
   }
 
-  const actions: RowActions = {
+  const actions: Required<RowActions> = {
     async download(song) {
       if (session.status !== 'ready') return
       setDownloadingId(song.id)
@@ -67,6 +72,7 @@ export function useSongActions({
         setDownloadingId(null)
       }
     },
+    addToPlaylist: setAddingToPlaylist,
     edit: setEditing,
     remove: setDeleting,
     async toggleFavorite(song) {
@@ -93,6 +99,16 @@ export function useSongActions({
 
   const modals = (
     <>
+      {addingToPlaylist && (
+        <AddToPlaylistModal
+          song={addingToPlaylist}
+          onClose={() => {
+            setAddingToPlaylist(null)
+            onPlaylistsChanged?.()
+          }}
+        />
+      )}
+
       {editing && (
         <EditSongModal
           song={editing}

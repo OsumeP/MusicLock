@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { ApiError, apiRequest, onSessionExpired } from './client'
+import { ApiError, apiRequest, onSessionExpired, ServerUnavailableError } from './client'
 import { tokenStore } from './tokens'
 
 function json(body: unknown, status = 200) {
@@ -72,6 +72,25 @@ describe('apiRequest', () => {
 
     expect(expired).not.toHaveBeenCalled()
     expect(tokenStore.getRefresh()).toBe('refresh-3')
+    unsubscribe()
+  })
+
+  it.each([
+    ['un 502 del proxy', () => Promise.resolve(new Response('Bad Gateway', { status: 502 }))],
+    ['un 503', () => Promise.resolve(json({ detail: 'down' }, 503))],
+    ['un error de red', () => Promise.reject(new TypeError('Failed to fetch'))],
+  ])('si el servidor no responde a la renovación (%s), conserva la sesión y falla la petición', async (_, refreshResponse) => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn((url: string) => (url === '/api/auth/refresh' ? refreshResponse() : Promise.resolve(json({}, 401)))),
+    )
+    const expired = vi.fn()
+    const unsubscribe = onSessionExpired(expired)
+
+    await expect(apiRequest('/me')).rejects.toBeInstanceOf(ServerUnavailableError)
+
+    expect(expired).not.toHaveBeenCalled()
+    expect(tokenStore.getRefresh()).toBe('refresh-1')
     unsubscribe()
   })
 

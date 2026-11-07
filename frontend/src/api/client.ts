@@ -45,22 +45,41 @@ export function onSessionExpired(listener: Listener): () => void {
   return () => sessionExpiredListeners.delete(listener)
 }
 
-let refreshInFlight: Promise<boolean> | null = null
+/**
+ * El servidor no respondió al renovar la sesión (sin red, 5xx, 429…). La sesión
+ * NO se da por terminada: se conserva el refresh token y la Master Key. Extiende
+ * TypeError porque, como un `fetch` fallido, significa "sin conexión".
+ */
+export class ServerUnavailableError extends TypeError {
+  constructor() {
+    super('El servidor no está disponible.')
+    this.name = 'ServerUnavailableError'
+  }
+}
 
-async function postRefresh(refresh: string): Promise<boolean> {
+/** ok: tokens renovados · invalid: el refresh token ya no sirve · unavailable: no se pudo preguntar. */
+type RefreshResult = 'ok' | 'invalid' | 'unavailable'
+
+let refreshInFlight: Promise<RefreshResult> | null = null
+
+async function postRefresh(refresh: string): Promise<RefreshResult> {
+  let response: Response
   try {
-    const response = await fetch('/api/auth/refresh', {
+    response = await fetch('/api/auth/refresh', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
       body: JSON.stringify({ refresh }),
     })
-    if (!response.ok) return false
+  } catch {
+    return 'unavailable'
+  }
+  if (response.ok) {
     const tokens = (await response.json()) as { access: string; refresh?: string }
     tokenStore.set(tokens)
-    return true
-  } catch {
-    return false
+    return 'ok'
   }
+  // Solo estas respuestas dicen que el token no vale; un 502 del proxy o un 503 no.
+  return [400, 401, 403].includes(response.status) ? 'invalid' : 'unavailable'
 }
 
 /**
@@ -69,22 +88,24 @@ async function postRefresh(refresh: string): Promise<boolean> {
  * en ese caso se reintenta una vez con el token nuevo que esa pestaña guardó en
  * localStorage.
  */
-async function refreshOnce(): Promise<boolean> {
+async function refreshOnce(): Promise<RefreshResult> {
   const refresh = tokenStore.getRefresh()
-  if (!refresh) return false
-  if (await postRefresh(refresh)) return true
+  if (!refresh) return 'invalid'
+  const result = await postRefresh(refresh)
+  if (result !== 'invalid') return result
   const latest = tokenStore.getRefresh()
-  return latest !== null && latest !== refresh ? postRefresh(latest) : false
+  return latest !== null && latest !== refresh ? postRefresh(latest) : 'invalid'
 }
 
 /**
- * Renueva el access token. Devuelve false si la sesión ya no es válida.
+ * Renueva el access token. Devuelve false si la sesión ya no es válida y lanza
+ * `ServerUnavailableError` si el servidor no respondió (la sesión se conserva).
  * - En esta pestaña, las peticiones simultáneas comparten una sola renovación.
  * - Entre pestañas, la Web Locks API (si existe) hace que se renueve de a una:
  *   sin esto, dos pestañas usarían el mismo refresh token y la segunda cerraría
  *   la sesión de todas.
  */
-export function refreshAccessToken(): Promise<boolean> {
+export async function refreshAccessToken(): Promise<boolean> {
   refreshInFlight ??= (
     typeof navigator !== 'undefined' && navigator.locks
       ? navigator.locks.request('musiclock-token-refresh', refreshOnce)
@@ -92,7 +113,9 @@ export function refreshAccessToken(): Promise<boolean> {
   ).finally(() => {
     refreshInFlight = null
   })
-  return refreshInFlight
+  const result = await refreshInFlight
+  if (result === 'unavailable') throw new ServerUnavailableError()
+  return result === 'ok'
 }
 
 async function toApiError(response: Response): Promise<ApiError> {

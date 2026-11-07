@@ -10,6 +10,8 @@ import { LandingPage } from './pages/LandingPage'
 import { LoginPage } from './pages/LoginPage'
 import { MyFilesPage } from './pages/MyFilesPage'
 import { NotFoundPage } from './pages/NotFoundPage'
+import { PlaylistDetailPage } from './pages/PlaylistDetailPage'
+import { PlaylistsPage } from './pages/PlaylistsPage'
 import { RecentPage } from './pages/RecentPage'
 import { RegisterPage } from './pages/RegisterPage'
 import { SystemStatusPage } from './pages/SystemStatusPage'
@@ -38,6 +40,8 @@ export default function App() {
               <Route path="/archivos" element={<MyFilesPage />} />
               <Route path="/favoritos" element={<FavoritesPage />} />
               <Route path="/recientes" element={<RecentPage />} />
+              <Route path="/playlists" element={<PlaylistsPage />} />
+              <Route path="/playlists/:playlistId" element={<PlaylistDetailPage />} />
             </Route>
 
             <Route path="*" element={<NotFoundPage />} />

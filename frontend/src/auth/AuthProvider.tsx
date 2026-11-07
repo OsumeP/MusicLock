@@ -1,11 +1,14 @@
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
 
 import * as authApi from '../api/auth'
-import { onSessionExpired, refreshAccessToken } from '../api/client'
+import { ApiError, onSessionExpired, refreshAccessToken } from '../api/client'
 import { tokenStore } from '../api/tokens'
 import { createVault, prepareLogin } from '../crypto'
 import { clearMasterKey, loadMasterKey, saveMasterKey } from './keyStore'
 import { AuthContext, type AuthContextValue, type Session } from './session'
+
+/** Espera máxima entre reintentos al restaurar la sesión con el servidor caído. */
+const RESTORE_MAX_DELAY_MS = 10_000
 
 /**
  * Orquesta el registro, el login y el logout uniendo la API y el módulo crypto
@@ -16,23 +19,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session>({ status: 'loading' })
 
   // Al cargar la página: ¿hay sesión guardada? ¿y Master Key en IndexedDB?
+  // Si el servidor no responde (p. ej. se está reiniciando), NO se cierra la
+  // sesión: se reintenta con espera creciente mostrando "Reintentando…".
   useEffect(() => {
     let cancelled = false
     ;(async () => {
-      if (!tokenStore.getRefresh() || !(await refreshAccessToken())) {
-        tokenStore.clear()
-        await clearMasterKey()
-        if (!cancelled) setSession({ status: 'anonymous' })
-        return
-      }
-      try {
-        const user = await authApi.fetchMe()
-        const masterKey = await loadMasterKey(user.id)
-        if (cancelled) return
-        setSession(masterKey ? { status: 'ready', user, masterKey } : { status: 'locked', user })
-      } catch {
-        tokenStore.clear()
-        if (!cancelled) setSession({ status: 'anonymous' })
+      for (let attempt = 0; !cancelled; attempt++) {
+        try {
+          if (!tokenStore.getRefresh() || !(await refreshAccessToken())) {
+            tokenStore.clear()
+            await clearMasterKey()
+            if (!cancelled) setSession({ status: 'anonymous' })
+            return
+          }
+          const user = await authApi.fetchMe()
+          const masterKey = await loadMasterKey(user.id)
+          if (!cancelled) setSession(masterKey ? { status: 'ready', user, masterKey } : { status: 'locked', user })
+          return
+        } catch (error) {
+          if (error instanceof ApiError && (error.status === 401 || error.status === 403)) {
+            tokenStore.clear()
+            if (!cancelled) setSession({ status: 'anonymous' })
+            return
+          }
+          if (cancelled) return
+          setSession({ status: 'loading', retrying: true })
+          await new Promise((resolve) => setTimeout(resolve, Math.min(1000 * 2 ** attempt, RESTORE_MAX_DELAY_MS)))
+        }
       }
     })()
     return () => {

@@ -10,7 +10,11 @@ export function RequireAuth({ children }: { children: ReactNode }) {
   const location = useLocation()
 
   if (session.status === 'loading') {
-    return <FullScreenMessage icon="lock_clock" message="Verificando sesión…" />
+    return session.retrying ? (
+      <FullScreenMessage icon="cloud_off" message="No se pudo conectar con el servidor. Reintentando…" />
+    ) : (
+      <FullScreenMessage icon="lock_clock" message="Verificando sesión…" />
+    )
   }
   if (session.status === 'anonymous') {
     return <Navigate to="/login" replace state={{ from: location.pathname }} />

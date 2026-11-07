@@ -183,6 +183,22 @@ describe('flujo de autenticación', () => {
     expect(server.requests.filter((r) => r.url === '/api/auth/login')).toHaveLength(0)
   })
 
+  it('si el servidor no responde al recargar, no cierra la sesión: reintenta hasta que vuelve', async () => {
+    await registerAna()
+    let serverDown = true
+    vi.stubGlobal('fetch', async (url: string, init?: RequestInit) =>
+      serverDown && url === '/api/auth/refresh' ? new Response('Bad Gateway', { status: 502 }) : server.fetch(url, init),
+    )
+
+    reload()
+
+    expect(await screen.findByText(/No se pudo conectar con el servidor\. Reintentando/)).toBeInTheDocument()
+    expect(localStorage.getItem('musiclock.refresh')).not.toBeNull() // la sesión sigue guardada
+    serverDown = false
+    expect(await screen.findByRole('heading', { name: 'Hola, ana' }, { timeout: 4000 })).toBeInTheDocument()
+    expect(server.requests.filter((r) => r.url === '/api/auth/login')).toHaveLength(0) // sin pedir la contraseña
+  })
+
   it('si IndexedDB no tiene la clave, la bóveda queda bloqueada y se abre con la contraseña', async () => {
     const user = userEvent.setup()
     await registerAna(user)

@@ -12,7 +12,7 @@ import type { User } from '../api/auth'
  * - ready:     sesión y Master Key disponibles: se puede cifrar y descifrar.
  */
 export type Session =
-  | { status: 'loading' }
+  | { status: 'loading'; /** El servidor no respondió y se está reintentando. */ retrying?: boolean }
   | { status: 'anonymous' }
   | { status: 'locked'; user: User }
   | { status: 'ready'; user: User; masterKey: CryptoKey }
