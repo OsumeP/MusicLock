@@ -110,3 +110,38 @@ def upload_song(user: User, data: BinaryIO, size: int, metadata: SongMetadata) -
             raise
 
     return song
+
+
+# --- Descarga del blob cifrado (reproducción / descarga, días 7–8) ------------------
+
+
+class SongNotFound(Exception):
+    """No existe, o no es del usuario: ambos casos se responden igual (no revelar canciones ajenas)."""
+
+
+class BlobMissing(Exception):
+    """La fila existe pero el blob no está en el almacenamiento (inconsistencia que hay que investigar)."""
+
+
+def get_own_song(user: User, song_id) -> Song:
+    song = Song.objects.filter(owner=user, uuid=song_id).first()
+    if song is None:
+        raise SongNotFound
+    return song
+
+
+def open_song_blob(user: User, song_id) -> tuple[Song, BinaryIO]:
+    """
+    Proxy de acceso (patrón Proxy, PlanMVP §3.1): valida que la canción sea del
+    usuario antes de abrir el blob. Devuelve el blob CIFRADO; el servidor nunca
+    descifra nada.
+    """
+    from .storage import BlobNotFound
+
+    song = get_own_song(user, song_id)
+    try:
+        return song, get_blob_storage().open(song.storage_key)
+    except BlobNotFound as exc:
+        raise BlobMissing(song.storage_key) from exc
+    except Exception as exc:
+        raise StorageUnavailable(str(exc)) from exc

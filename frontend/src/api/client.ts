@@ -146,6 +146,25 @@ export async function apiUpload<T>(
   return (await response.json()) as T
 }
 
+/** Descarga binaria autenticada (p. ej. el audio cifrado). Misma política de 401 → refresh. */
+export async function apiBlob(path: string, { signal }: { signal?: AbortSignal } = {}): Promise<Blob> {
+  const url = `/api${path}`
+  const init = () => {
+    const access = tokenStore.getAccess()
+    return { headers: access ? { Authorization: `Bearer ${access}` } : undefined, signal }
+  }
+  let response = await fetch(url, init())
+  if (response.status === 401) {
+    if (await refreshAccessToken()) {
+      response = await fetch(url, init())
+    } else {
+      sessionEnded()
+    }
+  }
+  if (!response.ok) throw await toApiError(response)
+  return response.blob()
+}
+
 export async function apiRequest<T>(path: string, options: RequestOptions = {}): Promise<T> {
   const url = `/api${path}`
   let response = await fetch(url, buildRequest(options))

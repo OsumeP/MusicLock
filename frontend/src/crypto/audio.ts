@@ -29,8 +29,16 @@ export interface SongKeyMaterial {
   wrappedKeyIv: string
 }
 
-async function toArrayBuffer(data: Blob | ArrayBuffer): Promise<ArrayBuffer> {
-  return data instanceof ArrayBuffer ? data : data.arrayBuffer()
+/**
+ * Bytes del archivo como vista `Uint8Array`. Se envuelve en una vista (en lugar
+ * de pasar el ArrayBuffer tal cual) porque algunos entornos, como jsdom en los
+ * tests, entregan ArrayBuffers de otro "realm" que Web Crypto rechaza; en los
+ * navegadores no cambia nada.
+ */
+async function toBytes(data: Blob | ArrayBuffer): Promise<Uint8Array<ArrayBuffer>> {
+  // Se comprueba por capacidad y no con `instanceof Blob`, que también falla entre realms.
+  const isBlobLike = typeof (data as Blob).arrayBuffer === 'function'
+  return new Uint8Array(isBlobLike ? await (data as Blob).arrayBuffer() : (data as ArrayBuffer))
 }
 
 /** Cifra un archivo con una File Key nueva y la envuelve con la Master Key. */
@@ -41,7 +49,7 @@ export async function encryptAudio(file: Blob | ArrayBuffer, masterKey: CryptoKe
   const ciphertext = await crypto.subtle.encrypt(
     { name: 'AES-GCM', iv, additionalData: utf8(AAD_AUDIO) },
     fileKey,
-    await toArrayBuffer(file),
+    await toBytes(file),
   )
   const wrapped = await wrapFileKey(fileKey, masterKey)
 
@@ -69,7 +77,7 @@ export async function decryptAudio(
     const plaintext = await crypto.subtle.decrypt(
       { name: 'AES-GCM', iv: fromBase64(material.fileIv), additionalData: utf8(AAD_AUDIO) },
       fileKey,
-      await toArrayBuffer(ciphertext),
+      await toBytes(ciphertext),
     )
     return new Blob([plaintext], { type: mimeType })
   } catch (error) {

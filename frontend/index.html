@@ -11,10 +11,16 @@
       rel="stylesheet"
       href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@300..800&family=JetBrains+Mono:wght@400..700&family=Space+Grotesk:wght@400..700&display=swap"
     />
-    <link
-      rel="stylesheet"
-      href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
-    />
+    <!--
+      Íconos Material Symbols dentro de la capa CSS `base`, para que las utilidades
+      de Tailwind v4 (que viven en @layer utilities) puedan cambiar su display y
+      tamaño (hidden, text-[20px]…). Con un <link> normal la hoja de Google queda
+      fuera de capas y siempre gana. Va aquí y no en index.css porque Vite descarta
+      @import remotos en desarrollo.
+    -->
+    <style>
+      @import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap') layer(base);
+    </style>
   </head>
   <body>
     <div id="root"></div>

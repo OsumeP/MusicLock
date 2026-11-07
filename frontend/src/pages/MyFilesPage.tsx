@@ -5,22 +5,67 @@ import { ApiError } from '../api/client'
 import { listSongs, SONGS_PAGE_SIZE, type Song, type SongPage } from '../api/songs'
 import { Alert } from '../components/ui'
 import { formatBytes, formatDuration, formatRelativeDate } from '../lib/format'
+import { usePlayer } from '../player/playerContext'
 import { UploadModal } from '../vault/UploadModal'
 
 /** Resultado de la última carga, etiquetado con la petición que lo produjo. */
 type LoadResult = { key: string; page: SongPage } | { key: string; error: string }
 
-function SongRow({ song, index }: { song: Song; index: number }) {
+function SongRow({ song, index, queue }: { song: Song; index: number; queue: Song[] }) {
+  const player = usePlayer()
+  const isCurrent = player.current?.id === song.id
+  const isPlaying = isCurrent && player.status === 'playing'
+  const isLoading = isCurrent && player.status === 'loading'
+  const inMemory = isCurrent && (player.status === 'playing' || player.status === 'paused')
+
+  function handleClick() {
+    if (isCurrent && (player.status === 'playing' || player.status === 'paused')) player.togglePlay()
+    else player.play(song, queue)
+  }
+
   return (
-    <tr className="border-t border-border-subtle/60 transition-colors hover:bg-surface-container-high/40">
-      <td className="px-4 py-3 text-center font-mono text-mono-crypto text-on-surface-variant">{index}</td>
+    <tr
+      aria-current={isCurrent ? 'true' : undefined}
+      className={`group border-t border-border-subtle/60 transition-colors ${isCurrent ? 'bg-primary-container/30' : 'hover:bg-surface-container-high/40'}`}
+    >
+      <td className="px-4 py-3 text-center">
+        <button
+          type="button"
+          onClick={handleClick}
+          aria-label={`${isPlaying ? 'Pausar' : 'Reproducir'} ${song.title}`}
+          className={`grid size-8 place-items-center rounded-lg font-mono text-mono-crypto transition ${
+            isCurrent ? 'bg-primary text-white' : 'text-on-surface-variant hover:bg-primary hover:text-white'
+          }`}
+        >
+          {isCurrent ? (
+            <span aria-hidden className={`material-symbols-outlined text-[20px] ${isLoading ? 'animate-spin' : ''}`}>
+              {isLoading ? 'progress_activity' : isPlaying ? 'pause' : 'play_arrow'}
+            </span>
+          ) : (
+            <>
+              <span className="group-hover:hidden">{index}</span>
+              <span aria-hidden className="material-symbols-outlined hidden text-[20px] group-hover:block">play_arrow</span>
+            </>
+          )}
+        </button>
+      </td>
       <td className="px-4 py-3">
         <div className="flex items-center gap-3">
-          <span aria-hidden className="material-symbols-outlined grid size-10 shrink-0 place-items-center rounded-lg bg-surface-container-lowest text-primary-light">
+          <span
+            aria-hidden
+            className={`material-symbols-outlined grid size-10 shrink-0 place-items-center rounded-lg bg-surface-container-lowest ${isPlaying ? 'animate-pulse text-accent-cyan' : 'text-primary-light'}`}
+          >
             graphic_eq
           </span>
           <div className="min-w-0">
-            <p className="truncate text-title-sm font-semibold text-on-surface">{song.title}</p>
+            <p className="flex items-center gap-2 truncate text-title-sm font-semibold text-on-surface">
+              {song.title}
+              {inMemory && (
+                <span className="rounded bg-primary-container px-1.5 py-0.5 font-mono text-[9px] uppercase tracking-wider text-accent-cyan" title="Descifrada solo en la memoria de este navegador">
+                  En RAM
+                </span>
+              )}
+            </p>
             <p className="truncate font-mono text-mono-label text-on-surface-variant" title={song.id}>
               ID {song.id.slice(0, 8)}…{song.id.slice(-4)}
             </p>
@@ -187,7 +232,7 @@ export function MyFilesPage() {
               </thead>
               <tbody>
                 {page.songs.map((song, i) => (
-                  <SongRow key={song.id} song={song} index={first + i} />
+                  <SongRow key={song.id} song={song} index={first + i} queue={page.songs} />
                 ))}
               </tbody>
             </table>

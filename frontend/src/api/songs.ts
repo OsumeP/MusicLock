@@ -1,5 +1,10 @@
 import type { EncryptedAudio } from '../crypto'
-import { apiRequest, apiUpload } from './client'
+import { apiBlob, apiRequest, apiUpload } from './client'
+
+/** GET /api/songs/{id}/blob — el audio CIFRADO (solo el dueño). Se descifra con `decryptAudio`. */
+export function downloadEncryptedSong(id: string, signal?: AbortSignal): Promise<Blob> {
+  return apiBlob(`/songs/${encodeURIComponent(id)}/blob`, { signal })
+}
 
 /** Canción tal como la devuelve la API (metadatos en claro + material para descifrar). */
 export interface Song {

@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import type { User } from '../api/auth'
 import { AuthContext, type AuthContextValue } from '../auth/session'
+import { PlayerProvider } from '../player/PlayerProvider'
 import { MyFilesPage } from './MyFilesPage'
 
 const user: User = {
@@ -48,11 +49,13 @@ async function renderPage(path = '/archivos') {
   }
   render(
     <AuthContext.Provider value={auth}>
-      <MemoryRouter initialEntries={[path]}>
-        <Routes>
-          <Route path="/archivos" element={<><MyFilesPage /><LocationProbe /></>} />
-        </Routes>
-      </MemoryRouter>
+      <PlayerProvider>
+        <MemoryRouter initialEntries={[path]}>
+          <Routes>
+            <Route path="/archivos" element={<><MyFilesPage /><LocationProbe /></>} />
+          </Routes>
+        </MemoryRouter>
+      </PlayerProvider>
     </AuthContext.Provider>,
   )
 }
@@ -130,6 +133,20 @@ describe('MyFilesPage', () => {
 
     expect(await screen.findByText('Canción 1')).toBeInTheDocument()
     expect(screen.queryByText(/No se pudo cargar/)).not.toBeInTheDocument()
+  })
+
+  it('el botón ▶ de una fila pide el blob cifrado de esa canción al reproductor', async () => {
+    respond = (url) =>
+      url.pathname.endsWith('/blob')
+        ? new Response('{"detail":"x","code":"blob_missing"}', { status: 404 })
+        : new Response(JSON.stringify({ count: 2, next: null, previous: null, results: [songDto(1), songDto(2)] }))
+    const u = userEvent.setup()
+    await renderPage()
+
+    await u.click(await screen.findByRole('button', { name: 'Reproducir Canción 2' }))
+
+    await waitFor(() => expect(calls).toContain(`/api/songs/${songDto(2).id}/blob`))
+    expect(screen.getByRole('row', { current: true })).toHaveTextContent('Canción 2')
   })
 
   it('abre el modal de subida y lo cierra con Escape', async () => {
