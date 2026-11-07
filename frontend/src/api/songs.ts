@@ -58,10 +58,10 @@ export const SONGS_PAGE_SIZE = 20
 
 /** GET /api/songs — canciones propias, más recientes primero. `query` busca en título y artista. */
 export async function listSongs(
-  { query = '', page = 1 }: { query?: string; page?: number } = {},
+  { query = '', page = 1, pageSize = SONGS_PAGE_SIZE }: { query?: string; page?: number; pageSize?: number } = {},
   signal?: AbortSignal,
 ): Promise<SongPage> {
-  const params = new URLSearchParams({ page: String(page), page_size: String(SONGS_PAGE_SIZE) })
+  const params = new URLSearchParams({ page: String(page), page_size: String(pageSize) })
   if (query.trim()) params.set('q', query.trim())
   const dto = await apiRequest<{ count: number; next: string | null; previous: string | null; results: SongDto[] }>(
     `/songs?${params}`,

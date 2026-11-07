@@ -1,18 +1,60 @@
 # MusicLock
 
-Almacenamiento y reproducción de música con **cifrado en el navegador (Zero-Knowledge)**.
+Almacenamiento y reproducción de música con **cifrado en el navegador (Zero-Knowledge)**. Los MP3 se cifran con AES-GCM en tu navegador antes de subirse; el servidor (Django + PostgreSQL + MinIO) solo guarda bytes que no puede leer, y la música se descifra únicamente en la memoria de tu dispositivo.
 
-## Inicio rápido
+**Stack:** React 19 + TypeScript + Tailwind v4 (Vite) · Django 5.2 + DRF + JWT · PostgreSQL 16 · MinIO (S3) · Docker.
+
+## Instalación (5 minutos)
+
+**Requisitos:** [Docker Desktop](https://www.docker.com/products/docker-desktop/) en ejecución y Git. Nada más: Python y Node viven dentro de los contenedores.
 
 ```bash
-cp .env.example .env
-docker compose up --build
+git clone https://github.com/OsumeP/MusicLock.git
+cd MusicLock
+cp .env.example .env            # en PowerShell: Copy-Item .env.example .env
+docker compose up --build       # la primera vez tarda unos minutos (descarga imágenes)
 ```
 
-Frontend en http://localhost:5173 · API en http://localhost:8000/api/health
+Cuando termine, abre **http://localhost:5173** → "Comenzar gratis" → crea tu cuenta → sube un MP3 desde "Mis Archivos".
 
-- Plan del MVP: [`docs/PlanMVP.md`](docs/PlanMVP.md)
-- Estado del desarrollo, estructura y decisiones: [`docs/desarrollo/README.md`](docs/desarrollo/README.md)
+| Dirección | Qué es |
+|---|---|
+| http://localhost:5173 | La aplicación (landing, registro, bóveda) |
+| http://localhost:8000/api/health | Salud de la API, la base de datos y el almacenamiento |
+| http://localhost:8000/admin/ | Admin de Django (bloquear cuentas, ver planes). Crea un admin con `docker compose exec api python manage.py createsuperuser` |
+| http://localhost:9001 | Consola de MinIO (usuario/clave en `.env`): aquí se ve que los archivos guardados son ilegibles |
+| http://localhost:5173/estado | Estado de todos los servicios |
+
+### Comandos útiles
+
+```bash
+docker compose up -d                      # levantar en segundo plano
+docker compose logs -f api                # ver logs del backend
+docker compose down                       # detener (conserva los datos)
+docker compose down -v                    # detener y BORRAR todos los datos locales
+docker compose exec api python manage.py test      # tests del backend (PostgreSQL + MinIO reales)
+cd frontend && npm install && npm test -- --run    # tests del frontend (requiere Node 22)
+```
+
+### Problemas frecuentes
+
+| Síntoma | Solución |
+|---|---|
+| `DJANGO_SECRET_KEY es obligatorio` o avisos de clave corta | Vuelve a copiar `.env.example` a `.env` (la clave debe tener ≥ 32 caracteres). |
+| Error de migraciones / `InconsistentMigrationHistory` | Tu base de datos local es de una versión anterior: `docker compose down -v` y vuelve a levantar. |
+| El frontend no refleja cambios del código | Reinicia el contenedor: `docker compose restart web`. Si agregaste dependencias: `docker compose up -d --build -V web`. |
+| `pull access denied for minio/minio` | MinIO dejó de publicar imágenes; el proyecto usa el fork `pgsty/minio`. Actualiza tu copia del repositorio. |
+| El puerto 5173, 8000, 9000 o 9001 está ocupado | Cierra la aplicación que lo usa o cambia el puerto en `docker-compose.yml`. |
+| Olvidé la contraseña de mi cuenta de prueba | No se puede recuperar (por diseño, Zero-Knowledge). Registra otra cuenta. |
+
+## Documentación
+
+- **Plan del MVP** (alcance, decisiones de diseño, criptografía, API, guion de demo): [`docs/PlanMVP.md`](docs/PlanMVP.md)
+- **Estado del desarrollo** (estructura de archivos, decisiones de implementación, deuda técnica): [`docs/desarrollo/README.md`](docs/desarrollo/README.md)
+- **Bitácora por día:** [`docs/desarrollo/`](docs/desarrollo/) (`dia-01.md` … ) · cuentas y archivos de prueba: [`datos-de-prueba.md`](docs/desarrollo/datos-de-prueba.md)
+- **Requerimientos, actores, patrones** (versión markdown de los PDFs): [`docs/Claude/`](docs/Claude/)
+
+## Documentos originales del proyecto
 
 .
 ├── docs/

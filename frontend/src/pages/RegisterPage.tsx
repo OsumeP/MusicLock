@@ -45,7 +45,7 @@ export function RegisterPage() {
 
   const strength = useMemo(() => checkPassword(password, { email, username }), [password, email, username])
 
-  if (session.status === 'ready') return <Navigate to="/" replace />
+  if (session.status === 'ready') return <Navigate to="/inicio" replace />
 
   const passwordError = submitted && !strength.acceptable ? strength.problems[0] : undefined
   const confirmationError = submitted && confirmation !== password ? 'Las contraseñas no coinciden.' : undefined

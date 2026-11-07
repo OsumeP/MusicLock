@@ -86,6 +86,7 @@ services:
     build: ./frontend
     environment:
       VITE_API_PROXY_TARGET: http://api:8000
+      VITE_USE_POLLING: "true" # recarga automática con volúmenes montados desde Windows/macOS
     ports:
       - "5173:5173"
     volumes:

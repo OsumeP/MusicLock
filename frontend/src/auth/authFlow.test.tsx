@@ -16,7 +16,7 @@ import { clearMasterKey, loadMasterKey } from './keyStore'
 import { LoginPage } from '../pages/LoginPage'
 import { RegisterPage } from '../pages/RegisterPage'
 import { AppLayout } from '../layout/AppLayout'
-import { MyFilesPage } from '../pages/MyFilesPage'
+import { HomePage } from '../pages/HomePage'
 import { AuthProvider } from './AuthProvider'
 import { RequireAuth } from './RequireAuth'
 
@@ -114,7 +114,7 @@ function renderApp(initialPath: string) {
           <Route path="/login" element={<LoginPage />} />
           <Route path="/registro" element={<RegisterPage />} />
           <Route element={<RequireAuth><AppLayout /></RequireAuth>}>
-            <Route path="/" element={<MyFilesPage />} />
+            <Route path="/inicio" element={<HomePage />} />
           </Route>
         </Routes>
       </AuthProvider>
@@ -130,7 +130,7 @@ async function registerAna(user = userEvent.setup()) {
   await user.type(screen.getByLabelText('Confirmar contraseña'), PASSWORD)
   await user.click(screen.getByRole('checkbox'))
   await user.click(screen.getByRole('button', { name: /crear cuenta cifrada/i }))
-  await screen.findByRole('heading', { name: /Mis Archivos/ }, { timeout: 5000 })
+  await screen.findByRole('heading', { name: 'Hola, ana' }, { timeout: 5000 })
 }
 
 describe('flujo de autenticación', () => {
@@ -148,7 +148,7 @@ describe('flujo de autenticación', () => {
     await registerAna()
 
     expect(screen.getByText('ana@example.com')).toBeInTheDocument() // usuario en la barra superior
-    expect(await screen.findByText('Tu bóveda está vacía')).toBeInTheDocument()
+    expect(await screen.findByText('Aún no tienes canciones')).toBeInTheDocument()
     expect(JSON.stringify(server.requests)).not.toContain(PASSWORD)
     const stored = server.users.get('ana@example.com')!
     expect(stored.kdf_params).toEqual({ alg: 'PBKDF2-SHA256', iterations: 600000 })
@@ -171,7 +171,7 @@ describe('flujo de autenticación', () => {
   function reload() {
     cleanup()
     tokenStore.set({ access: '' })
-    renderApp('/')
+    renderApp('/inicio')
   }
 
   it('tras recargar la página la bóveda sigue abierta (Master Key en IndexedDB)', async () => {
@@ -179,7 +179,7 @@ describe('flujo de autenticación', () => {
 
     reload()
 
-    expect(await screen.findByRole('heading', { name: /Mis Archivos/ })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: 'Hola, ana' })).toBeInTheDocument()
     expect(server.requests.filter((r) => r.url === '/api/auth/login')).toHaveLength(0)
   })
 
@@ -195,7 +195,7 @@ describe('flujo de autenticación', () => {
     await user.type(screen.getByLabelText('Contraseña'), PASSWORD)
     await user.click(screen.getByRole('button', { name: /desbloquear bóveda/i }))
 
-    expect(await screen.findByRole('heading', { name: /Mis Archivos/ }, { timeout: 5000 })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: 'Hola, ana' }, { timeout: 5000 })).toBeInTheDocument()
   })
 
   it('login con contraseña incorrecta muestra un error y no entra', async () => {

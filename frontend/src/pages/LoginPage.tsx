@@ -23,7 +23,7 @@ export function LoginPage() {
   const [error, setError] = useState<string | null>(null)
 
   if (session.status === 'ready') {
-    return <Navigate to={state.from ?? '/'} replace />
+    return <Navigate to={state.from ?? '/inicio'} replace />
   }
 
   async function handleSubmit(event: FormEvent) {

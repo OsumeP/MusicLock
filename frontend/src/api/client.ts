@@ -47,25 +47,49 @@ export function onSessionExpired(listener: Listener): () => void {
 
 let refreshInFlight: Promise<boolean> | null = null
 
-/** Renueva el access token. Devuelve false si la sesión ya no es válida. */
+async function postRefresh(refresh: string): Promise<boolean> {
+  try {
+    const response = await fetch('/api/auth/refresh', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+      body: JSON.stringify({ refresh }),
+    })
+    if (!response.ok) return false
+    const tokens = (await response.json()) as { access: string; refresh?: string }
+    tokenStore.set(tokens)
+    return true
+  } catch {
+    return false
+  }
+}
+
+/**
+ * Una renovación. El refresh token rota y el anterior queda en la lista negra,
+ * así que si otra pestaña lo renovó un instante antes, el nuestro ya no sirve:
+ * en ese caso se reintenta una vez con el token nuevo que esa pestaña guardó en
+ * localStorage.
+ */
+async function refreshOnce(): Promise<boolean> {
+  const refresh = tokenStore.getRefresh()
+  if (!refresh) return false
+  if (await postRefresh(refresh)) return true
+  const latest = tokenStore.getRefresh()
+  return latest !== null && latest !== refresh ? postRefresh(latest) : false
+}
+
+/**
+ * Renueva el access token. Devuelve false si la sesión ya no es válida.
+ * - En esta pestaña, las peticiones simultáneas comparten una sola renovación.
+ * - Entre pestañas, la Web Locks API (si existe) hace que se renueve de a una:
+ *   sin esto, dos pestañas usarían el mismo refresh token y la segunda cerraría
+ *   la sesión de todas.
+ */
 export function refreshAccessToken(): Promise<boolean> {
-  refreshInFlight ??= (async () => {
-    const refresh = tokenStore.getRefresh()
-    if (!refresh) return false
-    try {
-      const response = await fetch('/api/auth/refresh', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-        body: JSON.stringify({ refresh }),
-      })
-      if (!response.ok) return false
-      const tokens = (await response.json()) as { access: string; refresh?: string }
-      tokenStore.set(tokens)
-      return true
-    } catch {
-      return false
-    }
-  })().finally(() => {
+  refreshInFlight ??= (
+    typeof navigator !== 'undefined' && navigator.locks
+      ? navigator.locks.request('musiclock-token-refresh', refreshOnce)
+      : refreshOnce()
+  ).finally(() => {
     refreshInFlight = null
   })
   return refreshInFlight

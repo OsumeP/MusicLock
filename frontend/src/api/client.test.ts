@@ -51,6 +51,30 @@ describe('apiRequest', () => {
     expect(refreshCalls).toHaveLength(1)
   })
 
+  it('si otra pestaña ya rotó el refresh token, reintenta con el nuevo en lugar de cerrar la sesión', async () => {
+    const fetchMock = vi.fn(async (url: string, init?: RequestInit) => {
+      if (url === '/api/auth/refresh') {
+        const { refresh } = JSON.parse(init!.body as string)
+        if (refresh === 'refresh-1') {
+          // Mientras tanto otra pestaña renovó y guardó su token nuevo en localStorage.
+          localStorage.setItem('musiclock.refresh', 'refresh-de-otra-pestaña')
+          return json({ detail: 'blacklisted' }, 401)
+        }
+        return json({ access: 'access-nuevo', refresh: 'refresh-3' })
+      }
+      return authHeader(init) === 'Bearer access-nuevo' ? json({ ok: true }) : json({}, 401)
+    })
+    vi.stubGlobal('fetch', fetchMock)
+    const expired = vi.fn()
+    const unsubscribe = onSessionExpired(expired)
+
+    await expect(apiRequest('/me')).resolves.toEqual({ ok: true })
+
+    expect(expired).not.toHaveBeenCalled()
+    expect(tokenStore.getRefresh()).toBe('refresh-3')
+    unsubscribe()
+  })
+
   it('si la renovación falla, borra los tokens y avisa que la sesión expiró', async () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(json({ detail: 'no' }, 401)))
     const expired = vi.fn()

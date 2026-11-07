@@ -44,7 +44,7 @@ function SongRow({
       aria-current={isCurrent ? 'true' : undefined}
       className={`group border-t border-border-subtle/60 transition-colors ${isCurrent ? 'bg-primary-container/30' : 'hover:bg-surface-container-high/40'}`}
     >
-      <td className="px-4 py-3 text-center">
+      <td className="px-2 py-3 text-center sm:px-4">
         <button
           type="button"
           onClick={handleClick}
@@ -65,16 +65,16 @@ function SongRow({
           )}
         </button>
       </td>
-      <td className="px-4 py-3">
+      <td className="px-2 py-3 sm:px-4">
         <div className="flex items-center gap-3">
           <span
             aria-hidden
-            className={`material-symbols-outlined grid size-10 shrink-0 place-items-center rounded-lg bg-surface-container-lowest ${isPlaying ? 'animate-pulse text-accent-cyan' : 'text-primary-light'}`}
+            className={`material-symbols-outlined hidden size-10 shrink-0 sm:grid place-items-center rounded-lg bg-surface-container-lowest ${isPlaying ? 'animate-pulse text-accent-cyan' : 'text-primary-light'}`}
           >
             graphic_eq
           </span>
           <div className="min-w-0">
-            <p className="flex items-center gap-2 truncate text-title-sm font-semibold text-on-surface">
+            <p className="flex max-w-[10rem] items-center gap-2 truncate text-title-sm font-semibold text-on-surface sm:max-w-xs">
               {song.title}
               {inMemory && (
                 <span className="rounded bg-primary-container px-1.5 py-0.5 font-mono text-[9px] uppercase tracking-wider text-accent-cyan" title="Descifrada solo en la memoria de este navegador">
@@ -82,7 +82,7 @@ function SongRow({
                 </span>
               )}
             </p>
-            <p className="truncate font-mono text-mono-label text-on-surface-variant" title={song.id}>
+            <p className="max-w-[10rem] truncate font-mono sm:max-w-xs text-mono-label text-on-surface-variant" title={song.id}>
               ID {song.id.slice(0, 8)}…{song.id.slice(-4)}
             </p>
           </div>
@@ -93,7 +93,7 @@ function SongRow({
       </td>
       <td className="hidden px-4 py-3 text-right font-mono text-mono-crypto text-on-surface sm:table-cell">{formatDuration(song.duration)}</td>
       <td className="hidden px-4 py-3 text-right font-mono text-mono-crypto text-on-surface lg:table-cell">{formatBytes(song.size)}</td>
-      <td className="px-4 py-3">
+      <td className="hidden px-4 py-3 md:table-cell">
         <span className="inline-flex items-center gap-1 rounded-full bg-primary-container px-2.5 py-1 font-mono text-mono-label text-primary-light">
           <span aria-hidden className="material-symbols-outlined text-[12px]">lock</span>
           AES-GCM 256
@@ -300,17 +300,19 @@ export function MyFilesPage() {
         ) : page && page.songs.length === 0 ? (
           <EmptyState query={query} onUpload={() => setUploadOpen(true)} />
         ) : page ? (
-          <div className="overflow-x-auto">
+          <div className="relative overflow-x-auto">
+            {/* `relative`: contiene los elementos sr-only (position: absolute) de la tabla;
+                sin esto escapan del scroll y desbordan toda la página en móvil. */}
             <table className="w-full text-left">
               <caption className="sr-only">Archivos cifrados</caption>
               <thead>
                 <tr className="font-mono text-mono-label uppercase tracking-wider text-on-surface-variant">
-                  <th scope="col" className="w-12 px-4 py-3 text-center font-medium">#</th>
-                  <th scope="col" className="px-4 py-3 font-medium">Título / pista</th>
+                  <th scope="col" className="w-12 px-2 py-3 text-center font-medium sm:px-4">#</th>
+                  <th scope="col" className="px-2 py-3 font-medium sm:px-4">Título / pista</th>
                   <th scope="col" className="hidden px-4 py-3 font-medium md:table-cell">Artista</th>
                   <th scope="col" className="hidden px-4 py-3 text-right font-medium sm:table-cell">Duración</th>
                   <th scope="col" className="hidden px-4 py-3 text-right font-medium lg:table-cell">Tamaño</th>
-                  <th scope="col" className="px-4 py-3 font-medium">Cifrado</th>
+                  <th scope="col" className="hidden px-4 py-3 font-medium md:table-cell">Cifrado</th>
                   <th scope="col" className="hidden px-4 py-3 text-right font-medium xl:table-cell">Subido</th>
                   <th scope="col" className="px-2 py-3 text-right font-medium">
                     <span className="sr-only">Acciones</span>
