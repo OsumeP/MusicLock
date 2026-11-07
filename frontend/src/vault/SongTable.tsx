@@ -9,6 +9,8 @@ export interface RowActions {
   toggleFavorite(song: Song): void
   download(song: Song): void
   addToPlaylist?(song: Song): void
+  /** Compartir con otros usuarios (solo canciones propias). */
+  share?(song: Song): void
   edit?(song: Song): void
   remove?(song: Song): void
 }
@@ -165,6 +167,7 @@ function SongRow({
           {actions.addToPlaylist && (
             <RowAction icon="playlist_add" label={`Añadir ${song.title} a una playlist`} onClick={() => actions.addToPlaylist?.(song)} />
           )}
+          {actions.share && <RowAction icon="share" label={`Compartir ${song.title}`} onClick={() => actions.share?.(song)} />}
           {/* En móvil se ocultan descargar y editar para que la fila quepa a 390 px. */}
           <RowAction
             icon={downloading ? 'progress_activity' : 'download'}

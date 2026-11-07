@@ -25,5 +25,8 @@ export default defineConfig({
     environment: 'jsdom',
     setupFiles: ['./src/test/setup.ts'],
     css: false,
+    // Varios tests usan criptografía real (PBKDF2 de 600 000 iteraciones, RSA-3072):
+    // con los archivos en paralelo, 5 s por test no alcanza en máquinas lentas o en CI.
+    testTimeout: 15_000,
   },
 })

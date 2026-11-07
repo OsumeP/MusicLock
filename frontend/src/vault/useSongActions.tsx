@@ -3,6 +3,7 @@ import { useState, type ReactNode } from 'react'
 import { setFavorite, type Song } from '../api/songs'
 import { useAuth } from '../auth/session'
 import { AddToPlaylistModal } from '../playlists/AddToPlaylistModal'
+import { ShareSongModal } from '../sharing/ShareSongModal'
 import { usePlayer } from '../player/playerContext'
 import { DeleteSongModal } from './DeleteSongModal'
 import { downloadOriginalSong } from './downloadSong'
@@ -15,7 +16,7 @@ export interface Notice {
 }
 
 /**
- * Acciones de las filas de canciones (descargar, añadir a playlist, editar, eliminar, favorito),
+ * Acciones de las filas de canciones (descargar, añadir a playlist, compartir, editar, eliminar, favorito),
  * compartidas por "Mis Archivos" y "Favoritos".
  *
  * - `onSongChanged`: aplicar un cambio a la lista visible sin recargarla (favorito optimista).
@@ -46,6 +47,7 @@ export function useSongActions({
   const [editing, setEditing] = useState<Song | null>(null)
   const [deleting, setDeleting] = useState<Song | null>(null)
   const [addingToPlaylist, setAddingToPlaylist] = useState<Song | null>(null)
+  const [sharing, setSharing] = useState<Song | null>(null)
   const [downloadingId, setDownloadingId] = useState<string | null>(null)
   const [favoritePending, setFavoritePending] = useState<ReadonlySet<string>>(new Set())
   const [notice, setNotice] = useState<Notice | null>(null)
@@ -73,6 +75,7 @@ export function useSongActions({
       }
     },
     addToPlaylist: setAddingToPlaylist,
+    share: setSharing,
     edit: setEditing,
     remove: setDeleting,
     async toggleFavorite(song) {
@@ -108,6 +111,8 @@ export function useSongActions({
           }}
         />
       )}
+
+      {sharing && <ShareSongModal song={sharing} onClose={() => setSharing(null)} />}
 
       {editing && (
         <EditSongModal

@@ -7,4 +7,5 @@ urlpatterns = [
     path("api/", include("accounts.urls")),
     path("api/", include("vault.urls")),
     path("api/", include("playlists.urls")),
+    path("api/", include("sharing.urls")),
 ]

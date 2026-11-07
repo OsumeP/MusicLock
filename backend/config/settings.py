@@ -57,6 +57,7 @@ INSTALLED_APPS = [
     "accounts",
     "vault",
     "playlists",
+    "sharing",
 ]
 
 AUTH_USER_MODEL = "accounts.User"

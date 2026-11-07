@@ -252,6 +252,10 @@ Tablas `favorite`, `listening_history`, `playlist` y `playlist_song` se crean so
 | PUT / DELETE / PATCH | `/api/playlists/{id}/songs/{song_id}` | MVP+ (día 13): añadir al final / quitar / mover a `position` |
 | POST | `/api/me/vault` | Día 14: con el `auth_key` actual devuelve salt, `kdf_params` y la Master Key envuelta (paso 1 del cambio de contraseña); incorrecto → 400 `invalid_password` |
 | POST | `/api/me/password` | Día 14: `current_auth_key` + material nuevo (`new_auth_key`, `kdf_salt`, `kdf_params`, `wrapped_master_key`, `master_key_iv`) → sesión nueva; cierra las demás |
+| GET / PUT | `/api/me/keypair` | Día 16: par de claves propio (la privada envuelta con la Master Key); `PUT` una sola vez (409 si existe) |
+| GET | `/api/users/lookup?q=` | Día 17: destinatario por correo o usuario exactos → `username` + `public_key` |
+| GET | `/api/songs/{id}/shares` | Día 17: quién tiene acceso a una canción propia |
+| PUT / DELETE | `/api/songs/{id}/shares/{username}` | Día 17: compartir (`wrapped_file_key` de 384 bytes, `role` = `query`) / revocar |
 
 ---
 
