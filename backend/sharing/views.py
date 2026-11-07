@@ -3,9 +3,10 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from vault.services import SongNotFound
+from vault.views import SongPagination, serve_encrypted_blob
 
 from . import services
-from .serializers import RecipientSerializer, ShareSerializer, ShareWriteSerializer
+from .serializers import RecipientSerializer, SharedSongSerializer, ShareSerializer, ShareWriteSerializer
 
 
 def _error(detail: str, code: str, http_status: int) -> Response:
@@ -82,3 +83,26 @@ class SongShareView(APIView):
         except SongNotFound:
             return _song_not_found()
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+# --- Lado del destinatario (día 18) ------------------------------------------------------
+
+
+class SharedWithMeView(APIView):
+    """GET /api/shared?q=&page= — "Compartido conmigo", la compartida más recientemente primero."""
+
+    def get(self, request):
+        shares = services.shared_with(request.user, request.query_params.get("q", ""))
+        paginator = SongPagination()
+        page = paginator.paginate_queryset(shares, request, view=self)
+        return paginator.get_paginated_response(SharedSongSerializer(page, many=True).data)
+
+
+class SharedBlobView(APIView):
+    """
+    GET /api/shared/{id}/blob — el audio CIFRADO de una canción compartida conmigo.
+    Sin acceso vigente → 404, igual que una canción inexistente.
+    """
+
+    def get(self, request, song_id):
+        return serve_encrypted_blob(lambda: services.open_shared_blob(request.user, song_id))

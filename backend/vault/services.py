@@ -152,13 +152,21 @@ def open_song_blob(user: User, song_id) -> tuple[Song, BinaryIO]:
     """
     Proxy de acceso (patrón Proxy, PlanMVP §3.1): valida que la canción sea del
     usuario antes de abrir el blob. Devuelve el blob CIFRADO; el servidor nunca
-    descifra nada.
+    descifra nada. (El acceso de un destinatario lo valida `sharing`, día 18.)
+    """
+    song = get_own_song(user, song_id)
+    return song, open_blob(song)
+
+
+def open_blob(song: Song) -> BinaryIO:
+    """
+    Abre el blob CIFRADO de una canción cuyo acceso YA se validó (lo usan los
+    proxies de `vault` y de `sharing`). Nunca llamarlo sin comprobar el acceso.
     """
     from .storage import BlobNotFound
 
-    song = get_own_song(user, song_id)
     try:
-        return song, get_blob_storage().open(song.storage_key)
+        return get_blob_storage().open(song.storage_key)
     except BlobNotFound as exc:
         raise BlobMissing(song.storage_key) from exc
     except Exception as exc:

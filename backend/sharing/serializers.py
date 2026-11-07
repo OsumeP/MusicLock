@@ -28,3 +28,26 @@ class ShareSerializer(serializers.ModelSerializer):
 class ShareWriteSerializer(serializers.Serializer):
     wrapped_file_key = Base64BytesField(SHARED_FILE_KEY_BYTES)
     role = serializers.ChoiceField(choices=SongShare.ROLE_CHOICES, default=SongShare.ROLE_QUERY)
+
+
+class SharedSongSerializer(serializers.ModelSerializer):
+    """
+    Una canción compartida conmigo: los metadatos de la canción + la File Key
+    envuelta PARA MÍ (`shared_file_key`). No incluye la clave envuelta del
+    propietario ni nada que dependa de su Master Key.
+    """
+
+    id = serializers.UUIDField(source="song.uuid")
+    title = serializers.CharField(source="song.title")
+    artist = serializers.CharField(source="song.artist")
+    duration = serializers.IntegerField(source="song.duration")
+    size = serializers.IntegerField(source="song.size")
+    creation_date = serializers.DateTimeField(source="song.creation_date")
+    file_iv = serializers.CharField(source="song.file_iv")
+    shared_file_key = serializers.CharField(source="wrapped_file_key")
+    owner = serializers.CharField(source="song.owner.username")
+    shared_at = serializers.DateTimeField(source="created_at")
+
+    class Meta:
+        model = SongShare
+        fields = ["id", "title", "artist", "duration", "size", "creation_date", "file_iv", "shared_file_key", "owner", "shared_at", "role"]

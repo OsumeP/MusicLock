@@ -3,7 +3,8 @@
  * Key envuelta con la clave pública del destinatario.
  */
 
-import { apiRequest } from './client'
+import { apiBlob, apiRequest } from './client'
+import { SONGS_PAGE_SIZE, type Song, type SongPage } from './songs'
 
 /** Destinatario encontrado por correo o usuario exactos. */
 export interface Recipient {
@@ -54,4 +55,57 @@ export async function shareSong(songId: string, username: string, wrappedFileKey
 /** Revoca el acceso (idempotente). */
 export function revokeShare(songId: string, username: string): Promise<void> {
   return apiRequest<void>(sharePath(songId, username), { method: 'DELETE' })
+}
+
+// --- Compartido conmigo (día 18) --------------------------------------------------
+
+interface SharedSongDto {
+  id: string
+  title: string
+  artist: string
+  duration: number
+  size: number
+  creation_date: string
+  file_iv: string
+  shared_file_key: string
+  owner: string
+  shared_at: string
+  role: ShareRole
+}
+
+/** Canción compartida conmigo como `Song` con `sharedBy` (sin material de la Master Key del propietario). */
+export function toSharedSong(dto: SharedSongDto): Song {
+  return {
+    id: dto.id,
+    title: dto.title,
+    artist: dto.artist,
+    duration: dto.duration,
+    size: dto.size,
+    createdAt: dto.creation_date,
+    fileIv: dto.file_iv,
+    wrappedFileKey: '',
+    wrappedKeyIv: '',
+    isFavorite: false,
+    favoritedAt: null,
+    sharedBy: { owner: dto.owner, sharedFileKey: dto.shared_file_key, sharedAt: dto.shared_at },
+  }
+}
+
+/** "Compartido conmigo", la compartida más recientemente primero (`query` busca título, artista y propietario). */
+export async function listSharedWithMe(
+  { query = '', page = 1, pageSize = SONGS_PAGE_SIZE }: { query?: string; page?: number; pageSize?: number } = {},
+  signal?: AbortSignal,
+): Promise<SongPage> {
+  const params = new URLSearchParams({ page: String(page), page_size: String(pageSize) })
+  if (query.trim()) params.set('q', query.trim())
+  const dto = await apiRequest<{ count: number; next: string | null; previous: string | null; results: SharedSongDto[] }>(
+    `/shared?${params}`,
+    { signal },
+  )
+  return { count: dto.count, songs: dto.results.map(toSharedSong), hasNext: !!dto.next, hasPrevious: !!dto.previous }
+}
+
+/** El audio CIFRADO de una canción compartida conmigo (404 si se revocó). */
+export function downloadSharedEncryptedSong(id: string, signal?: AbortSignal): Promise<Blob> {
+  return apiBlob(`/shared/${encodeURIComponent(id)}/blob`, { signal })
 }

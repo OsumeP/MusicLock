@@ -16,9 +16,10 @@ import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } fro
 
 import { ApiError } from '../api/client'
 import { recordPlay } from '../api/history'
-import { downloadEncryptedSong, type Song } from '../api/songs'
+import type { Song } from '../api/songs'
 import { useAuth } from '../auth/session'
-import { DecryptionError, decryptAudio } from '../crypto'
+import { DecryptionError } from '../crypto'
+import { decryptSongToBlob } from '../vault/downloadSong'
 import { SongQueue, type PlaybackMode, type SongIterator } from './iterators'
 import { PlayerContext, type PlayerContextValue, type PlayerStatus } from './playerContext'
 
@@ -44,7 +45,7 @@ function playbackErrorMessage(error: unknown): string {
   if (error instanceof DecryptionError) return 'No se pudo descifrar esta canción: el archivo fue alterado o la clave no coincide.'
   if (error instanceof ApiError) {
     if (error.code === 'blob_missing') return 'El archivo cifrado de esta canción no está disponible.'
-    if (error.code === 'not_found') return 'La canción ya no existe.'
+    if (error.code === 'not_found') return 'La canción ya no existe o ya no tienes acceso.'
     if (error.code === 'storage_unavailable') return 'El almacenamiento no está disponible. Inténtalo de nuevo en unos minutos.'
   }
   if (error instanceof TypeError) return 'Sin conexión con el servidor.'
@@ -119,14 +120,15 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
       setDuration(song.duration)
 
       try {
-        const encrypted = await downloadEncryptedSong(song.id, controller.signal)
-        const mp3 = await decryptAudio(encrypted, song, masterKey)
+        // Propia o compartida conmigo: decryptSongToBlob elige el Proxy y la clave.
+        const mp3 = await decryptSongToBlob(song, masterKey, controller.signal)
         if (controller.signal.aborted) return
 
         const url = URL.createObjectURL(mp3)
         objectUrlRef.current = url
         loadedSongIdRef.current = song.id
-        unrecordedSongRef.current = song.id
+        // Las compartidas no van al historial (es de la bóveda propia; decisión I97).
+        unrecordedSongRef.current = song.sharedBy ? null : song.id
         const audio = audioRef.current!
         audio.src = url
         try {
@@ -154,7 +156,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
       const audio = audioRef.current
       if (audio && objectUrlRef.current && loadedSongIdRef.current === song.id) {
         audio.currentTime = 0
-        unrecordedSongRef.current = song.id // cada vuelta cuenta como otra reproducción
+        unrecordedSongRef.current = song.sharedBy ? null : song.id // cada vuelta cuenta como otra reproducción
         void audio.play().catch(() => setStatus('paused'))
         return
       }

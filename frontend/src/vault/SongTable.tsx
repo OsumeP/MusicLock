@@ -6,7 +6,8 @@ import { usePlayer } from '../player/playerContext'
 
 /** Acciones de cada fila. Las opcionales que no se pasen no muestran su botón. */
 export interface RowActions {
-  toggleFavorite(song: Song): void
+  /** Sin esta acción no se muestra el corazón (p. ej. canciones compartidas conmigo). */
+  toggleFavorite?(song: Song): void
   download(song: Song): void
   addToPlaylist?(song: Song): void
   /** Compartir con otros usuarios (solo canciones propias). */
@@ -132,9 +133,16 @@ function SongRow({
                 </span>
               )}
             </p>
-            <p className="max-w-[10rem] truncate font-mono sm:max-w-xs text-mono-label text-on-surface-variant" title={song.id}>
-              ID {song.id.slice(0, 8)}…{song.id.slice(-4)}
-            </p>
+            {song.sharedBy ? (
+              <p className="flex max-w-[10rem] items-center gap-1 truncate font-mono text-mono-label text-accent-cyan sm:max-w-xs">
+                <span aria-hidden className="material-symbols-outlined text-[14px]">share</span>
+                de {song.sharedBy.owner}
+              </p>
+            ) : (
+              <p className="max-w-[10rem] truncate font-mono sm:max-w-xs text-mono-label text-on-surface-variant" title={song.id}>
+                ID {song.id.slice(0, 8)}…{song.id.slice(-4)}
+              </p>
+            )}
           </div>
         </div>
       </td>
@@ -155,15 +163,17 @@ function SongRow({
       <td className="px-2 py-3">
         <div className="flex justify-end gap-1">
           {extras}
-          <RowAction
-            icon="favorite"
-            filled={song.isFavorite}
-            pressed={song.isFavorite}
-            label={song.isFavorite ? `Quitar ${song.title} de favoritos` : `Añadir ${song.title} a favoritos`}
-            onClick={() => actions.toggleFavorite(song)}
-            disabled={favoritePending}
-            className={song.isFavorite ? '!text-accent-cyan' : ''}
-          />
+          {actions.toggleFavorite && (
+            <RowAction
+              icon="favorite"
+              filled={song.isFavorite}
+              pressed={song.isFavorite}
+              label={song.isFavorite ? `Quitar ${song.title} de favoritos` : `Añadir ${song.title} a favoritos`}
+              onClick={() => actions.toggleFavorite?.(song)}
+              disabled={favoritePending}
+              className={song.isFavorite ? '!text-accent-cyan' : ''}
+            />
+          )}
           {actions.addToPlaylist && (
             <RowAction icon="playlist_add" label={`Añadir ${song.title} a una playlist`} onClick={() => actions.addToPlaylist?.(song)} />
           )}

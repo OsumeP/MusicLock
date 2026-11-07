@@ -90,6 +90,34 @@ def _iter_blob(blob, chunk_size: int = 64 * 1024):
         blob.close()
 
 
+def serve_encrypted_blob(open_authorized):
+    """
+    Respuesta común de los proxies de blobs (propio en `vault`, compartido en
+    `sharing`). `open_authorized()` valida el acceso y devuelve (song, blob), o
+    lanza SongNotFound / BlobMissing / StorageUnavailable.
+    """
+    try:
+        song, blob = open_authorized()
+    except services.SongNotFound:
+        return _not_found()
+    except services.BlobMissing as error:
+        logger.error("Falta el blob de una canción existente: %s", error)
+        return Response(
+            {"detail": "El archivo cifrado no está disponible.", "code": "blob_missing"},
+            status=status.HTTP_404_NOT_FOUND,
+        )
+    except services.StorageUnavailable:
+        logger.exception("Fallo del almacenamiento al leer una canción")
+        return _storage_unavailable()
+
+    response = StreamingHttpResponse(_iter_blob(blob), content_type="application/octet-stream")
+    response["Content-Length"] = str(song.size)
+    # Bytes cifrados, pero aun así privados: ni proxies ni caché del navegador.
+    response["Cache-Control"] = "private, no-store"
+    response["X-Content-Type-Options"] = "nosniff"
+    return response
+
+
 class SongBlobView(APIView):
     """
     GET /api/songs/{id}/blob — el audio CIFRADO, en streaming, solo para su dueño.
@@ -97,26 +125,7 @@ class SongBlobView(APIView):
     """
 
     def get(self, request, song_id):
-        try:
-            song, blob = services.open_song_blob(request.user, song_id)
-        except services.SongNotFound:
-            return _not_found()
-        except services.BlobMissing as error:
-            logger.error("Falta el blob de una canción existente: %s", error)
-            return Response(
-                {"detail": "El archivo cifrado no está disponible.", "code": "blob_missing"},
-                status=status.HTTP_404_NOT_FOUND,
-            )
-        except services.StorageUnavailable:
-            logger.exception("Fallo del almacenamiento al leer una canción")
-            return _storage_unavailable()
-
-        response = StreamingHttpResponse(_iter_blob(blob), content_type="application/octet-stream")
-        response["Content-Length"] = str(song.size)
-        # Bytes cifrados, pero aun así privados: ni proxies ni caché del navegador.
-        response["Cache-Control"] = "private, no-store"
-        response["X-Content-Type-Options"] = "nosniff"
-        return response
+        return serve_encrypted_blob(lambda: services.open_song_blob(request.user, song_id))
 
 
 def _not_found() -> Response:

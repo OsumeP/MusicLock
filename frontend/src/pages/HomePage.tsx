@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router'
 
 import { listHistory, type HistoryPage } from '../api/history'
+import { listSharedWithMe } from '../api/sharing'
 import { listSongs, type Song, type SongPage } from '../api/songs'
 import { useAuth } from '../auth/session'
 import { Alert } from '../components/ui'
@@ -33,7 +34,10 @@ function CompactSongList({ songs, dateOf, label }: { songs: Song[]; dateOf: (son
             </button>
             <div className="min-w-0 flex-1">
               <p className="truncate text-title-sm font-semibold">{song.title}</p>
-              <p className="truncate text-body-sm text-on-surface-variant">{song.artist || 'Artista desconocido'}</p>
+              <p className="truncate text-body-sm text-on-surface-variant">
+                {song.artist || 'Artista desconocido'}
+                {song.sharedBy && <span className="text-accent-cyan"> · de {song.sharedBy.owner}</span>}
+              </p>
             </div>
             <span className="hidden font-mono text-mono-crypto text-on-surface-variant sm:block">{formatDuration(song.duration)}</span>
             <span className="hidden font-mono text-mono-crypto text-on-surface-variant md:block" title={`${label} ${new Date(date).toLocaleString('es-CO')}`}>
@@ -47,11 +51,58 @@ function CompactSongList({ songs, dateOf, label }: { songs: Song[]; dateOf: (son
 }
 
 type LoadResult = { key: number; page: SongPage } | { key: number; error: true }
+
+/** "Compartido conmigo" en el dashboard (Interfaz FR-04): las últimas compartidas conmigo. */
+function SharedWithMeSection() {
+  const [result, setResult] = useState<LoadResult | null>(null)
+  const [reloadKey, setReloadKey] = useState(0)
+
+  useEffect(() => {
+    const controller = new AbortController()
+    listSharedWithMe({ pageSize: RECENT_COUNT }, controller.signal)
+      .then((page) => setResult({ key: reloadKey, page }))
+      .catch(() => !controller.signal.aborted && setResult({ key: reloadKey, error: true }))
+    return () => controller.abort()
+  }, [reloadKey])
+
+  const page = result && 'page' in result ? result.page : null
+
+  return (
+    <section className="flex flex-col rounded-xl bg-surface-card ring-1 ring-border-subtle" aria-labelledby="compartido">
+      <div className="flex items-center justify-between border-b border-border-subtle px-5 py-4">
+        <h2 id="compartido" className="font-display text-headline-sm font-medium">Compartido conmigo</h2>
+        {page && page.count > 0 && (
+          <Link to="/compartido" className="text-body-sm text-primary-light hover:text-on-surface">
+            Ver las {page.count} →
+          </Link>
+        )}
+      </div>
+      {result && 'error' in result && (
+        <div className="p-5">
+          <Alert tone="error">
+            No se pudo cargar lo compartido contigo.{' '}
+            <button type="button" className="font-semibold underline" onClick={() => setReloadKey((k) => k + 1)}>Reintentar</button>
+          </Alert>
+        </div>
+      )}
+      {!result && <p className="px-5 py-10 text-center font-mono text-mono-crypto text-on-surface-variant" role="status">Cargando…</p>}
+      {page && page.songs.length === 0 && (
+        <div className="flex flex-col items-center gap-2 px-5 py-8 text-center">
+          <span aria-hidden className="material-symbols-outlined text-[40px] text-border-blue">folder_shared</span>
+          <p className="text-title-sm font-semibold">Nadie ha compartido canciones contigo todavía</p>
+        </div>
+      )}
+      {page && page.songs.length > 0 && (
+        <CompactSongList songs={page.songs} dateOf={(song) => song.sharedBy?.sharedAt ?? song.createdAt} label="Compartida" />
+      )}
+    </section>
+  )
+}
 type PlayedResult = { key: string; page: HistoryPage } | { key: string; error: true }
 
 /**
  * Dashboard "Inicio" (mockup musiclock_inicio_vertical_archivos_tendencias_y_cuota),
- * simplificado al alcance del MVP+: reproducido y subido recientemente, cuota y estado del cifrado.
+ * simplificado al alcance del MVP+: reproducido y subido recientemente, compartido conmigo, cuota y estado del cifrado.
  */
 export function HomePage() {
   const { session, refreshUser } = useAuth()
@@ -185,6 +236,8 @@ export function HomePage() {
             )}
             {page && page.songs.length > 0 && <CompactSongList songs={page.songs} dateOf={(song) => song.createdAt} label="Subida" />}
           </section>
+
+          <SharedWithMeSection />
         </div>
 
         <div className="flex flex-col gap-6">

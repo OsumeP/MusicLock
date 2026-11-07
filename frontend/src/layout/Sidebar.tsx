@@ -15,7 +15,7 @@ const NAV: NavItem[] = [
   { label: 'Mis Archivos', icon: 'folder_special', to: '/archivos' },
   { label: 'Favoritos', icon: 'favorite', to: '/favoritos' },
   { label: 'Playlists', icon: 'queue_music', to: '/playlists' },
-  { label: 'Compartido conmigo', icon: 'share' },
+  { label: 'Compartido conmigo', icon: 'share', to: '/compartido' },
   { label: 'Recientes', icon: 'history', to: '/recientes' },
   { label: 'Tendencias', icon: 'local_fire_department' },
   { label: 'Admin / Planes', icon: 'manage_accounts' },

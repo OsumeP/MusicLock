@@ -15,6 +15,7 @@ import { PlaylistDetailPage } from './pages/PlaylistDetailPage'
 import { PlaylistsPage } from './pages/PlaylistsPage'
 import { RecentPage } from './pages/RecentPage'
 import { RegisterPage } from './pages/RegisterPage'
+import { SharedWithMePage } from './pages/SharedWithMePage'
 import { SystemStatusPage } from './pages/SystemStatusPage'
 
 export default function App() {
@@ -43,6 +44,7 @@ export default function App() {
               <Route path="/recientes" element={<RecentPage />} />
               <Route path="/playlists" element={<PlaylistsPage />} />
               <Route path="/playlists/:playlistId" element={<PlaylistDetailPage />} />
+              <Route path="/compartido" element={<SharedWithMePage />} />
               <Route path="/cuenta" element={<AccountPage />} />
             </Route>
 

@@ -2,27 +2,32 @@ import { useCallback, useEffect, useState } from 'react'
 import { useSearchParams } from 'react-router'
 
 import { ApiError } from '../api/client'
+import { listSharedWithMe } from '../api/sharing'
 import { listSongs, SONGS_PAGE_SIZE, type Song, type SongPage } from '../api/songs'
 
 /** Resultado de la última carga, etiquetado con la petición que lo produjo. */
 type LoadResult = { key: string; page: SongPage } | { key: string; error: string }
 
 /**
- * Lista paginada de canciones propias cuyo estado vive en la URL (`?q=` y `?page=`).
+ * Lista paginada de canciones cuyo estado vive en la URL (`?q=` y `?page=`): propias
+ * (opcionalmente solo favoritas) o, con `shared`, las compartidas conmigo.
  * Estilo "stale-while-revalidate": mientras llega una página nueva se sigue
  * mostrando la anterior (sin parpadeo), y no hay `setState` síncrono en efectos.
  */
-export function useSongList({ favorites = false }: { favorites?: boolean } = {}) {
+export function useSongList({ favorites = false, shared = false }: { favorites?: boolean; shared?: boolean } = {}) {
   const [params, setParams] = useSearchParams()
   const query = params.get('q') ?? ''
   const pageNumber = Math.max(1, Number(params.get('page')) || 1)
   const [result, setResult] = useState<LoadResult | null>(null)
   const [reloadKey, setReloadKey] = useState(0)
-  const requestKey = `${favorites}|${query}|${pageNumber}|${reloadKey}`
+  const requestKey = `${favorites}|${shared}|${query}|${pageNumber}|${reloadKey}`
 
   useEffect(() => {
     const controller = new AbortController()
-    listSongs({ query, page: pageNumber, favorites }, controller.signal)
+    const load = shared
+      ? listSharedWithMe({ query, page: pageNumber }, controller.signal)
+      : listSongs({ query, page: pageNumber, favorites }, controller.signal)
+    load
       .then((page) => setResult({ key: requestKey, page }))
       .catch((error: unknown) => {
         if (controller.signal.aborted) return
@@ -33,7 +38,7 @@ export function useSongList({ favorites = false }: { favorites?: boolean } = {})
         setResult({ key: requestKey, error: 'No se pudo cargar tu bóveda. Inténtalo de nuevo.' })
       })
     return () => controller.abort()
-  }, [favorites, query, pageNumber, requestKey, setParams])
+  }, [favorites, shared, query, pageNumber, requestKey, setParams])
 
   const page = result && 'page' in result ? result.page : null
   const error = result && 'error' in result && result.key === requestKey ? result.error : null

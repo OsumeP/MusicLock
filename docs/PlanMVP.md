@@ -256,6 +256,8 @@ Tablas `favorite`, `listening_history`, `playlist` y `playlist_song` se crean so
 | GET | `/api/users/lookup?q=` | Día 17: destinatario por correo o usuario exactos → `username` + `public_key` |
 | GET | `/api/songs/{id}/shares` | Día 17: quién tiene acceso a una canción propia |
 | PUT / DELETE | `/api/songs/{id}/shares/{username}` | Día 17: compartir (`wrapped_file_key` de 384 bytes, `role` = `query`) / revocar |
+| GET | `/api/shared?q=&page=` | Día 18: canciones compartidas conmigo (con `shared_file_key` envuelta para mí y `owner`) |
+| GET | `/api/shared/{id}/blob` | Día 18: Proxy del destinatario: el audio cifrado si el acceso sigue vigente (si no, 404) |
 
 ---
 

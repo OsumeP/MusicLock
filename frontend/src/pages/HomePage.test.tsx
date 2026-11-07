@@ -30,6 +30,7 @@ function songDto(i: number) {
 let calls: string[]
 let listResponse: () => Response
 let historyResponse: () => Response
+let sharedResponse: () => Response
 
 async function renderHome() {
   const auth = {
@@ -53,9 +54,11 @@ describe('HomePage', () => {
     calls = []
     listResponse = () => new Response(JSON.stringify({ count: 0, next: null, previous: null, results: [] }))
     historyResponse = () => new Response(JSON.stringify({ count: 0, next: null, previous: null, results: [] }))
+    sharedResponse = () => new Response(JSON.stringify({ count: 0, next: null, previous: null, results: [] }))
     vi.stubGlobal('fetch', vi.fn(async (url: string) => {
       calls.push(url)
       if (url.includes('/blob')) return new Response('{"code":"blob_missing"}', { status: 404 })
+      if (url.startsWith('/api/shared')) return sharedResponse()
       return url.startsWith('/api/history') ? historyResponse() : listResponse()
     }))
   })
@@ -80,7 +83,7 @@ describe('HomePage', () => {
     await renderHome()
 
     expect(await screen.findByText('Canción 1')).toBeInTheDocument()
-    expect(new URL(calls[0], 'http://x').searchParams.get('page_size')).toBe('5')
+    expect(new URL(calls.find((c) => c.startsWith('/api/songs?'))!, 'http://x').searchParams.get('page_size')).toBe('5')
     expect(screen.getByRole('link', { name: 'Ver los 12 →' })).toHaveAttribute('href', '/archivos')
 
     await u.click(screen.getByRole('button', { name: 'Reproducir Canción 3' }))
@@ -104,5 +107,37 @@ describe('HomePage', () => {
   it('sin reproducciones invita a pulsar ▶', async () => {
     await renderHome()
     expect(await screen.findByText('Aún no has reproducido nada')).toBeInTheDocument()
+  })
+
+  it('muestra lo compartido conmigo con su propietario (Interfaz FR-04)', async () => {
+    sharedResponse = () =>
+      new Response(
+        JSON.stringify({
+          count: 3,
+          next: 'x',
+          previous: null,
+          results: [
+            {
+              ...songDto(9),
+              wrapped_file_key: undefined,
+              shared_file_key: 'c2hhcmVk',
+              owner: 'beto',
+              shared_at: new Date().toISOString(),
+              role: 'query',
+            },
+          ],
+        }),
+      )
+    await renderHome()
+
+    const section = screen.getByRole('region', { name: 'Compartido conmigo' })
+    expect(await within(section).findByText('Canción 9')).toBeInTheDocument()
+    expect(within(section).getByText('· de beto')).toBeInTheDocument()
+    expect(within(section).getByRole('link', { name: 'Ver las 3 →' })).toHaveAttribute('href', '/compartido')
+  })
+
+  it('sin compartidas lo indica', async () => {
+    await renderHome()
+    expect(await screen.findByText('Nadie ha compartido canciones contigo todavía')).toBeInTheDocument()
   })
 })

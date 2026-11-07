@@ -22,6 +22,20 @@ export interface Song {
   isFavorite: boolean
   /** Cuándo se marcó como favorita (null si no lo es). */
   favoritedAt: string | null
+  /**
+   * Solo en canciones que OTRO usuario compartió conmigo (día 18). Entonces
+   * `wrappedFileKey`/`wrappedKeyIv` van vacíos: la File Key llega envuelta para
+   * mí con RSA-OAEP (`sharedFileKey`) y se abre con mi clave privada.
+   */
+  sharedBy?: SharedInfo
+}
+
+export interface SharedInfo {
+  /** Usuario propietario. */
+  owner: string
+  /** File Key envuelta con mi clave pública (base64). */
+  sharedFileKey: string
+  sharedAt: string
 }
 
 export interface SongDto {

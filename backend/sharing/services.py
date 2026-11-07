@@ -1,13 +1,17 @@
 """
-Casos de uso de compartir (lado del propietario). El servidor solo guarda la File
-Key envuelta para el destinatario; nunca puede abrirla.
+Casos de uso de compartir: lado del propietario (día 17) y del destinatario
+(día 18). El servidor solo guarda la File Key envuelta para el destinatario;
+nunca puede abrirla.
 """
+
+from typing import BinaryIO
 
 from django.db import transaction
 from django.db.models import Q, QuerySet
 
 from accounts.models import User
-from vault.services import get_own_song
+from vault.models import Song
+from vault.services import SongNotFound, get_own_song, open_blob
 
 from .models import SongShare
 
@@ -75,3 +79,39 @@ def revoke_share(owner: User, song_id, recipient_username: str) -> None:
     """
     song = get_own_song(owner, song_id)
     SongShare.objects.filter(song=song, recipient__username__iexact=recipient_username).delete()
+
+
+# --- Lado del destinatario (día 18) ------------------------------------------------------
+
+
+def shared_with(user: User, query: str = "") -> QuerySet[SongShare]:
+    """
+    Canciones compartidas con el usuario ("Compartido conmigo", Interfaz FR-04 /
+    Accesos FR-06), la compartida más recientemente primero. `query` busca en
+    título, artista y usuario propietario. Si el propietario está bloqueado
+    (BR-06), sus canciones dejan de estar disponibles.
+    """
+    shares = SongShare.objects.filter(recipient=user, song__owner__is_active=True).select_related("song", "song__owner")
+    query = query.strip()
+    if query:
+        shares = shares.filter(
+            Q(song__title__icontains=query) | Q(song__artist__icontains=query) | Q(song__owner__username__icontains=query)
+        )
+    return shares
+
+
+def get_share(user: User, song_id) -> SongShare:
+    """El acceso del usuario a una canción ajena. Sin acceso (o revocado) → SongNotFound (404)."""
+    share = shared_with(user).filter(song__uuid=song_id).first()
+    if share is None:
+        raise SongNotFound
+    return share
+
+
+def open_shared_blob(user: User, song_id) -> tuple[Song, BinaryIO]:
+    """
+    Proxy de acceso para destinatarios (patrón Proxy, Accesos FR-07): comprueba el
+    permiso vigente ("Consulta") antes de entregar el blob CIFRADO. Tras revocar → 404.
+    """
+    song = get_share(user, song_id).song
+    return song, open_blob(song)

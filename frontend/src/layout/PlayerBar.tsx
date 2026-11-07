@@ -64,7 +64,11 @@ export function PlayerBar() {
             <>
               <p className="truncate text-title-sm font-semibold text-on-surface">{current.title}</p>
               <p className={`truncate font-mono text-mono-label ${status === 'error' ? 'text-security-danger' : 'text-on-surface-variant'}`}>
-                {status === 'loading' ? 'Descargando y descifrando en memoria…' : status === 'error' ? error : current.artist || 'Artista desconocido'}
+                {status === 'loading'
+                  ? 'Descargando y descifrando en memoria…'
+                  : status === 'error'
+                    ? error
+                    : `${current.artist || 'Artista desconocido'}${current.sharedBy ? ` · de ${current.sharedBy.owner}` : ''}`}
               </p>
             </>
           ) : (
