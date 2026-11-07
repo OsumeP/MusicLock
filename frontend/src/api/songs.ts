@@ -1,5 +1,5 @@
 import type { EncryptedAudio } from '../crypto'
-import { apiUpload } from './client'
+import { apiRequest, apiUpload } from './client'
 
 /** Canción tal como la devuelve la API (metadatos en claro + material para descifrar). */
 export interface Song {
@@ -40,6 +40,29 @@ export function toSong(dto: SongDto): Song {
     wrappedFileKey: dto.wrapped_file_key,
     wrappedKeyIv: dto.wrapped_key_iv,
   }
+}
+
+export interface SongPage {
+  count: number
+  songs: Song[]
+  hasNext: boolean
+  hasPrevious: boolean
+}
+
+export const SONGS_PAGE_SIZE = 20
+
+/** GET /api/songs — canciones propias, más recientes primero. `query` busca en título y artista. */
+export async function listSongs(
+  { query = '', page = 1 }: { query?: string; page?: number } = {},
+  signal?: AbortSignal,
+): Promise<SongPage> {
+  const params = new URLSearchParams({ page: String(page), page_size: String(SONGS_PAGE_SIZE) })
+  if (query.trim()) params.set('q', query.trim())
+  const dto = await apiRequest<{ count: number; next: string | null; previous: string | null; results: SongDto[] }>(
+    `/songs?${params}`,
+    { signal },
+  )
+  return { count: dto.count, songs: dto.results.map(toSong), hasNext: !!dto.next, hasPrevious: !!dto.previous }
 }
 
 export interface SongMetadata {

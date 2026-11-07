@@ -15,7 +15,8 @@ import { tokenStore } from '../api/tokens'
 import { clearMasterKey, loadMasterKey } from './keyStore'
 import { LoginPage } from '../pages/LoginPage'
 import { RegisterPage } from '../pages/RegisterPage'
-import { VaultHomePage } from '../pages/VaultHomePage'
+import { AppLayout } from '../layout/AppLayout'
+import { MyFilesPage } from '../pages/MyFilesPage'
 import { AuthProvider } from './AuthProvider'
 import { RequireAuth } from './RequireAuth'
 
@@ -65,7 +66,7 @@ function createFakeServer() {
     requests.push({ url, body })
     const auth = (init?.headers as Record<string, string> | undefined)?.Authorization
 
-    switch (url) {
+    switch (url.split('?')[0]) {
       case '/api/auth/prelogin': {
         const u = users.get(body.email)
         return json(u ? { kdf_salt: u.kdf_salt, kdf_params: u.kdf_params } : { kdf_salt: 'AAAAAAAAAAAAAAAAAAAAAA==', kdf_params: { alg: 'PBKDF2-SHA256', iterations: 600000 } })
@@ -92,6 +93,8 @@ function createFakeServer() {
       case '/api/auth/logout':
         validRefresh.delete(body.refresh)
         return json(null, 204)
+      case '/api/songs':
+        return auth ? json({ count: 0, next: null, previous: null, results: [] }) : json({ detail: 'auth' }, 401)
       case '/api/me': {
         const u = [...users.values()][0]
         return auth && u ? json(userDto(u)) : json({ detail: 'auth' }, 401)
@@ -110,7 +113,9 @@ function renderApp(initialPath: string) {
         <Routes>
           <Route path="/login" element={<LoginPage />} />
           <Route path="/registro" element={<RegisterPage />} />
-          <Route path="/" element={<RequireAuth><VaultHomePage /></RequireAuth>} />
+          <Route element={<RequireAuth><AppLayout /></RequireAuth>}>
+            <Route path="/" element={<MyFilesPage />} />
+          </Route>
         </Routes>
       </AuthProvider>
     </MemoryRouter>,
@@ -125,7 +130,7 @@ async function registerAna(user = userEvent.setup()) {
   await user.type(screen.getByLabelText('Confirmar contraseña'), PASSWORD)
   await user.click(screen.getByRole('checkbox'))
   await user.click(screen.getByRole('button', { name: /crear cuenta cifrada/i }))
-  await screen.findByText('Hola, ana', {}, { timeout: 5000 })
+  await screen.findByRole('heading', { name: /Mis Archivos/ }, { timeout: 5000 })
 }
 
 describe('flujo de autenticación', () => {
@@ -142,7 +147,8 @@ describe('flujo de autenticación', () => {
   it('registro: entra a la bóveda y el servidor nunca recibe la contraseña', async () => {
     await registerAna()
 
-    expect(screen.getByText(/Bóveda desbloqueada/)).toBeInTheDocument()
+    expect(screen.getByText('ana@example.com')).toBeInTheDocument() // usuario en la barra superior
+    expect(await screen.findByText('Tu bóveda está vacía')).toBeInTheDocument()
     expect(JSON.stringify(server.requests)).not.toContain(PASSWORD)
     const stored = server.users.get('ana@example.com')!
     expect(stored.kdf_params).toEqual({ alg: 'PBKDF2-SHA256', iterations: 600000 })
@@ -173,7 +179,7 @@ describe('flujo de autenticación', () => {
 
     reload()
 
-    expect(await screen.findByText('Hola, ana')).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: /Mis Archivos/ })).toBeInTheDocument()
     expect(server.requests.filter((r) => r.url === '/api/auth/login')).toHaveLength(0)
   })
 
@@ -189,7 +195,7 @@ describe('flujo de autenticación', () => {
     await user.type(screen.getByLabelText('Contraseña'), PASSWORD)
     await user.click(screen.getByRole('button', { name: /desbloquear bóveda/i }))
 
-    expect(await screen.findByText('Hola, ana', {}, { timeout: 5000 })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: /Mis Archivos/ }, { timeout: 5000 })).toBeInTheDocument()
   })
 
   it('login con contraseña incorrecta muestra un error y no entra', async () => {

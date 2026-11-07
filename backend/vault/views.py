@@ -1,6 +1,7 @@
 import logging
 
 from rest_framework import status
+from rest_framework.pagination import PageNumberPagination
 from rest_framework.parsers import MultiPartParser
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -19,8 +20,25 @@ def rejected(error: services.UploadRejected) -> Response:
     return Response({"detail": error.message, "code": error.code}, status=http_status)
 
 
+class SongPagination(PageNumberPagination):
+    page_size = 20
+    page_size_query_param = "page_size"
+    max_page_size = 100
+
+
 class SongListCreateView(APIView):
     parser_classes = [MultiPartParser]
+
+    def get(self, request):
+        """
+        GET /api/songs?q=&page=&page_size= — canciones del usuario, más recientes primero.
+        `q` busca en título y artista (metadatos en claro, D10). Solo se listan las
+        canciones propias: no hay forma de pedir las de otro usuario.
+        """
+        songs = services.songs_for(request.user, query=request.query_params.get("q", ""))
+        paginator = SongPagination()
+        page = paginator.paginate_queryset(songs, request, view=self)
+        return paginator.get_paginated_response(SongSerializer(page, many=True).data)
 
     def post(self, request):
         """POST /api/songs — sube una canción ya cifrada en el navegador."""

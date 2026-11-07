@@ -1,4 +1,4 @@
-import { useRef, useState, type FormEvent } from 'react'
+import { useEffect, useRef, useState, type FormEvent } from 'react'
 
 import type { Song } from '../api/songs'
 import { useAuth } from '../auth/session'
@@ -13,11 +13,18 @@ const STAGE_LABEL: Record<UploadStage, string> = {
   uploading: 'Subiendo archivo cifrado…',
 }
 
-/**
- * Subida de un MP3 (día 5). El día 6 este formulario pasa a un modal dentro de
- * "Mis Archivos"; la lógica (`uploadSong`) se reutiliza tal cual.
- */
-export function UploadPanel({ onUploaded }: { onUploaded: (song: Song) => void }) {
+interface UploadPanelProps {
+  onUploaded: (song: Song) => void
+  /** Avisa cuando empieza/termina una subida (el modal no se deja cerrar mientras tanto). */
+  onBusyChange?: (busy: boolean) => void
+  /** id del título, para `aria-labelledby` del modal. */
+  headingId?: string
+  /** Dentro de un modal no se dibuja la tarjeta exterior. */
+  bare?: boolean
+}
+
+/** Formulario de subida de un MP3: valida, cifra en el navegador y sube (`uploadSong`). Se usa dentro de `UploadModal`. */
+export function UploadPanel({ onUploaded, onBusyChange, headingId, bare = false }: UploadPanelProps) {
   const { session, refreshUser } = useAuth()
   const inputRef = useRef<HTMLInputElement>(null)
   const [file, setFile] = useState<File | null>(null)
@@ -26,6 +33,9 @@ export function UploadPanel({ onUploaded }: { onUploaded: (song: Song) => void }
   const [stage, setStage] = useState<UploadStage | null>(null)
   const [progress, setProgress] = useState(0)
   const [error, setError] = useState<string | null>(null)
+
+  const busy = stage !== null
+  useEffect(() => onBusyChange?.(busy), [busy, onBusyChange])
 
   if (session.status !== 'ready') return null
   const { masterKey, user } = session
@@ -65,13 +75,17 @@ export function UploadPanel({ onUploaded }: { onUploaded: (song: Song) => void }
     }
   }
 
-  const busy = stage !== null
-
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col gap-4 rounded-lg bg-surface-card p-5 ring-1 ring-border-subtle" noValidate>
+    <form
+      onSubmit={handleSubmit}
+      className={`flex flex-col gap-4 ${bare ? '' : 'rounded-lg bg-surface-card p-5 ring-1 ring-border-subtle'}`}
+      noValidate
+    >
       <div className="flex items-center gap-2">
         <span aria-hidden className="material-symbols-outlined text-primary-light">enhanced_encryption</span>
-        <h2 className="font-display text-headline-sm font-medium">Subir archivo cifrado</h2>
+        <h2 id={headingId} className="font-display text-headline-sm font-medium">
+          Subir archivo cifrado
+        </h2>
       </div>
 
       {error && <Alert tone="error">{error}</Alert>}

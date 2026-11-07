@@ -11,7 +11,7 @@ from dataclasses import dataclass
 from typing import BinaryIO
 
 from django.db import transaction
-from django.db.models import F
+from django.db.models import F, Q
 
 from accounts.models import User
 
@@ -56,6 +56,18 @@ class SongMetadata:
     file_iv: str
     wrapped_file_key: str
     wrapped_key_iv: str
+
+
+MAX_QUERY_LENGTH = 100
+
+
+def songs_for(user: User, query: str = ""):
+    """Canciones del usuario (las más recientes primero), filtradas por título o artista."""
+    songs = Song.objects.filter(owner=user)
+    query = query.strip()[:MAX_QUERY_LENGTH]
+    if query:
+        songs = songs.filter(Q(title__icontains=query) | Q(artist__icontains=query))
+    return songs.order_by("-creation_date", "-id")
 
 
 def check_upload_allowed(user: User, size: int) -> None:
