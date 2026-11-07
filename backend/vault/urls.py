@@ -9,4 +9,5 @@ urlpatterns = [
     path("songs/<uuid:song_id>/favorite", views.SongFavoriteView.as_view(), name="song-favorite"),
     path("songs/<uuid:song_id>/plays", views.SongPlaysView.as_view(), name="song-plays"),
     path("history", views.HistoryView.as_view(), name="history"),
+    path("stats", views.StatsView.as_view(), name="stats"),
 ]

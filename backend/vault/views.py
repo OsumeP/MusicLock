@@ -8,8 +8,8 @@ from rest_framework.parsers import MultiPartParser
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from . import services
-from .serializers import HistoryEntrySerializer, SongSerializer, SongUpdateSerializer, SongUploadSerializer
+from . import services, stats
+from .serializers import HistoryEntrySerializer, ListeningStatsSerializer, SongSerializer, SongUpdateSerializer, SongUploadSerializer
 
 logger = logging.getLogger(__name__)
 
@@ -205,3 +205,21 @@ class HistoryView(APIView):
     def delete(self, request):
         services.clear_history(request.user)
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class StatsView(APIView):
+    """
+    GET /api/stats?period=7d|30d|all — estadísticas personales (Estadísticas FR-02 a
+    FR-05): totales, top de canciones, top de artistas y reproducciones por día.
+    """
+
+    def get(self, request):
+        period = request.query_params.get("period", "7d")
+        try:
+            result = stats.listening_stats(request.user, period)
+        except stats.InvalidPeriod:
+            return Response(
+                {"detail": "`period` debe ser 7d, 30d o all.", "code": "invalid_period"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        return Response(ListeningStatsSerializer(result).data)

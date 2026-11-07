@@ -81,3 +81,34 @@ class HistoryEntrySerializer(serializers.ModelSerializer):
         model = ListeningHistory
         fields = ["id", "played_at", "song"]
         read_only_fields = fields
+
+
+# --- Estadísticas personales (día 19) -------------------------------------------------
+
+
+class TopSongSerializer(serializers.Serializer):
+    song = SongSerializer()
+    plays = serializers.IntegerField()
+
+
+class TopArtistSerializer(serializers.Serializer):
+    artist = serializers.CharField(allow_blank=True)  # "" = canciones sin artista
+    plays = serializers.IntegerField()
+    listening_seconds = serializers.IntegerField()
+    songs = serializers.IntegerField()
+
+
+class DailyPlaysSerializer(serializers.Serializer):
+    date = serializers.DateField()
+    plays = serializers.IntegerField()
+
+
+class ListeningStatsSerializer(serializers.Serializer):
+    period = serializers.CharField()
+    since = serializers.DateField(allow_null=True)
+    total_plays = serializers.IntegerField()
+    listening_seconds = serializers.IntegerField()
+    distinct_songs = serializers.IntegerField()
+    top_songs = TopSongSerializer(many=True)
+    top_artists = TopArtistSerializer(many=True)
+    daily = DailyPlaysSerializer(many=True)

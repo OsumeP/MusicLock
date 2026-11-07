@@ -33,3 +33,12 @@ export function formatDuration(seconds: number): string {
   const mm = h > 0 ? String(m).padStart(2, '0') : String(m)
   return `${h > 0 ? `${h}:` : ''}${mm}:${String(s).padStart(2, '0')}`
 }
+
+/** Tiempo escuchado: 45 → "1 min", 3720 → "1 h 2 min", 0 → "0 min". */
+export function formatListeningTime(seconds: number): string {
+  const totalMinutes = Math.round(seconds / 60)
+  if (seconds > 0 && totalMinutes === 0) return '< 1 min'
+  const h = Math.floor(totalMinutes / 60)
+  const m = totalMinutes % 60
+  return h > 0 ? `${h} h${m > 0 ? ` ${m} min` : ''}` : `${m} min`
+}
