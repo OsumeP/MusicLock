@@ -8,4 +8,5 @@ urlpatterns = [
     path("api/", include("vault.urls")),
     path("api/", include("playlists.urls")),
     path("api/", include("sharing.urls")),
+    path("api/faq/", include("faq.urls")),    
 ]
