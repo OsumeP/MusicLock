@@ -15,7 +15,9 @@ from django.db.models import Exists, F, OuterRef, Q, QuerySet, Subquery
 
 from accounts.models import User
 
-from .models import Favorite, ListeningHistory, Song, build_storage_key
+from django.utils import timezone
+from .models import Favorite, ListeningHistory, Song, Visibility, build_storage_key
+
 from .storage import get_blob_storage
 
 # AES-GCM añade 16 bytes de tag: un cifrado más pequeño que esto no puede contener audio.
@@ -261,3 +263,43 @@ def clear_history(user: User) -> int:
     """Borra todo el historial del usuario. Devuelve cuántas reproducciones se eliminaron."""
     deleted, _ = ListeningHistory.objects.filter(user=user).delete()
     return deleted
+# --- Publicar y despublicar (D11, opción A) ---------------------------------------------
+
+
+def publish_song(user: User, song_id, public_file_key: str) -> Song:
+    """
+    Hace pública una canción propia. El navegador del dueño desenvuelve la File Key
+    y la envía en claro; el servidor la guarda para que cualquier usuario pueda
+    descifrar el blob (que no cambia). Es idempotente: si ya es pública, no cambia
+    nada (ni la llave ni la fecha).
+
+    Las filas de `sharing` se conservan: pasan a ser redundantes, pero si la
+    canción se despublica vuelven a tener efecto.
+    """
+    with transaction.atomic():
+        song = Song.objects.select_for_update().filter(owner=user, uuid=song_id).first()
+        if song is None:
+            raise SongNotFound
+        if song.visibility != Visibility.PUBLIC:
+            song.visibility = Visibility.PUBLIC
+            song.public_file_key = public_file_key
+            song.published_at = timezone.now()
+            song.save(update_fields=["visibility", "public_file_key", "published_at"])
+    return get_own_song(user, song_id)
+
+
+def unpublish_song(user: User, song_id) -> Song:
+    """
+    Vuelve privada una canción propia y borra la llave pública. El blob no se toca.
+    Idempotente. Lo que alguien ya descargó o guardó no se puede recuperar.
+    """
+    with transaction.atomic():
+        song = Song.objects.select_for_update().filter(owner=user, uuid=song_id).first()
+        if song is None:
+            raise SongNotFound
+        if song.visibility != Visibility.PRIVATE:
+            song.visibility = Visibility.PRIVATE
+            song.public_file_key = ""
+            song.published_at = None
+            song.save(update_fields=["visibility", "public_file_key", "published_at"])
+    return get_own_song(user, song_id)

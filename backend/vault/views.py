@@ -9,7 +9,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from . import services, stats
-from .serializers import HistoryEntrySerializer, ListeningStatsSerializer, SongSerializer, SongUpdateSerializer, SongUploadSerializer
+from .serializers import HistoryEntrySerializer, ListeningStatsSerializer, SongSerializer, SongUpdateSerializer, SongUploadSerializer, PublishSerializer
 
 logger = logging.getLogger(__name__)
 
@@ -176,7 +176,29 @@ class SongFavoriteView(APIView):
             return _not_found()
         return Response(SongSerializer(song).data)
 
+class SongPublishView(APIView):
+    """
+    PUT    /api/songs/{id}/publish — hace pública la canción. Body: {"file_key": "<base64>"}.
+    DELETE /api/songs/{id}/publish — la vuelve privada y borra la llave pública.
+    Ambas son idempotentes y responden la canción actualizada. Canciones ajenas: 404.
+    """
 
+    def put(self, request, song_id):
+        serializer = PublishSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        try:
+            song = services.publish_song(request.user, song_id, serializer.validated_data["file_key"])
+        except services.SongNotFound:
+            return _not_found()
+        return Response(SongSerializer(song).data)
+
+    def delete(self, request, song_id):
+        try:
+            song = services.unpublish_song(request.user, song_id)
+        except services.SongNotFound:
+            return _not_found()
+        return Response(SongSerializer(song).data)
+    
 class SongPlaysView(APIView):
     """POST /api/songs/{id}/plays — registra una reproducción (la llama el reproductor al empezar a sonar)."""
 

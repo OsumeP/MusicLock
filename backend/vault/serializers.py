@@ -4,6 +4,27 @@ from accounts.crypto_fields import IV_BYTES, WRAPPED_KEY_BYTES, Base64BytesField
 
 from .models import ListeningHistory, Song
 
+import base64
+import binascii
+
+PUBLIC_FILE_KEY_BYTES = 32  # AES-256
+
+
+class PublishSerializer(serializers.Serializer):
+    """PUT /publish: la File Key en claro (base64). Debe ser una clave AES-256."""
+
+    file_key = serializers.CharField(max_length=64)
+
+    def validate_file_key(self, value):
+        try:
+            raw = base64.b64decode(value, validate=True)
+        except (binascii.Error, ValueError):
+            raise serializers.ValidationError("La llave debe estar en base64.")
+        if len(raw) != PUBLIC_FILE_KEY_BYTES:
+            raise serializers.ValidationError("La llave debe tener 32 bytes (AES-256).")
+        return base64.b64encode(raw).decode()  # forma canónica
+
+
 # Límite razonable para la duración declarada (6 h): evita valores absurdos.
 MAX_DURATION_SECONDS = 6 * 60 * 60
 
@@ -61,6 +82,8 @@ class SongSerializer(serializers.ModelSerializer):
             "wrapped_key_iv",
             "is_favorite",
             "favorited_at",
+            "visibility",
+            "published_at",            
         ]
         read_only_fields = fields
 

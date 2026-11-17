@@ -1,7 +1,7 @@
 from django.test import TestCase
-
+from django.db import IntegrityError, transaction
 from accounts.models import User
-from vault.models import Song
+from vault.models import Song, Visibility
 
 
 class SongModelTests(TestCase):
@@ -28,9 +28,15 @@ class SongModelTests(TestCase):
         self.assertNotIn("secreta", song.storage_key)
 
     def test_songs_are_private_by_default(self):
-        self.assertFalse(self.make_song().is_public)  # BR-19
+        self.assertEqual(self.make_song().visibility, Visibility.PRIVATE)  # BR-19        
 
     def test_deleting_user_deletes_their_songs(self):
         self.make_song()
         self.owner.delete()
         self.assertEqual(Song.objects.count(), 0)
+
+    def test_public_song_requires_key_and_date(self):
+        song = self.make_song()
+        song.visibility = Visibility.PUBLIC
+        with self.assertRaises(IntegrityError), transaction.atomic():
+            song.save()

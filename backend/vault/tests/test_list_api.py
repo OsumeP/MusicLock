@@ -49,6 +49,7 @@ class ListSongsApiTests(APITestCase):
             {
                 "id", "title", "artist", "duration", "size", "creation_date",
                 "file_iv", "wrapped_file_key", "wrapped_key_iv", "is_favorite", "favorited_at",
+                "visibility", "published_at"
             },
         )
         self.assertNotIn("Secreta de Beto", str(body))
