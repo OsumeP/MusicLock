@@ -1,0 +1,869 @@
+<!DOCTYPE html><html class="dark" lang="es" style="width: 1686px; height: 1192px; overflow: hidden; position: relative;"><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<meta content="web_dashboard" name="shell-type">
+<title>MusicLock - Bóveda de Audio Cifrada</title>
+<link href="https://fonts.googleapis.com" rel="preconnect">
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect">
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:ital,wght@0,300..800;1,300..800&amp;family=JetBrains+Mono:ital,wght@0,400..700;1,400..700&amp;family=Space+Grotesk:wght@400..700&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<style>
+    @layer base {
+      html, body { margin: 0; padding: 0; }
+      body { overscroll-behavior: none; }
+      main > :first-child { margin-top: 0 !important; }
+      main > :last-child { margin-bottom: 0 !important; }
+    }
+    ::-webkit-scrollbar { display: none; }
+  </style>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            "primary": "#025098",
+            "primary-hover": "#0260b8",
+            "primary-light": "#38bdf8",
+            "primary-container": "#0d3663",
+            "accent-cyan": "#0ea5e9",
+            "accent-blue": "#1d4ed8",
+            "surface-base": "#0b111e",
+            "surface-raised": "#0f172a",
+            "surface-card": "#131d31",
+            "surface-container-high": "#18243c",
+            "surface-container-lowest": "#070b14",
+            "border-subtle": "#1e293b",
+            "border-blue": "#1e3a5f",
+            "on-surface": "#e2e8f0",
+            "on-surface-variant": "#94a3b8",
+            "security-warning": "#f59e0b",
+            "security-danger": "#ef4444"
+          },
+          fontFamily: {
+            "title-sm": ["Hanken Grotesk", "sans-serif"],
+            "body-lg": ["Hanken Grotesk", "sans-serif"],
+            "title-md": ["Hanken Grotesk", "sans-serif"],
+            "body-md": ["Hanken Grotesk", "sans-serif"],
+            "mono-crypto": ["JetBrains Mono", "monospace"],
+            "headline-lg": ["Space Grotesk", "sans-serif"],
+            "display-lg": ["Space Grotesk", "sans-serif"],
+            "mono-label": ["JetBrains Mono", "monospace"],
+            "headline-md": ["Space Grotesk", "sans-serif"],
+            "headline-sm": ["Space Grotesk", "sans-serif"],
+            "body-sm": ["Hanken Grotesk", "sans-serif"]
+          }
+        }
+      }
+    };
+  </script>
+</head>
+<body class="bg-surface-base text-on-surface font-body-md min-h-screen selection:bg-primary selection:text-white flex flex-col">
+<!-- ========================================== -->
+<!-- SIDEBAR LATERAL (CONSERVADO Y AJUSTADO)    -->
+<!-- ========================================== -->
+<aside class="fixed left-0 top-0 h-full w-64 bg-surface-raised border-r border-border-subtle z-40 flex flex-col justify-between shadow-[0_2px_12px_rgba(0,0,0,0.5)]">
+<div class="flex flex-col">
+<!-- Logo Branding -->
+<div class="h-16 px-5 flex items-center gap-3 border-b border-border-subtle/60 bg-surface-raised">
+<div class="w-9 h-9 rounded-xl bg-gradient-to-br from-primary to-accent-cyan flex items-center justify-center text-white shadow-md shadow-primary/20">
+<span class="material-symbols-outlined text-xl">lock</span>
+</div>
+<div class="flex flex-col">
+<span class="font-headline-sm text-lg text-white font-bold tracking-tight leading-tight flex items-center gap-1.5">
+            MusicLock
+          </span>
+<span class="font-mono-label text-[10px] text-accent-cyan tracking-wider uppercase font-medium">Client-Side Encrypted</span>
+</div>
+</div>
+<!-- Badge Encriptación -->
+<div class="px-5 py-3">
+<div class="flex items-center gap-2 px-2.5 py-1.5 rounded-lg bg-surface-card border border-border-blue/60 text-accent-cyan">
+<span class="material-symbols-outlined text-sm text-accent-cyan">verified_user</span>
+<span class="font-mono-label text-[11px] font-medium tracking-wide">AES-GCM 256 VAULT</span>
+</div>
+</div>
+<!-- Navegación Principal -->
+<nav class="flex flex-col gap-1 px-3 mt-1">
+<a class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-on-surface-variant hover:bg-surface-card hover:text-white transition-all" href="#">
+<span class="material-symbols-outlined text-xl">home</span>
+<span class="font-title-sm text-sm">Inicio</span>
+</a>
+<a class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-on-surface-variant hover:bg-surface-container hover:text-on-surface transition-all font-normal" href="#">
+<span class="material-symbols-outlined text-xl">folder_special</span>
+<span class="font-title-sm text-sm">Mis Archivos</span>
+</a>
+<a class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-on-surface-variant hover:bg-surface-card hover:text-white transition-all" href="#">
+<span class="material-symbols-outlined text-xl text-on-surface-variant" style="font-variation-settings: &quot;FILL&quot; 0;">favorite</span>
+<span class="font-title-sm text-sm">Favoritos</span>
+</a>
+<a class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl bg-primary-container text-on-primary-container font-semibold shadow-md shadow-primary-container/30 transition-all" href="#">
+<span class="material-symbols-outlined text-xl text-secondary" style="font-variation-settings: &quot;FILL&quot; 1;">queue_music</span>
+<span class="font-title-sm text-sm">Playlists</span>
+</a>
+<a class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-on-surface-variant hover:bg-surface-card hover:text-white transition-all" href="#">
+<span class="material-symbols-outlined text-xl">share</span>
+<span class="font-title-sm text-sm">Compartido Conmigo</span>
+</a>
+<a class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-on-surface-variant hover:bg-surface-card hover:text-white transition-all" href="#">
+<span class="material-symbols-outlined text-xl">history</span>
+<span class="font-title-sm text-sm">Recientes</span>
+</a>
+<a class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-on-surface-variant hover:bg-surface-card hover:text-white transition-all" href="#">
+<span class="material-symbols-outlined text-xl">local_fire_department</span>
+<span class="font-title-sm text-sm">Tendencias</span>
+</a>
+<a class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-on-surface-variant hover:bg-surface-card hover:text-white transition-all" href="#">
+<span class="material-symbols-outlined text-xl">manage_accounts</span>
+<span class="font-title-sm text-sm">Admin / Planes</span>
+</a>
+</nav>
+</div>
+<!-- Storage Badge en Sidebar Inferior -->
+<div class="p-4 mx-3 mb-24 rounded-xl bg-surface-card border border-border-subtle flex flex-col gap-2">
+<div class="flex items-center justify-between text-xs font-mono-label">
+<span class="text-on-surface-variant">Bóveda Cifrada</span>
+<span class="text-accent-cyan font-semibold">70%</span>
+</div>
+<div class="w-full h-1.5 rounded-full bg-surface-base overflow-hidden">
+<div class="h-full bg-gradient-to-r from-primary to-accent-cyan rounded-full" style="width: 70%;"></div>
+</div>
+<span class="text-[11px] text-on-surface-variant">350 MB de 500 MB usados</span>
+</div>
+</aside>
+<!-- ========================================== -->
+<!-- CONTENIDO PRINCIPAL                        -->
+<!-- ========================================== -->
+<div class="pl-64 flex-1">
+<!-- Header Superior -->
+<header class="fixed top-0 left-64 right-0 h-16 bg-surface-raised/95 backdrop-blur-xl border-b border-border-subtle z-30 flex items-center justify-between px-8">
+<div class="flex items-center gap-4 flex-1 max-w-xl">
+<div class="relative w-full">
+<span class="material-symbols-outlined absolute left-3.5 top-1/2 -translate-y-1/2 text-on-surface-variant text-lg">search</span>
+<input class="w-full bg-surface-card border border-border-subtle text-white placeholder:text-on-surface-variant text-sm pl-10 pr-4 py-2 rounded-xl focus:outline-none focus:border-accent-cyan/60 transition-all" placeholder="Buscar pistas cifradas, artistas, hashes SHA-256..." type="text">
+</div>
+</div>
+<div class="flex items-center gap-4">
+<!-- Indicador de Sesión -->
+<div class="hidden lg:flex items-center gap-2 px-3 py-1.5 rounded-full bg-surface-card border border-border-blue/60">
+<span class="w-2 h-2 rounded-full bg-accent-cyan animate-pulse"></span>
+<span class="font-mono-label text-xs text-accent-cyan">Sesión Cifrada / Argon2id</span>
+</div>
+<!-- Botón Notificaciones -->
+<button class="relative p-2 rounded-xl text-on-surface-variant hover:text-white hover:bg-surface-card transition-all" title="Notificaciones de seguridad">
+<span class="material-symbols-outlined text-xl">notifications</span>
+<span class="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-accent-cyan"></span>
+</button>
+<!-- Perfil Usuario -->
+<div class="flex items-center gap-3 pl-2 border-l border-border-subtle">
+<div class="flex flex-col text-right hidden sm:flex">
+<span class="font-title-sm text-sm text-white leading-tight font-medium">Audiophile Zero</span>
+<span class="font-mono-label text-[11px] text-accent-cyan">Master Key #7F09</span>
+</div>
+<img alt="Profile" class="w-9 h-9 rounded-full object-cover ring-2 ring-primary/40" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAxZsXkxxMXSfdbXWs_dpkvlULZf-exZoNHrL7ZAgg0KvnRTQ0X_D2GthZroFNiJdDaoAPoqfhqb9tVve0K8dvRvXxi1MuV_3-6FpaxQqlc30MgIDwF54uI1JBDxArsyMFyA-SWP5KkrEvTUyo7EQMJYBcF55PbJz1CMc3DPQMj1yNF_ajiz7UWgjxtxmSUAaNW6fmE8PIWK6OjJ_m9z_SQEJH8N7DjikpJUMfciNzGpIEDSa7jfgqZow">
+</div>
+</div>
+</header>
+<!-- Main Body -->
+<main class="relative pt-20 pb-28 px-8 min-h-screen bg-surface-base"><div class="flex flex-col w-full gap-8">
+<!-- Interactive Script for Shell Sidebar & Playlist State -->
+<script>
+    (function() {
+      // Synchronize Sidebar Active Tab to 'Playlists'
+      const navLinks = document.querySelectorAll('aside nav a');
+      navLinks.forEach(link => {
+        const text = link.querySelector('span:last-child')?.textContent?.trim();
+        if (text === 'Playlists') {
+          link.className = 'flex items-center gap-3 px-3.5 py-2.5 rounded-xl bg-primary-container text-on-primary-container font-semibold shadow-md shadow-primary-container/30 transition-all';
+          const icon = link.querySelector('.material-symbols-outlined');
+          if (icon) {
+            icon.classList.remove('text-on-surface-variant');
+            icon.classList.add('text-secondary');
+            icon.style.fontVariationSettings = '"FILL" 1';
+          }
+        } else if (text === 'Favoritos') {
+          link.className = 'flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-on-surface-variant hover:bg-surface-card hover:text-white transition-all';
+          const icon = link.querySelector('.material-symbols-outlined');
+          if (icon) {
+            icon.classList.remove('text-secondary');
+            icon.classList.add('text-on-surface-variant');
+            icon.style.fontVariationSettings = '"FILL" 0';
+          }
+        }
+      });
+    })();
+  </script>
+<!-- 1. HEADER HERO & CRYPTO TELEMETRY SECTION -->
+<section class="relative rounded-2xl bg-surface-container-low p-6 lg:p-8 overflow-hidden shadow-xl shadow-surface-container-lowest/50">
+<!-- Ambient phosphor lighting -->
+<div class="absolute -top-24 -right-24 w-96 h-96 bg-primary-container/25 rounded-full blur-3xl pointer-events-none"></div>
+<div class="absolute -bottom-20 left-1/3 w-64 h-64 bg-secondary/10 rounded-full blur-2xl pointer-events-none"></div>
+<div class="relative z-10 flex flex-col xl:flex-row xl:items-center justify-between gap-6">
+<div class="flex flex-col gap-3 max-w-3xl">
+<div class="flex items-center gap-2">
+
+
+</div>
+<h1 class="font-headline-lg text-headline-lg text-on-surface font-bold tracking-tight">
+          TUS PLAYLISTS &amp; ÁLBUMES
+        </h1>
+<p class="font-body-md text-body-md text-on-surface-variant leading-relaxed">
+          Colecciones organizadas, albumes y listas de reproducción.
+        </p>
+<!-- Metric Telemetry Pills -->
+<div class="flex flex-wrap items-center gap-2.5 pt-2">
+<div class="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-surface-container shadow-sm">
+<span class="material-symbols-outlined text-sm text-secondary" style="font-variation-settings: &quot;FILL&quot; 1;">queue_music</span>
+<span class="font-title-sm text-title-sm text-on-surface font-semibold">12</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant">Playlists creadas</span>
+</div>
+<div class="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-surface-container shadow-sm">
+<span class="material-symbols-outlined text-sm text-primary" style="font-variation-settings: &quot;FILL&quot; 1;">vpn_key</span>
+<span class="font-title-sm text-title-sm text-on-surface font-semibold">5</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant">Compartidas con clave</span>
+</div>
+<div class="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-surface-container shadow-sm">
+<span class="material-symbols-outlined text-sm text-secondary-container" style="font-variation-settings: &quot;FILL&quot; 1;">public</span>
+<span class="font-title-sm text-title-sm text-on-surface font-semibold">2</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant">Públicas (Release programado)</span>
+</div>
+</div>
+</div>
+<!-- Quick Action Operations -->
+<div class="flex flex-wrap sm:flex-nowrap items-center gap-3 xl:self-end">
+<button class="flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-primary-container text-on-primary-container hover:bg-primary-container/80 transition-all shadow-md shadow-primary-container/40 active:scale-95 flex-1 sm:flex-initial">
+<span class="material-symbols-outlined text-xl">add_box</span>
+<span class="font-title-sm text-title-sm font-semibold tracking-wide">+ Nueva Playlist Segura</span>
+</button>
+<button class="flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-surface-container text-on-surface hover:bg-surface-container-high transition-all shadow-sm active:scale-95">
+<span class="material-symbols-outlined text-xl text-on-surface-variant">create_new_folder</span>
+<span class="font-title-sm text-title-sm font-medium">Crear Carpeta</span>
+</button>
+<button class="flex items-center justify-center gap-2 px-3.5 py-3 rounded-xl bg-surface-container text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high transition-all shadow-sm" title="Importar lista de reproducción M3U con encriptación inmediata">
+
+
+</button>
+</div>
+</div>
+</section>
+<!-- 2. FILTER RAIL & TELEMETRIC SEARCH -->
+<section class="flex flex-col gap-4">
+<!-- Filter Tabs -->
+<div class="flex items-center justify-between flex-wrap gap-4">
+<div class="flex items-center gap-1.5 p-1 rounded-xl bg-surface-container-low overflow-x-auto max-w-full">
+<button class="filter-tab px-4 py-2 rounded-lg bg-primary-container text-on-primary-container font-title-sm text-title-sm font-medium transition-all whitespace-nowrap bg-primary text-white shadow-sm shadow-primary/20">
+          Todas (12)
+        </button>
+<button class="filter-tab px-4 py-2 rounded-lg text-on-surface-variant hover:text-on-surface font-title-sm text-title-sm font-medium transition-all whitespace-nowrap">
+          Privadas / Cifradas (7)
+        </button>
+<button class="filter-tab px-4 py-2 rounded-lg text-on-surface-variant hover:text-on-surface font-title-sm text-title-sm font-medium transition-all whitespace-nowrap">
+          Colaborativas (3)
+        </button>
+<button class="filter-tab px-4 py-2 rounded-lg text-on-surface-variant hover:text-on-surface font-title-sm text-title-sm font-medium transition-all whitespace-nowrap">
+          Públicas (2)
+        </button>
+<button class="filter-tab px-4 py-2 rounded-lg hover:text-on-surface font-title-sm text-title-sm font-medium transition-all whitespace-nowrap text-on-surface-variant">
+          Carpetas de Álbumes
+        </button>
+</div>
+<!-- Layout View Mode & Sort Controls -->
+<div class="flex items-center gap-3">
+<!-- Sort Selector -->
+<div class="flex items-center gap-2 px-3 py-2 rounded-xl bg-surface-container-low text-on-surface">
+<span class="material-symbols-outlined text-lg text-on-surface-variant">sort</span>
+<select class="bg-transparent text-on-surface font-body-sm text-body-sm focus:outline-none cursor-pointer pr-2">
+<option class="bg-surface-container" value="recent">Modificado recientemente</option>
+<option class="bg-surface-container" value="az">Nombre A-Z</option>
+<option class="bg-surface-container" value="duration">Duración total</option>
+<option class="bg-surface-container" value="size">Tamaño cifrado</option>
+</select>
+</div>
+<!-- View Switcher -->
+<div class="flex items-center p-1 rounded-xl bg-surface-container-low">
+<button class="p-1.5 rounded-lg bg-surface-container text-secondary shadow-sm" title="Vista Cuadrícula">
+<span class="material-symbols-outlined text-lg">grid_view</span>
+</button>
+<button class="p-1.5 rounded-lg text-on-surface-variant hover:text-on-surface transition-colors" title="Vista Lista">
+<span class="material-symbols-outlined text-lg">view_list</span>
+</button>
+</div>
+</div>
+</div>
+</section>
+<!-- 3. FEATURED PLAYLISTS BENTO GRID (CARDS) -->
+<section class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+<!-- Card 1: Master Stems - Álbum 2025 -->
+<article class="group relative flex flex-col rounded-2xl bg-surface-container-low hover:bg-surface-container transition-all duration-300 p-4 shadow-lg hover:shadow-2xl hover:shadow-primary-container/20">
+<div class="relative w-full aspect-square rounded-xl overflow-hidden bg-surface-container-highest shadow-inner mb-4">
+<div class="w-full h-full bg-cover bg-center transition-transform duration-500 group-hover:scale-105" data-alt="Dark cyberpunk studio audio waveform console, high end recording mixing desk with neon blue LED VU meters and glowing analog knobs in an obsidian soundproof control room" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuCuIEsqnkKYx7etJ7qQpcsT7WTgvwlsp_HnkWLxSpaEMjW8Q3Ilp5yhHGWY0zD-K3f8ZgvGNBBIVLXb9xnl8F0iKBCu6LYQRq_KRoFjBZEnTSpe3xftpOdLSrPT4UgKvEqbxGvqiCkdPYd29_l1SB7TJkSneJ1DVphBnkzwCruVmy-L5CIOIy0pvk2TA8N0fQEsxR_OgpEsorhn5MLVAo8pXE1DFFW2RL96EkTMEptYyyoA2QSGrAT_DQ')"></div>
+<div class="absolute inset-0 bg-gradient-to-t from-surface-container-lowest/90 via-surface-container-lowest/20 to-transparent"></div>
+<!-- Crypto Badge Tag -->
+<div class="absolute top-3 left-3 flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-surface-container-lowest/80 backdrop-blur-md">
+<span class="material-symbols-outlined text-xs text-secondary">lock</span>
+<span class="font-mono-crypto text-body-sm text-secondary font-semibold">AES-256 GCM</span>
+</div>
+<!-- Play floating overlay trigger -->
+<button class="absolute bottom-3 right-3 w-12 h-12 rounded-full bg-primary-container text-on-primary-container flex items-center justify-center shadow-xl shadow-primary-container/50 opacity-90 group-hover:opacity-100 group-hover:scale-110 transition-all duration-300">
+<span class="material-symbols-outlined text-2xl" style="font-variation-settings: &quot;FILL&quot; 1;">play_arrow</span>
+</button>
+<span class="absolute bottom-3 left-3 font-mono-crypto text-body-sm text-on-surface-variant bg-surface-container-lowest/80 px-2 py-0.5 rounded backdrop-blur-sm">
+          8 stems • 420 MB
+        </span>
+</div>
+<div class="flex items-start justify-between gap-2">
+<div class="flex flex-col min-w-0">
+<h2 class="font-headline-sm text-headline-sm font-semibold text-on-surface truncate group-hover:text-primary transition-colors">
+            Master Stems - Álbum 2025
+          </h2>
+<span class="font-body-sm text-body-sm text-on-surface-variant truncate">
+            Producción ejecutiva • FLAC 24-bit 96kHz
+          </span>
+</div>
+<button class="p-1 rounded-lg text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high transition-colors" title="Opciones">
+<span class="material-symbols-outlined text-xl">more_vert</span>
+</button>
+</div>
+<!-- Card Metadata Footer -->
+<div class="mt-4 pt-3 flex items-center justify-between text-on-surface-variant bg-surface-container/60 rounded-xl px-3 py-2">
+<div class="flex items-center gap-1.5">
+<span class="material-symbols-outlined text-sm text-on-surface-variant">schedule</span>
+<span class="font-body-sm text-body-sm">Modificado hace 2h</span>
+</div>
+<!-- Collaborator Avatars -->
+<div class="flex -space-x-2 overflow-hidden">
+<div class="w-6 h-6 rounded-full bg-primary-container flex items-center justify-center text-[10px] font-mono-crypto font-bold text-on-primary-container ring-2 ring-surface-container-low">AZ</div>
+<div class="w-6 h-6 rounded-full bg-secondary-container flex items-center justify-center text-[10px] font-mono-crypto font-bold text-on-secondary-container ring-2 ring-surface-container-low">MK</div>
+<div class="w-6 h-6 rounded-full bg-surface-bright flex items-center justify-center text-[10px] font-mono-crypto text-on-surface ring-2 ring-surface-container-low">+1</div>
+</div>
+</div>
+</article>
+<!-- Card 2: Cyber Dystopia (Vocal Sessions) -->
+<article class="group relative flex flex-col rounded-2xl bg-surface-container-low hover:bg-surface-container transition-all duration-300 p-4 shadow-lg hover:shadow-2xl hover:shadow-primary-container/20">
+<div class="relative w-full aspect-square rounded-xl overflow-hidden bg-surface-container-highest shadow-inner mb-4">
+<div class="w-full h-full bg-cover bg-center transition-transform duration-500 group-hover:scale-105" data-alt="Close up shot of patch cables and illuminated LEDs on an analog Eurorack modular synthesizer with glowing blue cables against a brushed black metal chassis" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuAa7sjr7MU8YbN02kiQE51AGI5F5QP3GjKRq7oB_GpHpMNr5RMP_tfOS0FVlcsC9-iwofr7SpDPdZSAp9aJtEsr7Ot7zuhg5fNfvan8eDpFmceV3kXmB2EBCtIbWF4m9tMLBaMr3HRqjz7CSIJdme4ClV_PRI15r9PiTKwe1q735pJfWvGEUTtKrtwZ-9-biDqUifvGvC_Ytst5yUU6QjXhT7KDgr0DgrNNEiIxjloJGzqYJyNyUvpcsg')"></div>
+<div class="absolute inset-0 bg-gradient-to-t from-surface-container-lowest/90 via-surface-container-lowest/20 to-transparent"></div>
+<!-- Crypto Badge Tag -->
+<div class="absolute top-3 left-3 flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-surface-container-lowest/80 backdrop-blur-md">
+<span class="material-symbols-outlined text-xs text-primary">key</span>
+<span class="font-mono-crypto text-body-sm text-primary font-semibold">Sesión Compartida</span>
+</div>
+<button class="absolute bottom-3 right-3 w-12 h-12 rounded-full bg-primary-container text-on-primary-container flex items-center justify-center shadow-xl shadow-primary-container/50 opacity-90 group-hover:opacity-100 group-hover:scale-110 transition-all duration-300">
+<span class="material-symbols-outlined text-2xl" style="font-variation-settings: &quot;FILL&quot; 1;">play_arrow</span>
+</button>
+<span class="absolute bottom-3 left-3 font-mono-crypto text-body-sm text-on-surface-variant bg-surface-container-lowest/80 px-2 py-0.5 rounded backdrop-blur-sm">
+          6 pistas • 285 MB
+        </span>
+</div>
+<div class="flex items-start justify-between gap-2">
+<div class="flex flex-col min-w-0">
+<h2 class="font-headline-sm text-headline-sm font-semibold text-on-surface truncate group-hover:text-primary transition-colors">
+            Cyber Dystopia (Vocal Sessions)
+          </h2>
+<span class="font-body-sm text-body-sm text-on-surface-variant truncate">
+            Acappellas sin procesar &amp; Armonías
+          </span>
+</div>
+<button class="p-1 rounded-lg text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high transition-colors" title="Opciones">
+<span class="material-symbols-outlined text-xl">more_vert</span>
+</button>
+</div>
+<div class="mt-4 pt-3 flex items-center justify-between text-on-surface-variant bg-surface-container/60 rounded-xl px-3 py-2">
+<div class="flex items-center gap-1.5">
+<span class="material-symbols-outlined text-sm text-on-surface-variant">group</span>
+<span class="font-body-sm text-body-sm">3 colaboradores</span>
+</div>
+<span class="font-mono-crypto text-body-sm text-secondary">Token #E90F</span>
+</div>
+</article>
+<!-- Card 3: Acoustic Unplugged - Pre-Master -->
+<article class="group relative flex flex-col rounded-2xl bg-surface-container-low hover:bg-surface-container transition-all duration-300 p-4 shadow-lg hover:shadow-2xl hover:shadow-primary-container/20">
+<div class="relative w-full aspect-square rounded-xl overflow-hidden bg-surface-container-highest shadow-inner mb-4">
+<div class="w-full h-full bg-cover bg-center transition-transform duration-500 group-hover:scale-105" data-alt="Vintage silver tube condenser microphone in a dark acoustic recording booth with diffuse cyan accent backlighting and wood acoustic diffusers in deep shadow" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuDFVY7IyZYIxqVVrRp1ViES75j68xjID2oT64TeKjNXtMVlL4ZbcBXhZaIMQUMN9aroJgmXX2sCkYGTjddQl_CTU87j2IxSKVRFBITwK1DqiJ0i1P1PUYq_ubLH0uOyO7xVyXTEFm-b0RW7dlr3so7qSYp2_PRCtZ4WUJUv10rbqTwgBKmtslrsqV7ESNCei1dXGL-AtapMYiazoXwsjXZ4dux2KszYXHEmHVFaTKxSctfC2PqCgWL64Q')"></div>
+<div class="absolute inset-0 bg-gradient-to-t from-surface-container-lowest/90 via-surface-container-lowest/20 to-transparent"></div>
+<!-- Crypto Badge Tag -->
+<div class="absolute top-3 left-3 flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-surface-container-lowest/80 backdrop-blur-md">
+<span class="material-symbols-outlined text-xs text-secondary">shield</span>
+<span class="font-mono-crypto text-body-sm text-secondary font-semibold">Zero-Knowledge</span>
+</div>
+<button class="absolute bottom-3 right-3 w-12 h-12 rounded-full bg-primary-container text-on-primary-container flex items-center justify-center shadow-xl shadow-primary-container/50 opacity-90 group-hover:opacity-100 group-hover:scale-110 transition-all duration-300">
+<span class="material-symbols-outlined text-2xl" style="font-variation-settings: &quot;FILL&quot; 1;">play_arrow</span>
+</button>
+<span class="absolute bottom-3 left-3 font-mono-crypto text-body-sm text-on-surface-variant bg-surface-container-lowest/80 px-2 py-0.5 rounded backdrop-blur-sm">
+          12 pistas • 540 MB
+        </span>
+</div>
+<div class="flex items-start justify-between gap-2">
+<div class="flex flex-col min-w-0">
+<h2 class="font-headline-sm text-headline-sm font-semibold text-on-surface truncate group-hover:text-primary transition-colors">
+            Acoustic Unplugged - Pre-Master
+          </h2>
+<span class="font-body-sm text-body-sm text-on-surface-variant truncate">
+            Sesión en directo • Microfonía estéreo DPA
+          </span>
+</div>
+<button class="p-1 rounded-lg text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high transition-colors" title="Opciones">
+<span class="material-symbols-outlined text-xl">more_vert</span>
+</button>
+</div>
+<div class="mt-4 pt-3 flex items-center justify-between text-on-surface-variant bg-surface-container/60 rounded-xl px-3 py-2">
+<div class="flex items-center gap-1.5">
+<span class="material-symbols-outlined text-sm text-on-surface-variant">schedule</span>
+<span class="font-body-sm text-body-sm">Ayer, 18:40</span>
+</div>
+<span class="font-mono-crypto text-body-sm text-on-surface-variant">Solo Lectura</span>
+</div>
+</article>
+<!-- Card 4: Lanzamiento Público Beta -->
+<article class="group relative flex flex-col rounded-2xl bg-surface-container-low hover:bg-surface-container transition-all duration-300 p-4 shadow-lg hover:shadow-2xl hover:shadow-primary-container/20">
+<div class="relative w-full aspect-square rounded-xl overflow-hidden bg-surface-container-highest shadow-inner mb-4">
+<div class="w-full h-full bg-cover bg-center transition-transform duration-500 group-hover:scale-105" data-alt="Abstract geometric 3D parametric soundwave sculpture in midnight blue and refractive glass floating over an obsidian reflective mirror plane" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuAavZ1KtUOOCzFgKycPMvNe8Lry82z3Bxn6i8VIXiPZ6pRtGOVUOiOrkjSwFci0-AjLTsLfflLNuzePP23saIs0jSZq1-9YnqKft3XgKnRZ28XQ2su8fPck7FYFyn5mjiEw0KvIQlb8dNft-VkQDpS0SmFQBATWp9wTV7RmgpPIRJ3QVqct0tDibjuae8S6GkdjsArWE_s0FKGwClVt8RwuT1u8c3j2C59B0hoPAHAC_mqQALqKaSI3mA')"></div>
+<div class="absolute inset-0 bg-gradient-to-t from-surface-container-lowest/90 via-surface-container-lowest/20 to-transparent"></div>
+<!-- Crypto Badge Tag -->
+<div class="absolute top-3 left-3 flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-surface-container-lowest/80 backdrop-blur-md">
+<span class="material-symbols-outlined text-xs text-secondary-container">public</span>
+<span class="font-mono-crypto text-body-sm text-secondary-container font-semibold">Release: 15 Nov</span>
+</div>
+<button class="absolute bottom-3 right-3 w-12 h-12 rounded-full bg-primary-container text-on-primary-container flex items-center justify-center shadow-xl shadow-primary-container/50 opacity-90 group-hover:opacity-100 group-hover:scale-110 transition-all duration-300">
+<span class="material-symbols-outlined text-2xl" style="font-variation-settings: &quot;FILL&quot; 1;">play_arrow</span>
+</button>
+<span class="absolute bottom-3 left-3 font-mono-crypto text-body-sm text-on-surface-variant bg-surface-container-lowest/80 px-2 py-0.5 rounded backdrop-blur-sm">
+          4 pistas • 128 MB
+        </span>
+</div>
+<div class="flex items-start justify-between gap-2">
+<div class="flex flex-col min-w-0">
+<h2 class="font-headline-sm text-headline-sm font-semibold text-on-surface truncate group-hover:text-primary transition-colors">
+            Lanzamiento Público Beta
+          </h2>
+<span class="font-body-sm text-body-sm text-on-surface-variant truncate">
+            Versión para prensa y curadores DSP
+          </span>
+</div>
+<button class="p-1 rounded-lg text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high transition-colors" title="Opciones">
+<span class="material-symbols-outlined text-xl">more_vert</span>
+</button>
+</div>
+<div class="mt-4 pt-3 flex items-center justify-between text-on-surface-variant bg-surface-container/60 rounded-xl px-3 py-2">
+<div class="flex items-center gap-1.5">
+<span class="material-symbols-outlined text-sm text-secondary-container">visibility</span>
+<span class="font-body-sm text-body-sm">Público Cifrado</span>
+</div>
+<span class="font-mono-crypto text-body-sm text-secondary">SHA-256 Valid</span>
+</div>
+</article>
+<!-- Card 5: Bocetos y Live Takes -->
+<article class="group relative flex flex-col rounded-2xl bg-surface-container-low hover:bg-surface-container transition-all duration-300 p-4 shadow-lg hover:shadow-2xl hover:shadow-primary-container/20">
+<div class="relative w-full aspect-square rounded-xl overflow-hidden bg-surface-container-highest shadow-inner mb-4">
+<div class="w-full h-full bg-cover bg-center transition-transform duration-500 group-hover:scale-105" data-alt="Musician hands adjusting an analog synthesizer sequencer in a dim ambient home studio lit by soft blue strip lights and low key lamps" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuAc74ayr1_P8XpmRrl36pDn5ANhx50PruJmOABOZHwANsEjDCI-ahMS2Ndg4EdIBziDuB---wYxieYa3EgPSU5NccpTYVoSHn4N-PyGN4B46l2mU886tSwdiYXAKg_MIPBoAjSIBRSl9cfkXcV4XnHsm6MBiGl9Ut_gZ6sZaUJsBgGSydyPW5ZfRvDPqTohqdUDdMPGzyPml6t1qiY3M5diVay0DCKc-bKQIAETELFtcrAMer5M7NlmDQ')"></div>
+<div class="absolute inset-0 bg-gradient-to-t from-surface-container-lowest/90 via-surface-container-lowest/20 to-transparent"></div>
+<!-- Crypto Badge Tag -->
+<div class="absolute top-3 left-3 flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-surface-container-lowest/80 backdrop-blur-md">
+<span class="material-symbols-outlined text-xs text-on-surface-variant">lock_person</span>
+<span class="font-mono-crypto text-body-sm text-on-surface-variant font-semibold">Solo Local</span>
+</div>
+<button class="absolute bottom-3 right-3 w-12 h-12 rounded-full bg-primary-container text-on-primary-container flex items-center justify-center shadow-xl shadow-primary-container/50 opacity-90 group-hover:opacity-100 group-hover:scale-110 transition-all duration-300">
+<span class="material-symbols-outlined text-2xl" style="font-variation-settings: &quot;FILL&quot; 1;">play_arrow</span>
+</button>
+<span class="absolute bottom-3 left-3 font-mono-crypto text-body-sm text-on-surface-variant bg-surface-container-lowest/80 px-2 py-0.5 rounded backdrop-blur-sm">
+          15 pistas • 310 MB
+        </span>
+</div>
+<div class="flex items-start justify-between gap-2">
+<div class="flex flex-col min-w-0">
+<h2 class="font-headline-sm text-headline-sm font-semibold text-on-surface truncate group-hover:text-primary transition-colors">
+            Bocetos y Live Takes
+          </h2>
+<span class="font-body-sm text-body-sm text-on-surface-variant truncate">
+            Improvisaciones analógicas sin masterizar
+          </span>
+</div>
+<button class="p-1 rounded-lg text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high transition-colors" title="Opciones">
+<span class="material-symbols-outlined text-xl">more_vert</span>
+</button>
+</div>
+<div class="mt-4 pt-3 flex items-center justify-between text-on-surface-variant bg-surface-container/60 rounded-xl px-3 py-2">
+<div class="flex items-center gap-1.5">
+<span class="material-symbols-outlined text-sm text-on-surface-variant">schedule</span>
+<span class="font-body-sm text-body-sm">Hace 3 días</span>
+</div>
+<span class="font-mono-crypto text-body-sm text-on-surface-variant">Bóveda Aislada</span>
+</div>
+</article>
+<!-- Card 6: Drums & Bass Multitrack -->
+<article class="group relative flex flex-col rounded-2xl bg-surface-container-low hover:bg-surface-container transition-all duration-300 p-4 shadow-lg hover:shadow-2xl hover:shadow-primary-container/20">
+<div class="relative w-full aspect-square rounded-xl overflow-hidden bg-surface-container-highest shadow-inner mb-4">
+<div class="w-full h-full bg-cover bg-center transition-transform duration-500 group-hover:scale-105" data-alt="Professional studio drum set in an acoustically treated recording room with blue overhead spotlight and high-end Neumann kick microphones" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuB8ENKE3sf28t3UuqQiwmXt9uTdxH7oCfzgR1JBDo64k5h3MOehBdGGrWjRBDHFIZmgnv6BWhkiw0mDUO8vIBHW-1frRsQJIg-x2kfopPaSTysYiZ6IKvRABS5g5Nr5NIWIUjLAZEZ6hZoabH4HtGiDGxsS5_Cnq2H9DVrQRia5v0DF-8YcM7bNdYfJQ6z2qz-8bDWYiw7npQo9pksDOw4QnspLzvQAgS1vpJ1CTWYNzDCtsm1EKzFuYg')"></div>
+<div class="absolute inset-0 bg-gradient-to-t from-surface-container-lowest/90 via-surface-container-lowest/20 to-transparent"></div>
+<!-- Crypto Badge Tag -->
+<div class="absolute top-3 left-3 flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-surface-container-lowest/80 backdrop-blur-md">
+<span class="material-symbols-outlined text-xs text-secondary">encrypted</span>
+<span class="font-mono-crypto text-body-sm text-secondary font-semibold">AES-GCM 256</span>
+</div>
+<button class="absolute bottom-3 right-3 w-12 h-12 rounded-full bg-primary-container text-on-primary-container flex items-center justify-center shadow-xl shadow-primary-container/50 opacity-90 group-hover:opacity-100 group-hover:scale-110 transition-all duration-300">
+<span class="material-symbols-outlined text-2xl" style="font-variation-settings: &quot;FILL&quot; 1;">play_arrow</span>
+</button>
+<span class="absolute bottom-3 left-3 font-mono-crypto text-body-sm text-on-surface-variant bg-surface-container-lowest/80 px-2 py-0.5 rounded backdrop-blur-sm">
+          9 pistas • 680 MB
+        </span>
+</div>
+<div class="flex items-start justify-between gap-2">
+<div class="flex flex-col min-w-0">
+<h2 class="font-headline-sm text-headline-sm font-semibold text-on-surface truncate group-hover:text-primary transition-colors">
+            Drums &amp; Bass Multitrack
+          </h2>
+<span class="font-body-sm text-body-sm text-on-surface-variant truncate">
+            Micrófonos de sala + Señales directas DI
+          </span>
+</div>
+<button class="p-1 rounded-lg text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high transition-colors" title="Opciones">
+<span class="material-symbols-outlined text-xl">more_vert</span>
+</button>
+</div>
+<div class="mt-4 pt-3 flex items-center justify-between text-on-surface-variant bg-surface-container/60 rounded-xl px-3 py-2">
+<div class="flex items-center gap-1.5">
+<span class="material-symbols-outlined text-sm text-on-surface-variant">schedule</span>
+<span class="font-body-sm text-body-sm">Hace 1 semana</span>
+</div>
+<span class="font-mono-crypto text-body-sm text-secondary">Audit Pass</span>
+</div>
+</article>
+</section>
+<!-- 4. ACTIVE PLAYLIST DEEP INSPECTION & TRACK TABLE -->
+<section class="flex flex-col gap-4 rounded-2xl bg-surface-container-low p-6 lg:p-7 shadow-xl shadow-surface-container-lowest/40">
+<!-- Header of the Quick Inspection View -->
+<div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-4">
+<div class="flex items-center gap-4">
+<div class="w-14 h-14 rounded-xl bg-primary-container flex items-center justify-center text-on-primary-container shadow-md shadow-primary-container/40">
+<span class="material-symbols-outlined text-3xl">album</span>
+</div>
+<div class="flex flex-col">
+<div class="flex items-center gap-2">
+<span class="font-mono-label text-mono-label uppercase text-secondary px-2 py-0.5 rounded bg-surface-container-highest">
+              Colección Activa
+            </span>
+<span class="font-mono-crypto text-body-sm text-on-surface-variant">ID: 0x8F9C42B</span>
+</div>
+<h3 class="font-headline-sm text-headline-sm font-bold text-on-surface">
+            Vista Rápida: Master Stems - Álbum 2025 (8 pistas)
+          </h3>
+</div>
+</div>
+<!-- Action Cluster -->
+<div class="flex items-center gap-2.5 flex-wrap">
+<button class="flex items-center gap-2 px-4 py-2 rounded-xl bg-primary-container text-on-primary-container hover:bg-primary-container/80 transition-all font-title-sm text-title-sm font-semibold shadow-sm">
+<span class="material-symbols-outlined text-lg" style="font-variation-settings: &quot;FILL&quot; 1;">play_arrow</span>
+<span class="">Reproducir Todo</span>
+</button>
+<button class="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-surface-container text-on-surface hover:bg-surface-container-high transition-all font-title-sm text-title-sm font-medium">
+<span class="material-symbols-outlined text-lg text-secondary">vpn_key</span>
+<span class="">Compartir Acceso Criptográfico</span>
+</button>
+<button class="flex items-center gap-2 px-3 py-2 rounded-xl bg-surface-container text-on-surface hover:bg-surface-container-high transition-all font-title-sm text-title-sm font-medium">
+<span class="material-symbols-outlined text-lg">add</span>
+<span class="">Añadir Pistas</span>
+</button>
+</div>
+</div>
+<!-- Telemetry Spectrum Bar (Decrypted Buffer Health) -->
+<div class="p-3 rounded-xl bg-surface-container flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-body-sm">
+<div class="flex items-center gap-2 font-mono-crypto text-on-surface-variant">
+<span class="w-2 h-2 rounded-full bg-secondary animate-pulse"></span>
+
+
+</div>
+<div class="flex items-center gap-3">
+
+<div class="w-28 h-2 rounded-full bg-surface-container-lowest overflow-hidden">
+<div class="h-full bg-secondary rounded-full" style="width: 100%;"></div>
+</div>
+
+</div>
+</div>
+<!-- Structured Track Row Table -->
+<div class="flex flex-col gap-1 mt-2 overflow-x-auto">
+<!-- Column Header -->
+<div class="grid grid-cols-12 gap-4 px-4 py-2 text-on-surface-variant font-mono-label text-mono-label uppercase tracking-wider">
+<div class="col-span-1 text-center">#</div>
+<div class="col-span-5">Título &amp; Artista</div>
+<div class="col-span-3">Formato / Calidad</div>
+<div class="col-span-2 text-right">Duración</div>
+<div class="col-span-1 text-center">Acciones</div>
+</div>
+<!-- Track 1 (Currently Playing Simulation) -->
+<div class="grid grid-cols-12 gap-4 items-center px-4 py-3 rounded-xl bg-surface-container transition-all group">
+<div class="col-span-1 flex items-center justify-center">
+<!-- Animated 3-Bar Equalizer representing playing state -->
+<div class="flex items-end gap-0.5 h-4 w-4 justify-center">
+<span class="w-1 bg-secondary animate-pulse rounded-t" style="height: 60%;"></span>
+<span class="w-1 bg-secondary animate-pulse rounded-t" style="height: 100%; animation-delay: 150ms;"></span>
+<span class="w-1 bg-secondary animate-pulse rounded-t" style="height: 40%; animation-delay: 300ms;"></span>
+</div>
+</div>
+<div class="col-span-5 flex items-center gap-3 min-w-0">
+<div class="w-9 h-9 rounded-lg bg-surface-container-highest flex items-center justify-center flex-shrink-0 text-secondary">
+<span class="material-symbols-outlined text-lg">graphic_eq</span>
+</div>
+<div class="flex flex-col min-w-0">
+<span class="font-title-sm text-title-sm font-semibold text-secondary truncate">Starlight Odyssey - Master Mix</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant truncate">Aethel Audio • Key #7F09</span>
+</div>
+</div>
+<div class="col-span-3 flex items-center gap-2">
+<span class="px-2 py-0.5 rounded bg-surface-container-highest font-mono-crypto text-body-sm text-secondary font-medium">FLAC 24-bit / 96kHz</span>
+<span class="hidden sm:inline font-mono-crypto text-body-sm text-on-surface-variant">72 MB</span>
+</div>
+<div class="col-span-2 text-right font-mono-crypto text-body-sm text-secondary font-semibold">
+          04:18
+        </div>
+<div class="col-span-1 flex items-center justify-center gap-1">
+<button class="p-1 rounded-lg text-secondary hover:text-on-surface transition-colors" title="Favorito">
+<span class="material-symbols-outlined text-lg" style="font-variation-settings: &quot;FILL&quot; 1;">favorite</span>
+</button>
+<button class="p-1 rounded-lg text-on-surface-variant hover:text-on-surface transition-colors" title="Opciones">
+<span class="material-symbols-outlined text-lg">more_horiz</span>
+</button>
+</div>
+</div>
+<!-- Track 2 -->
+<div class="grid grid-cols-12 gap-4 items-center px-4 py-3 rounded-xl hover:bg-surface-container transition-all group">
+<div class="col-span-1 text-center font-mono-crypto text-body-sm text-on-surface-variant group-hover:hidden">
+          02
+        </div>
+<div class="col-span-1 hidden group-hover:flex items-center justify-center">
+<button class="text-on-surface hover:text-primary transition-colors">
+<span class="material-symbols-outlined text-lg">play_arrow</span>
+</button>
+</div>
+<div class="col-span-5 flex items-center gap-3 min-w-0">
+<div class="w-9 h-9 rounded-lg bg-surface-container-highest flex items-center justify-center flex-shrink-0 text-on-surface-variant">
+<span class="material-symbols-outlined text-lg">music_note</span>
+</div>
+<div class="flex flex-col min-w-0">
+<span class="font-title-sm text-title-sm font-semibold text-on-surface truncate group-hover:text-primary transition-colors">Neon Horizon (Stem Lead Vocal)</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant truncate">Aethel Audio ft. Lyra</span>
+</div>
+</div>
+<div class="col-span-3 flex items-center gap-2">
+<span class="px-2 py-0.5 rounded bg-surface-container-highest font-mono-crypto text-body-sm text-on-surface-variant">WAV 24-bit / 48kHz</span>
+<span class="hidden sm:inline font-mono-crypto text-body-sm text-on-surface-variant">54 MB</span>
+</div>
+<div class="col-span-2 text-right font-mono-crypto text-body-sm text-on-surface-variant">
+          03:45
+        </div>
+<div class="col-span-1 flex items-center justify-center gap-1">
+<button class="p-1 rounded-lg text-on-surface-variant hover:text-secondary transition-colors" title="Favorito">
+<span class="material-symbols-outlined text-lg">favorite</span>
+</button>
+<button class="p-1 rounded-lg text-on-surface-variant hover:text-on-surface transition-colors" title="Opciones">
+<span class="material-symbols-outlined text-lg">more_horiz</span>
+</button>
+</div>
+</div>
+<!-- Track 3 -->
+<div class="grid grid-cols-12 gap-4 items-center px-4 py-3 rounded-xl hover:bg-surface-container transition-all group">
+<div class="col-span-1 text-center font-mono-crypto text-body-sm text-on-surface-variant group-hover:hidden">
+          03
+        </div>
+<div class="col-span-1 hidden group-hover:flex items-center justify-center">
+<button class="text-on-surface hover:text-primary transition-colors">
+<span class="material-symbols-outlined text-lg">play_arrow</span>
+</button>
+</div>
+<div class="col-span-5 flex items-center gap-3 min-w-0">
+<div class="w-9 h-9 rounded-lg bg-surface-container-highest flex items-center justify-center flex-shrink-0 text-on-surface-variant">
+<span class="material-symbols-outlined text-lg">music_note</span>
+</div>
+<div class="flex flex-col min-w-0">
+<span class="font-title-sm text-title-sm font-semibold text-on-surface truncate group-hover:text-primary transition-colors">Quantum Bass Resonance (Stem Sub/808)</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant truncate">SubZero Audio Labs</span>
+</div>
+</div>
+<div class="col-span-3 flex items-center gap-2">
+<span class="px-2 py-0.5 rounded bg-surface-container-highest font-mono-crypto text-body-sm text-on-surface-variant">WAV 32-bit Float</span>
+<span class="hidden sm:inline font-mono-crypto text-body-sm text-on-surface-variant">61 MB</span>
+</div>
+<div class="col-span-2 text-right font-mono-crypto text-body-sm text-on-surface-variant">
+          05:12
+        </div>
+<div class="col-span-1 flex items-center justify-center gap-1">
+<button class="p-1 rounded-lg text-on-surface-variant hover:text-secondary transition-colors" title="Favorito">
+<span class="material-symbols-outlined text-lg">favorite</span>
+</button>
+<button class="p-1 rounded-lg text-on-surface-variant hover:text-on-surface transition-colors" title="Opciones">
+<span class="material-symbols-outlined text-lg">more_horiz</span>
+</button>
+</div>
+</div>
+<!-- Track 4 -->
+<div class="grid grid-cols-12 gap-4 items-center px-4 py-3 rounded-xl hover:bg-surface-container transition-all group">
+<div class="col-span-1 text-center font-mono-crypto text-body-sm text-on-surface-variant group-hover:hidden">
+          04
+        </div>
+<div class="col-span-1 hidden group-hover:flex items-center justify-center">
+<button class="text-on-surface hover:text-primary transition-colors">
+<span class="material-symbols-outlined text-lg">play_arrow</span>
+</button>
+</div>
+<div class="col-span-5 flex items-center gap-3 min-w-0">
+<div class="w-9 h-9 rounded-lg bg-surface-container-highest flex items-center justify-center flex-shrink-0 text-on-surface-variant">
+<span class="material-symbols-outlined text-lg">music_note</span>
+</div>
+<div class="flex flex-col min-w-0">
+<span class="font-title-sm text-title-sm font-semibold text-on-surface truncate group-hover:text-primary transition-colors">Synthesized Echoes (Pad Stem)</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant truncate">Aethel Audio</span>
+</div>
+</div>
+<div class="col-span-3 flex items-center gap-2">
+<span class="px-2 py-0.5 rounded bg-surface-container-highest font-mono-crypto text-body-sm text-on-surface-variant">FLAC 24-bit / 96kHz</span>
+<span class="hidden sm:inline font-mono-crypto text-body-sm text-on-surface-variant">48 MB</span>
+</div>
+<div class="col-span-2 text-right font-mono-crypto text-body-sm text-on-surface-variant">
+          03:59
+        </div>
+<div class="col-span-1 flex items-center justify-center gap-1">
+<button class="p-1 rounded-lg text-on-surface-variant hover:text-secondary transition-colors" title="Favorito">
+<span class="material-symbols-outlined text-lg">favorite</span>
+</button>
+<button class="p-1 rounded-lg text-on-surface-variant hover:text-on-surface transition-colors" title="Opciones">
+<span class="material-symbols-outlined text-lg">more_horiz</span>
+</button>
+</div>
+</div>
+</div>
+</section>
+</div></main>
+</div>
+<!-- ========================================== -->
+<!-- 3. REPRODUCTOR INFERIOR FIJO ELEGANTE       -->
+<!-- ========================================== -->
+<div class="fixed bottom-0 left-0 right-0 h-20 bg-surface-raised/95 backdrop-blur-2xl border-t border-border-subtle z-50 px-6 flex items-center justify-between shadow-[0_-4px_24px_rgba(0,0,0,0.7)]">
+<!-- Info Canción -->
+<div class="flex items-center gap-3 w-1/4 min-w-[220px]">
+<div class="w-12 h-12 rounded-xl bg-surface-card border border-border-blue flex items-center justify-center flex-shrink-0 text-accent-cyan">
+<span class="material-symbols-outlined text-2xl">graphic_eq</span>
+</div>
+<div class="flex flex-col min-w-0">
+<span class="font-title-sm text-sm text-white truncate font-semibold">Starlight Odyssey - Master Mix</span>
+<span class="font-body-sm text-xs text-on-surface-variant truncate">Aethel Audio • Session Key #7F09</span>
+</div>
+</div>
+<!-- Controles Centrales -->
+<div class="flex flex-col items-center gap-1.5 flex-1 max-w-xl px-4">
+<div class="flex items-center gap-4">
+<button class="text-on-surface-variant hover:text-white transition-colors" title="Aleatorio">
+<span class="material-symbols-outlined text-lg">shuffle</span>
+</button>
+<button class="text-on-surface-variant hover:text-white transition-colors" title="Anterior">
+<span class="material-symbols-outlined text-xl">skip_previous</span>
+</button>
+<button class="w-9 h-9 rounded-full bg-primary hover:bg-primary-hover text-white flex items-center justify-center transition-all shadow-md shadow-primary/30" id="global-play-toggle">
+<span class="material-symbols-outlined text-xl">pause</span>
+</button>
+<button class="text-on-surface-variant hover:text-white transition-colors" title="Siguiente">
+<span class="material-symbols-outlined text-xl">skip_next</span>
+</button>
+<button class="text-on-surface-variant hover:text-white transition-colors" title="Repetir">
+<span class="material-symbols-outlined text-lg">repeat</span>
+</button>
+</div>
+<!-- Barra de Tiempo -->
+<div class="flex items-center gap-3 w-full">
+<span class="font-mono-label text-[11px] text-on-surface-variant">01:24</span>
+<div class="flex-1 h-1.5 bg-surface-card rounded-full overflow-hidden relative cursor-pointer group">
+<div class="absolute left-0 top-0 bottom-0 bg-gradient-to-r from-primary to-accent-cyan rounded-full" style="width: 32%;"></div>
+</div>
+<span class="font-mono-label text-[11px] text-on-surface-variant">04:18</span>
+</div>
+</div>
+<!-- Badge Seguridad & Volumen -->
+<div class="flex items-center justify-end gap-5 w-1/4 min-w-[220px]">
+<div class="hidden xl:flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-surface-card border border-border-blue/60">
+<span class="material-symbols-outlined text-xs text-accent-cyan">lock</span>
+<span class="font-mono-label text-[11px] text-accent-cyan whitespace-nowrap">RAM Decrypt: AES-GCM</span>
+</div>
+<div class="flex items-center gap-2">
+<button class="text-on-surface-variant hover:text-white transition-colors">
+<span class="material-symbols-outlined text-lg">volume_up</span>
+</button>
+<div class="w-20 h-1.5 bg-surface-card rounded-full overflow-hidden cursor-pointer">
+<div class="bg-accent-cyan h-full rounded-full" style="width: 80%;"></div>
+</div>
+</div>
+</div>
+</div>
+<!-- SCRIPT PARA INTERACTIVIDAD -->
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+      // Toggle de los menús contextuales de tres puntos
+      const optionButtons = document.querySelectorAll('.more-options-btn');
+      
+      optionButtons.forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const parent = btn.parentElement;
+          const menu = parent.querySelector('.dropdown-menu');
+          
+          // Cerrar otros menús abiertos
+          document.querySelectorAll('.dropdown-menu').forEach(m => {
+            if (m !== menu) m.classList.add('hidden');
+          });
+          
+          // Alternar este menú
+          if (menu) {
+            menu.classList.toggle('hidden');
+          }
+        });
+      });
+
+      // Cerrar menús al hacer clic fuera
+      document.addEventListener('click', () => {
+        document.querySelectorAll('.dropdown-menu').forEach(m => {
+          m.classList.add('hidden');
+        });
+      });
+
+      // Alternar reproducción de pistas
+      const playButtons = document.querySelectorAll('.track-play-toggle');
+      playButtons.forEach(btn => {
+        btn.addEventListener('click', () => {
+          const isPlaying = btn.getAttribute('data-playing') === 'true';
+          
+          // Reset otros
+          playButtons.forEach(b => {
+            b.setAttribute('data-playing', 'false');
+            b.querySelector('.material-symbols-outlined').textContent = 'play_arrow';
+            b.classList.remove('bg-primary', 'text-white');
+            b.classList.add('text-on-surface-variant');
+          });
+
+          if (!isPlaying) {
+            btn.setAttribute('data-playing', 'true');
+            btn.querySelector('.material-symbols-outlined').textContent = 'pause';
+            btn.classList.add('bg-primary', 'text-white');
+            btn.classList.remove('text-on-surface-variant');
+          }
+        });
+      });
+
+      // Filtros rápidos
+      const tabs = document.querySelectorAll('.filter-tab');
+      tabs.forEach(tab => {
+        tab.addEventListener('click', () => {
+          tabs.forEach(t => {
+            t.classList.remove('bg-primary', 'text-white', 'shadow-sm', 'shadow-primary/20');
+            t.classList.add('text-on-surface-variant');
+          });
+          tab.classList.add('bg-primary', 'text-white', 'shadow-sm', 'shadow-primary/20');
+          tab.classList.remove('text-on-surface-variant');
+        });
+      });
+    });
+  </script>
+
+
+</body></html>

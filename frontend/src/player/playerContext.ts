@@ -1,0 +1,57 @@
+import { createContext, useContext } from 'react'
+
+import type { Song } from '../api/songs'
+
+/**
+ * - idle:    nada cargado.
+ * - loading: descargando el cifrado y descifrándolo en memoria.
+ * - playing / paused: audio descifrado listo en el <audio>.
+ * - error:   no se pudo descargar o descifrar (ver `error`).
+ */
+export type PlayerStatus = 'idle' | 'loading' | 'playing' | 'paused' | 'error'
+
+export interface PlayerContextValue {
+  status: PlayerStatus
+  /** Canción actual (cargada o cargándose). */
+  current: Song | null
+  /** Cola de reproducción en el orden en que sonará (barajada si `shuffle`). */
+  queue: readonly Song[]
+  error: string | null
+  currentTime: number
+  duration: number
+  volume: number
+  hasNext: boolean
+  hasPrevious: boolean
+  /** Orden aleatorio (ShuffleIterator). */
+  shuffle: boolean
+  /** Al terminar la cola vuelve a empezar (LoopIterator). */
+  repeat: boolean
+  /** Reproduce `song`; `queue` define qué suena con anterior/siguiente (según el modo actual). */
+  play(song: Song, queue?: Song[]): void
+  /**
+   * Reproduce toda la lista (botón "Reproducir" de una playlist o pantalla). Con
+   * `shuffle` se fija el modo aleatorio; en aleatorio la primera canción también es al azar.
+   */
+  playAll(songs: Song[], options?: { shuffle?: boolean }): void
+  setShuffle(shuffle: boolean): void
+  setRepeat(repeat: boolean): void
+  togglePlay(): void
+  next(): void
+  previous(): void
+  seek(seconds: number): void
+  setVolume(volume: number): void
+  /** Quita una canción de la cola (p. ej. porque se eliminó); si es la actual, detiene y libera el audio. */
+  forget(songId: string): void
+  /** Aplica cambios de metadatos (título/artista) a la canción si está en la cola. */
+  updateSong(song: Song): void
+  /** Aumenta cada vez que se registra una reproducción: las listas de historial lo usan para recargarse. */
+  historyVersion: number
+}
+
+export const PlayerContext = createContext<PlayerContextValue | null>(null)
+
+export function usePlayer(): PlayerContextValue {
+  const value = useContext(PlayerContext)
+  if (!value) throw new Error('usePlayer debe usarse dentro de <PlayerProvider>')
+  return value
+}

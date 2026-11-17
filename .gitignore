@@ -1,0 +1,12 @@
+# Entorno
+.env
+
+# Editores / SO
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+CLAUDE.md
+docs/Claude
+docs/desarrollo
