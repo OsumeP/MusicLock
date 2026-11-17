@@ -1,66 +1,51 @@
 # MusicLock
 
-Almacenamiento y reproducción de música con **cifrado en el navegador (Zero-Knowledge)**. Los MP3 se cifran con AES-GCM en tu navegador antes de subirse; el servidor (Django + PostgreSQL + MinIO) solo guarda bytes que no puede leer, y la música se descifra únicamente en la memoria de tu dispositivo.
+Storage and playback of music with **browser encryption (Zero-Knowledge)**. The MP3s are encrypted with AES-GCM in your browser before being uploaded; the server (Django + PostgreSQL + MinIO) only stores bytes it cannot read, and the music is decrypted solely in the memory of your device.
 
 **Stack:** React 19 + TypeScript + Tailwind v4 (Vite) · Django 5.2 + DRF + JWT · PostgreSQL 16 · MinIO (S3) · Docker.
 
-## Instalación (5 minutos)
+## Installation (5 minutes)
 
-**Requisitos:** [Docker Desktop](https://www.docker.com/products/docker-desktop/) en ejecución y Git. Nada más: Python y Node viven dentro de los contenedores.
+**Requirements:** [Docker Desktop](https://www.docker.com/products/docker-desktop/) running and Git. Nothing else: Python and Node live inside the containers.
 
 ```bash
 git clone https://github.com/OsumeP/MusicLock.git
 cd MusicLock
-cp .env.example .env            # en PowerShell: Copy-Item .env.example .env
-docker compose up --build       # la primera vez tarda unos minutos (descarga imágenes)
+cp .env.example .env # in PowerShell: Copy-Item .env.example .env
+docker compose up --build # the first time it takes a few minutes (downloads images)
+ ```
+When you're done, open **http://localhost:5173** → "Start for free" → create your account → upload an MP3 from "My Files".
+
+
+| Address | What is it |
+|---|---|
+| http://localhost:5173 | The application (landing, registration, vault) |
+| http://localhost:8000/api/health | Health of the API, the database, and storage |
+| http://localhost:8000/admin/ | Django Admin (block accounts, view plans). Create an admin with `docker compose exec api python manage.py createsuperuser` |
+| http://localhost:9001 | MinIO Console (username/password in `.env`): here it shows that the saved files are unreadable |
+| http://localhost:5173/status | Status of all services |
+
+### Useful commands
+
+```bash docker compose up -d # lift in the background 
+docker compose up -d # lift in the background
+docker compose logs -f api # view backend logs
+docker compose down # stop (keeps the data)
+docker compose down -v # stop and DELETE all local data
+docker compose exec api python manage.py test # backend tests (real PostgreSQL + MinIO)
+cd frontend && npm install && npm test -- --run # frontend tests (requires Node 22)
 ```
 
-Cuando termine, abre **http://localhost:5173** → "Comenzar gratis" → crea tu cuenta → sube un MP3 desde "Mis Archivos".
+### Frequent Problems
 
-| Dirección | Qué es |
+| Symptom | Solution |
 |---|---|
-| http://localhost:5173 | La aplicación (landing, registro, bóveda) |
-| http://localhost:8000/api/health | Salud de la API, la base de datos y el almacenamiento |
-| http://localhost:8000/admin/ | Admin de Django (bloquear cuentas, ver planes). Crea un admin con `docker compose exec api python manage.py createsuperuser` |
-| http://localhost:9001 | Consola de MinIO (usuario/clave en `.env`): aquí se ve que los archivos guardados son ilegibles |
-| http://localhost:5173/estado | Estado de todos los servicios |
-
-### Comandos útiles
-
-```bash
-docker compose up -d                      # levantar en segundo plano
-docker compose logs -f api                # ver logs del backend
-docker compose down                       # detener (conserva los datos)
-docker compose down -v                    # detener y BORRAR todos los datos locales
-docker compose exec api python manage.py test      # tests del backend (PostgreSQL + MinIO reales)
-cd frontend && npm install && npm test -- --run    # tests del frontend (requiere Node 22)
-```
-
-### Problemas frecuentes
-
-| Síntoma | Solución |
-|---|---|
-| `DJANGO_SECRET_KEY es obligatorio` o avisos de clave corta | Vuelve a copiar `.env.example` a `.env` (la clave debe tener ≥ 32 caracteres). |
-| Error de migraciones / `InconsistentMigrationHistory` | Tu base de datos local es de una versión anterior: `docker compose down -v` y vuelve a levantar. |
-| El frontend no refleja cambios del código | Reinicia el contenedor: `docker compose restart web`. Si agregaste dependencias: `docker compose up -d --build -V web`. |
-| `pull access denied for minio/minio` | MinIO dejó de publicar imágenes; el proyecto usa el fork `pgsty/minio`. Actualiza tu copia del repositorio. |
-| El puerto 5173, 8000, 9000 o 9001 está ocupado | Cierra la aplicación que lo usa o cambia el puerto en `docker-compose.yml`. |
-| Olvidé la contraseña de mi cuenta de prueba | No se puede recuperar (por diseño, Zero-Knowledge). Registra otra cuenta. |
-
-## Documentación
-
-- **Plan del MVP** (alcance, decisiones de diseño, criptografía, API, guion de demo): [`docs/PlanMVP.md`](docs/PlanMVP.md)
-- **Estado del desarrollo** (estructura de archivos, decisiones de implementación, deuda técnica): [`docs/desarrollo/README.md`](docs/desarrollo/README.md)
-- **Bitácora por día:** [`docs/desarrollo/`](docs/desarrollo/) (`dia-01.md` … ) · cuentas y archivos de prueba: [`datos-de-prueba.md`](docs/desarrollo/datos-de-prueba.md)
-- **Requerimientos, actores, patrones** (versión markdown de los PDFs): [`docs/Claude/`](docs/Claude/)
-
-## Documentos originales del proyecto
-
-.
-├── docs/
-│   ├── Specifications.pdf  # System specifications, user stories, and policies
-│   └── Workshop2Part1.pdf  # Design artifacts, system domain, CRC cards, models, and mockups
-└── README.md
+| `DJANGO_SECRET_KEY is required` or short key warnings | Copy `.env.example` to `.env` again (the key must be ≥ 32 characters). | It seems there is no text provided for translation. Could you please provide the text you would like me to translate?
+| Migration error / `InconsistentMigrationHistory` | Your local database is from an earlier version: `docker compose down -v` and bring it back up. It seems there is no text provided for translation. Could you please provide the text you would like me to translate?
+| The frontend does not reflect code changes | Restart the container: `docker compose restart web`. If you added dependencies: `docker compose up -d --build -V web`. It seems there is no text provided for translation. Could you please provide the text you would like me to translate?
+| `pull access denied for minio/minio` | MinIO stopped publishing images; the project uses the fork `pgsty/minio`. Update your copy of the repository. Update your copy of the repository. | | Port 5173, 8000, 9000, or 9001 is occupied | Close the application using it or change the port in `docker-compose.yml`.
+| The port 5173, 8000, 9000, or 9001 is occupied | Close the application using it or change the port in `docker-compose.yml`. The port 5173, 8000, 9000, or 9001 is occupied | Close the application using it or change the port in `docker-compose.yml`. | I forgot the password to my test account | It cannot be recovered (by design, Zero-Knowledge).
+| I forgot the password to my test account | It cannot be recovered (by design, Zero-Knowledge). Register another account.
 
 ## Documentation (`/docs`)
 
