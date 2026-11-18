@@ -37,7 +37,7 @@ export function useSongActions({
   reloadOnFavorite?: boolean
   onPlaylistsChanged?: () => void
 }): {
-  actions: Required<RowActions>
+  actions: Omit<Required<RowActions>, 'comments' | 'toggleFollow'>  
   downloadingId: string | null
   favoritePending: ReadonlySet<string>
   notice: Notice | null
@@ -64,7 +64,7 @@ export function useSongActions({
     })
   }
 
-  const actions: Omit<Required<RowActions>, 'comments'> = {
+  const actions: Omit<Required<RowActions>, 'comments' | 'toggleFollow'> = {
     async download(song) {
       if (session.status !== 'ready') return
       setDownloadingId(song.id)

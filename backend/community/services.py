@@ -6,7 +6,7 @@ activa (BR-06: una cuenta bloqueada deja de mostrar sus canciones). Los
 proxies de acceso viven aquí y reutilizan `open_blob` de la bóveda.
 """
 
-from django.db import transaction
+from django.db import IntegrityError, transaction
 from django.db.models import Count, OuterRef, Q, QuerySet, Subquery
 from django.db.models.functions import Coalesce
 from django.utils import timezone
@@ -15,11 +15,13 @@ from accounts.models import User
 from vault.models import Song, Visibility
 from vault.services import SongNotFound, open_blob
 
-from .models import MAX_DEPTH, Comment
+from .models import MAX_DEPTH, Comment, Follow
+
 
 
 MAX_QUERY_LENGTH = 100
-SCOPES = ("community", "mine")
+SCOPES = ("community", "mine", "following")
+
 
 
 class InvalidScope(Exception):
@@ -53,7 +55,13 @@ def public_songs(user: User, scope: str = "community", query: str = "") -> Query
     if scope not in SCOPES:
         raise InvalidScope(scope)
     songs = visible_public_songs()
-    songs = songs.filter(owner=user) if scope == "mine" else songs.exclude(owner=user)
+    if scope == "mine":
+        songs = songs.filter(owner=user)
+    elif scope == "following":
+        songs = songs.filter(owner_id__in=Follow.objects.filter(follower=user).values("followed_id"))
+    else:
+        songs = songs.exclude(owner=user)    
+    
     query = query.strip()[:MAX_QUERY_LENGTH]
     if query:
         songs = songs.filter(
@@ -193,3 +201,54 @@ def delete_comment(user: User, comment_id) -> None:
             grandparent = parent.parent
             parent.delete()
             parent = grandparent
+
+# --- Seguir usuarios -------------------------------------------------------------------
+
+
+class FollowError(Exception):
+    """Regla de negocio de seguir. `code` y `http_status` los usa la vista."""
+
+    code = "follow_error"
+    http_status = 400
+
+    def __init__(self, message: str):
+        super().__init__(message)
+        self.message = message
+
+
+class UserNotFound(FollowError):
+    code = "user_not_found"
+    http_status = 404
+
+
+class SelfFollow(FollowError):
+    code = "self_follow"
+
+
+def followed_ids(user: User) -> set[int]:
+    """Ids de las cuentas que sigue `user` (una consulta por petición, para marcar `is_following`)."""
+    return set(Follow.objects.filter(follower=user).values_list("followed_id", flat=True))
+
+
+def follow_user(user: User, username: str) -> User:
+    """Sigue a una cuenta activa. Idempotente. No se puede seguir a uno mismo."""
+    target = User.objects.filter(username=username, is_active=True).first()
+    if target is None:
+        raise UserNotFound("No hay ninguna cuenta con ese usuario.")
+    if target.pk == user.pk:
+        raise SelfFollow("No puedes seguirte a ti mismo.")
+    try:
+        with transaction.atomic():
+            Follow.objects.get_or_create(follower=user, followed=target)
+    except IntegrityError:
+        pass  # otra petición simultánea lo creó primero: el resultado es el mismo
+    return target
+
+
+def unfollow_user(user: User, username: str) -> User:
+    """Deja de seguir. Idempotente, y también sirve para cuentas ya bloqueadas (limpiar la lista)."""
+    target = User.objects.filter(username=username).first()
+    if target is None:
+        raise UserNotFound("No hay ninguna cuenta con ese usuario.")
+    Follow.objects.filter(follower=user, followed=target).delete()
+    return target

@@ -8,6 +8,9 @@ from vault.views import SongPagination, serve_encrypted_blob
 from . import services
 from .serializers import CommentCreateSerializer, CommentSerializer, CommentUpdateSerializer, CommunitySongSerializer
 
+def _song_context(request) -> dict:
+    return {"request": request, "followed_ids": services.followed_ids(request.user)}
+
 def _not_found() -> Response:
     return Response({"detail": "Canción no encontrada.", "code": "not_found"}, status=status.HTTP_404_NOT_FOUND)
 
@@ -34,7 +37,7 @@ class CommunitySongListView(APIView):
         paginator = SongPagination()
         page = paginator.paginate_queryset(songs, request, view=self)
         return paginator.get_paginated_response(
-            CommunitySongSerializer(page, many=True, context={"request": request}).data
+            CommunitySongSerializer(page, many=True, context=_song_context(request)).data            
         )
 
 
@@ -46,7 +49,7 @@ class CommunitySongDetailView(APIView):
             song = services.get_public_song(song_id)
         except SongNotFound:
             return _not_found()
-        return Response(CommunitySongSerializer(song, context={"request": request}).data)
+        return Response(CommunitySongSerializer(song, context=_song_context(request)).data)        
 
 
 class CommunitySongBlobView(APIView):
@@ -109,3 +112,26 @@ class CommentDetailView(APIView):
         except services.CommentError as error:
             return _comment_error(error)
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+class UserFollowView(APIView):
+    """
+    PUT    /api/community/users/{username}/follow — seguir (idempotente).
+    DELETE /api/community/users/{username}/follow — dejar de seguir (idempotente).
+    Ambas responden {"username", "is_following"}.
+    """
+
+    def put(self, request, username):
+        return self._set(request, username, follow=True)
+
+    def delete(self, request, username):
+        return self._set(request, username, follow=False)
+
+    def _set(self, request, username, *, follow: bool) -> Response:
+        try:
+            if follow:
+                target = services.follow_user(request.user, username)
+            else:
+                target = services.unfollow_user(request.user, username)
+        except services.FollowError as error:
+            return Response({"detail": error.message, "code": error.code}, status=error.http_status)
+        return Response({"username": target.username, "is_following": follow})

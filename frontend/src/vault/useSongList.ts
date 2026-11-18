@@ -59,7 +59,15 @@ export function useSongList({ favorites = false, shared = false, community }: { 
         ? { ...current, page: { ...current.page, songs: current.page.songs.map((s) => (s.id === song.id ? song : s)) } }
         : current,
     )
-  }, [])
+  }, [])       
+  /** Aplica un cambio a todas las canciones de la página visible (p. ej. seguir a un usuario marca todas sus filas). */
+  const mapSongs = useCallback((change: (song: Song) => Song) => {
+    setResult((current) =>
+      current && 'page' in current
+        ? { ...current, page: { ...current.page, songs: current.page.songs.map(change) } }
+        : current,
+    )
+  }, [])    
 
   function goToPage(target: number) {
     setParams((p) => {
@@ -73,5 +81,5 @@ export function useSongList({ favorites = false, shared = false, community }: { 
   const last = page ? first + page.songs.length - 1 : 0
   const totalSize = page?.songs.reduce((sum, s) => sum + s.size, 0) ?? 0
 
-  return { query, pageNumber, page, error, loading, reload, updateSong, goToPage, setParams, first, last, totalSize }
+  return { query, pageNumber, page, error, loading, reload, updateSong, mapSongs, goToPage, setParams, first, last, totalSize }
 }

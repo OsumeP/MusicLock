@@ -116,7 +116,7 @@ class CommunityApiTests(TempLocalStorageMixin, APITestCase):
         by_title = {s["title"]: s for s in self.listed(scope="community")}
         self.assertEqual(
             set(by_title["De Beto"]),
-            {"id", "title", "artist", "duration", "size", "published_at", "file_iv", "public_file_key", "owner", "is_mine", "comment_count"},
+            {"id", "title", "artist", "duration", "size", "published_at", "file_iv", "public_file_key", "owner", "is_mine", "comment_count", "is_following"},            
         )
         self.assertEqual(by_title["De Beto"]["public_file_key"], PUBLIC_KEY)
         self.assertEqual(by_title["De Beto"]["owner"], "beto")
@@ -226,7 +226,7 @@ class CommunityApiTests(TempLocalStorageMixin, APITestCase):
 
         self.assertEqual(response.status_code, 404)
         self.assertEqual(response.json()["code"], "blob_missing")
-        def test_comment_count_ignores_deleted_comments(self):
+    def test_comment_count_ignores_deleted_comments(self):
         song = self.make_song(title="Comentada")
         quiet = self.make_song(title="Sin comentarios")
         root = Comment.objects.create(song=song, author=self.ana, body="a")

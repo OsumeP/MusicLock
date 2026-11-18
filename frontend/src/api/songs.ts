@@ -17,6 +17,8 @@ export interface PublicInfo {
   isMine: boolean
   /** Comentarios visibles (sin contar los eliminados). */
   commentCount: number  
+  /** Sigo al dueño de la canción (siempre false en las mías). */
+  isFollowing: boolean    
 }
 
 /** Usuario a mostrar como "de X" (compartida conmigo o pública de otro). Null si es propia. */

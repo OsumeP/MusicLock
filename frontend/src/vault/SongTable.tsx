@@ -17,6 +17,9 @@ export interface RowActions {
   publish?(song: Song): void  
   /** Ver y escribir comentarios (solo canciones públicas de Comunidad). */
   comments?(song: Song): void  
+  /** Seguir o dejar de seguir al dueño de una canción pública ajena. */
+  toggleFollow?(song: Song): void
+
   edit?(song: Song): void
   remove?(song: Song): void
 }
@@ -222,6 +225,16 @@ function SongRow({
               onClick={() => actions.comments?.(song)}
             />
           )}       
+          {actions.toggleFollow && song.publicInfo && !song.publicInfo.isMine && (
+            <RowAction
+              icon={song.publicInfo.isFollowing ? 'how_to_reg' : 'person_add'}
+              filled={song.publicInfo.isFollowing}
+              pressed={song.publicInfo.isFollowing}
+              label={song.publicInfo.isFollowing ? `Dejar de seguir a ${song.publicInfo.owner}` : `Seguir a ${song.publicInfo.owner}`}
+              onClick={() => actions.toggleFollow?.(song)}
+              className={song.publicInfo.isFollowing ? '!text-accent-cyan' : ''}
+            />
+          )}          
           {/* En móvil se ocultan descargar y editar para que la fila quepa a 390 px. */}
           <RowAction
             icon={downloading ? 'progress_activity' : 'download'}

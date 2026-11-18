@@ -2,7 +2,8 @@ import { apiBlob, apiRequest } from './client'
 import { SONGS_PAGE_SIZE, type Song, type SongPage } from './songs'
 
 /** `community`: públicas de otros usuarios. `mine`: mis propias públicas. */
-export type CommunityScope = 'community' | 'mine'
+export type CommunityScope = 'community' | 'following' | 'mine'
+
 
 interface CommunitySongDto {
   id: string
@@ -16,6 +17,7 @@ interface CommunitySongDto {
   owner: string
   is_mine: boolean
   comment_count: number
+  is_following: boolean
 }
 
 /** Canción pública como `Song` (sin material de la Master Key de nadie). `createdAt` es la fecha de publicación. */
@@ -34,7 +36,13 @@ export function toCommunitySong(dto: CommunitySongDto): Song {
     favoritedAt: null,
     visibility: 'public',
     publishedAt: dto.published_at,
-    publicInfo: { owner: dto.owner, publicFileKey: dto.public_file_key, isMine: dto.is_mine, commentCount: dto.comment_count },    
+    publicInfo: {
+      owner: dto.owner,
+      publicFileKey: dto.public_file_key,
+      isMine: dto.is_mine,
+      commentCount: dto.comment_count,
+      isFollowing: dto.is_following,
+    },    
   }
 }
 
@@ -55,4 +63,13 @@ export async function listCommunitySongs(
 /** El audio CIFRADO de una canción pública (404 si se despublicó). */
 export function downloadCommunityEncryptedSong(id: string, signal?: AbortSignal): Promise<Blob> {
   return apiBlob(`/community/songs/${encodeURIComponent(id)}/blob`, { signal })
+}
+
+/** PUT / DELETE /api/community/users/{username}/follow — seguir o dejar de seguir (idempotente). Devuelve el estado final. */
+export async function setFollowing(username: string, follow: boolean): Promise<boolean> {
+  const dto = await apiRequest<{ username: string; is_following: boolean }>(
+    `/community/users/${encodeURIComponent(username)}/follow`,
+    { method: follow ? 'PUT' : 'DELETE' },
+  )
+  return dto.is_following
 }

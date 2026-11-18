@@ -51,6 +51,7 @@ export default function App() {
               <Route path="/cuenta" element={<AccountPage />} />
               <Route path="comunidad" element={<CommunityPage scope="community" />} />
               <Route path="comunidad/mias" element={<CommunityPage scope="mine" />} />
+              <Route path="comunidad/siguiendo" element={<CommunityPage scope="following" />} />              
             </Route>
 
             <Route path="*" element={<NotFoundPage />} />

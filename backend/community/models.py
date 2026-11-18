@@ -34,3 +34,20 @@ class Comment(models.Model):
 
     def __str__(self) -> str:
         return f"{self.author}: {self.body[:40]}"
+
+class Follow(models.Model):
+    """`follower` sigue a `followed`. Sin aprobación: solo da acceso a lo que ya es público."""
+
+    follower = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="following")
+    followed = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="followers")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=["follower", "followed"], name="unique_follow"),
+            models.CheckConstraint(condition=~models.Q(follower=models.F("followed")), name="no_self_follow"),
+        ]
+        indexes = [models.Index(fields=["follower", "-created_at"])]
+
+    def __str__(self) -> str:
+        return f"{self.follower} → {self.followed}"

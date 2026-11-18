@@ -14,6 +14,10 @@ class CommunitySongSerializer(serializers.ModelSerializer):
     owner = serializers.CharField(source="owner.username", read_only=True)
     is_mine = serializers.SerializerMethodField()
     comment_count = serializers.IntegerField(read_only=True)
+    is_following = serializers.SerializerMethodField()
+
+    def get_is_following(self, song) -> bool:
+        return song.owner_id in self.context.get("followed_ids", ())    
 
     def get_is_mine(self, song) -> bool:
         return song.owner_id == self.context["request"].user.pk
@@ -32,9 +36,10 @@ class CommunitySongSerializer(serializers.ModelSerializer):
             "owner",
             "is_mine",
             "comment_count",
+            "is_following",
         ]
         read_only_fields = fields
-        
+
 class CommentSerializer(serializers.ModelSerializer):
     """
     Comentario para quien lo mira: los eliminados no muestran autor ni texto, y los
