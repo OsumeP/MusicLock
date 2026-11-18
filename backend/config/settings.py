@@ -58,6 +58,7 @@ INSTALLED_APPS = [
     "vault",
     "playlists",
     "sharing",
+    "community",
     "faq",
 ]
 
