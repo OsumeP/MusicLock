@@ -87,6 +87,8 @@ export function toSharedSong(dto: SharedSongDto): Song {
     wrappedKeyIv: '',
     isFavorite: false,
     favoritedAt: null,
+    visibility: 'private', // no aplica: aquí importa el acceso compartido, no la visibilidad del dueño
+    publishedAt: null,    
     sharedBy: { owner: dto.owner, sharedFileKey: dto.shared_file_key, sharedAt: dto.shared_at },
   }
 }

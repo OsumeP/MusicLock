@@ -18,6 +18,7 @@ import { RegisterPage } from './pages/RegisterPage'
 import { SharedWithMePage } from './pages/SharedWithMePage'
 import { StatsPage } from './pages/StatsPage'
 import { SystemStatusPage } from './pages/SystemStatusPage'
+import { CommunityPage } from './pages/CommunityPage'
 
 export default function App() {
   return (
@@ -48,6 +49,8 @@ export default function App() {
               <Route path="/compartido" element={<SharedWithMePage />} />
               <Route path="/tendencias" element={<StatsPage />} />
               <Route path="/cuenta" element={<AccountPage />} />
+              <Route path="comunidad" element={<CommunityPage scope="community" />} />
+              <Route path="comunidad/mias" element={<CommunityPage scope="mine" />} />
             </Route>
 
             <Route path="*" element={<NotFoundPage />} />

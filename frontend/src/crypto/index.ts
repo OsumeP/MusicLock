@@ -5,7 +5,7 @@
  * no extraíbles siempre que se pueda; nunca enviar al servidor la contraseña, la
  * KEK, la Master Key ni File Keys sin envolver.
  */
-
+export { decryptPublicAudio, exportFileKeyForPublishing, importPublicFileKey } from './publishing'
 export { encryptAudio, decryptAudio, type EncryptedAudio, type SongKeyMaterial } from './audio'
 export {
   DEFAULT_KDF_PARAMS,

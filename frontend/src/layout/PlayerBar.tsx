@@ -1,5 +1,6 @@
 import { formatDuration } from '../lib/format'
 import { usePlayer } from '../player/playerContext'
+import { songOwnerLabel } from '../api/songs'
 
 /** Botón de modo (aleatorio / repetir): resaltado y con `aria-pressed` cuando está activo. */
 function ToggleButton({ icon, label, pressed, onClick }: { icon: string; label: string; pressed: boolean; onClick: () => void }) {
@@ -68,7 +69,7 @@ export function PlayerBar() {
                   ? 'Descargando y descifrando en memoria…'
                   : status === 'error'
                     ? error
-                    : `${current.artist || 'Artista desconocido'}${current.sharedBy ? ` · de ${current.sharedBy.owner}` : ''}`}
+                    : `${current.artist || 'Artista desconocido'}${songOwnerLabel(current) ? ` · de ${songOwnerLabel(current)}` : ''}`}
               </p>
             </>
           ) : (

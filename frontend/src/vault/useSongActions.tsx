@@ -8,6 +8,8 @@ import { usePlayer } from '../player/playerContext'
 import { DeleteSongModal } from './DeleteSongModal'
 import { downloadOriginalSong } from './downloadSong'
 import { EditSongModal } from './EditSongModal'
+import { PublishSongModal } from './PublishSongModal'
+
 import type { RowActions } from './SongTable'
 
 export interface Notice {
@@ -48,6 +50,7 @@ export function useSongActions({
   const [deleting, setDeleting] = useState<Song | null>(null)
   const [addingToPlaylist, setAddingToPlaylist] = useState<Song | null>(null)
   const [sharing, setSharing] = useState<Song | null>(null)
+  const [publishing, setPublishing] = useState<Song | null>(null)  
   const [downloadingId, setDownloadingId] = useState<string | null>(null)
   const [favoritePending, setFavoritePending] = useState<ReadonlySet<string>>(new Set())
   const [notice, setNotice] = useState<Notice | null>(null)
@@ -76,6 +79,7 @@ export function useSongActions({
     },
     addToPlaylist: setAddingToPlaylist,
     share: setSharing,
+    publish: setPublishing,    
     edit: setEditing,
     remove: setDeleting,
     async toggleFavorite(song) {
@@ -113,7 +117,20 @@ export function useSongActions({
       )}
 
       {sharing && <ShareSongModal song={sharing} onClose={() => setSharing(null)} />}
-
+      {publishing && (
+        <PublishSongModal
+          song={publishing}
+          onClose={() => setPublishing(null)}
+          onChanged={(song) => {
+            onSongChanged(song)
+            player.updateSong(song)
+            setNotice({
+              tone: 'info',
+              text: song.visibility === 'public' ? `“${song.title}” ahora es pública.` : `“${song.title}” volvió a ser privada.`,
+            })
+          }}
+        />
+      )}
       {editing && (
         <EditSongModal
           song={editing}

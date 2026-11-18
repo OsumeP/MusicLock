@@ -6,6 +6,21 @@ export function downloadEncryptedSong(id: string, signal?: AbortSignal): Promise
   return apiBlob(`/songs/${encodeURIComponent(id)}/blob`, { signal })
 }
 
+export type Visibility = 'private' | 'public'
+
+
+/** Solo en canciones que vienen de Comunidad (D11): la File Key en claro de una canción pública. */
+export interface PublicInfo {
+  owner: string
+  publicFileKey: string
+  /** Es una canción mía: se reproduce por Comunidad pero cuenta en mi historial. */
+  isMine: boolean
+}
+
+/** Usuario a mostrar como "de X" (compartida conmigo o pública de otro). Null si es propia. */
+export const songOwnerLabel = (song: Song): string | null =>
+  song.sharedBy?.owner ?? (song.publicInfo && !song.publicInfo.isMine ? song.publicInfo.owner : null)
+
 /** Canción tal como la devuelve la API (metadatos en claro + material para descifrar). */
 export interface Song {
   id: string
@@ -22,12 +37,18 @@ export interface Song {
   isFavorite: boolean
   /** Cuándo se marcó como favorita (null si no lo es). */
   favoritedAt: string | null
+  /** Privada o pública (D11). Una compartida es privada con accesos en `sharing`. */
+  visibility: Visibility
+  /** Cuándo se publicó (null si es privada). */
+  publishedAt: string | null  
   /**
    * Solo en canciones que OTRO usuario compartió conmigo (día 18). Entonces
    * `wrappedFileKey`/`wrappedKeyIv` van vacíos: la File Key llega envuelta para
    * mí con RSA-OAEP (`sharedFileKey`) y se abre con mi clave privada.
    */
   sharedBy?: SharedInfo
+  /** Solo en canciones de Comunidad. Entonces `wrappedFileKey`/`wrappedKeyIv` van vacíos. */
+  publicInfo?: PublicInfo  
 }
 
 export interface SharedInfo {
@@ -50,6 +71,8 @@ export interface SongDto {
   wrapped_key_iv: string
   is_favorite?: boolean
   favorited_at?: string | null
+  visibility?: Visibility
+  published_at?: string | null  
 }
 
 export function toSong(dto: SongDto): Song {
@@ -65,6 +88,8 @@ export function toSong(dto: SongDto): Song {
     wrappedKeyIv: dto.wrapped_key_iv,
     isFavorite: dto.is_favorite ?? false,
     favoritedAt: dto.favorited_at ?? null,
+    visibility: dto.visibility ?? 'private',
+    publishedAt: dto.published_at ?? null,    
   }
 }
 
@@ -136,4 +161,13 @@ export async function uploadEncryptedSong(
   form.append('wrapped_file_key', encrypted.wrappedFileKey)
   form.append('wrapped_key_iv', encrypted.wrappedKeyIv)
   return toSong(await apiUpload<SongDto>('/songs', form, options))
+}
+/** PUT /api/songs/{id}/publish — hace pública la canción. `fileKey` es la File Key en claro (base64). */
+export async function publishSong(id: string, fileKey: string): Promise<Song> {
+  return toSong(await apiRequest<SongDto>(`/songs/${encodeURIComponent(id)}/publish`, { method: 'PUT', json: { file_key: fileKey } }))
+}
+
+/** DELETE /api/songs/{id}/publish — la vuelve privada y borra la llave pública (idempotente). */
+export async function unpublishSong(id: string): Promise<Song> {
+  return toSong(await apiRequest<SongDto>(`/songs/${encodeURIComponent(id)}/publish`, { method: 'DELETE' }))
 }
