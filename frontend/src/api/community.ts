@@ -15,6 +15,7 @@ interface CommunitySongDto {
   public_file_key: string
   owner: string
   is_mine: boolean
+  comment_count: number
 }
 
 /** Canción pública como `Song` (sin material de la Master Key de nadie). `createdAt` es la fecha de publicación. */
@@ -33,7 +34,7 @@ export function toCommunitySong(dto: CommunitySongDto): Song {
     favoritedAt: null,
     visibility: 'public',
     publishedAt: dto.published_at,
-    publicInfo: { owner: dto.owner, publicFileKey: dto.public_file_key, isMine: dto.is_mine },
+    publicInfo: { owner: dto.owner, publicFileKey: dto.public_file_key, isMine: dto.is_mine, commentCount: dto.comment_count },    
   }
 }
 

@@ -15,6 +15,8 @@ export interface PublicInfo {
   publicFileKey: string
   /** Es una canción mía: se reproduce por Comunidad pero cuenta en mi historial. */
   isMine: boolean
+  /** Comentarios visibles (sin contar los eliminados). */
+  commentCount: number  
 }
 
 /** Usuario a mostrar como "de X" (compartida conmigo o pública de otro). Null si es propia. */

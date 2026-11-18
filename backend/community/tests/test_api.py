@@ -11,6 +11,7 @@ from accounts.models import User
 from vault.models import Song, Visibility
 from vault.storage import get_blob_storage
 from vault.tests.helpers import TempLocalStorageMixin
+from community.models import Comment
 
 PUBLIC_KEY = base64.b64encode(b"k" * 32).decode()
 
@@ -115,7 +116,7 @@ class CommunityApiTests(TempLocalStorageMixin, APITestCase):
         by_title = {s["title"]: s for s in self.listed(scope="community")}
         self.assertEqual(
             set(by_title["De Beto"]),
-            {"id", "title", "artist", "duration", "size", "published_at", "file_iv", "public_file_key", "owner", "is_mine"},
+            {"id", "title", "artist", "duration", "size", "published_at", "file_iv", "public_file_key", "owner", "is_mine", "comment_count"},
         )
         self.assertEqual(by_title["De Beto"]["public_file_key"], PUBLIC_KEY)
         self.assertEqual(by_title["De Beto"]["owner"], "beto")
@@ -225,3 +226,15 @@ class CommunityApiTests(TempLocalStorageMixin, APITestCase):
 
         self.assertEqual(response.status_code, 404)
         self.assertEqual(response.json()["code"], "blob_missing")
+        def test_comment_count_ignores_deleted_comments(self):
+        song = self.make_song(title="Comentada")
+        quiet = self.make_song(title="Sin comentarios")
+        root = Comment.objects.create(song=song, author=self.ana, body="a")
+        Comment.objects.create(song=song, author=self.ana, parent=root, depth=1, body="b")
+        Comment.objects.create(song=song, author=self.beto, is_deleted=True, body="")
+
+        counts = {s["title"]: s["comment_count"] for s in self.listed()}
+
+        self.assertEqual(counts, {"Comentada": 2, "Sin comentarios": 0})
+        self.assertEqual(self.client.get(self.detail_url(song)).json()["comment_count"], 2)
+        self.assertEqual(self.client.get(self.detail_url(quiet)).json()["comment_count"], 0)

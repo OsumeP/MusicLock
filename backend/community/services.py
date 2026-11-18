@@ -6,11 +6,17 @@ activa (BR-06: una cuenta bloqueada deja de mostrar sus canciones). Los
 proxies de acceso viven aquí y reutilizan `open_blob` de la bóveda.
 """
 
-from django.db.models import Q, QuerySet
+from django.db import transaction
+from django.db.models import Count, OuterRef, Q, QuerySet, Subquery
+from django.db.models.functions import Coalesce
+from django.utils import timezone
 
 from accounts.models import User
 from vault.models import Song, Visibility
 from vault.services import SongNotFound, open_blob
+
+from .models import MAX_DEPTH, Comment
+
 
 MAX_QUERY_LENGTH = 100
 SCOPES = ("community", "mine")
@@ -21,9 +27,22 @@ class InvalidScope(Exception):
 
 
 def visible_public_songs() -> QuerySet[Song]:
-    """Base de toda consulta de Comunidad: públicas y con el dueño activo."""
-    return Song.objects.filter(visibility=Visibility.PUBLIC, owner__is_active=True).select_related("owner")
-
+    """
+    Base de toda consulta de Comunidad: públicas, con el dueño activo y anotadas con
+    `comment_count` (comentarios no eliminados).
+    """
+    comments = (
+        Comment.objects.filter(song=OuterRef("pk"), is_deleted=False)
+        .order_by()
+        .values("song")
+        .annotate(n=Count("pk"))
+        .values("n")
+    )
+    return (
+        Song.objects.filter(visibility=Visibility.PUBLIC, owner__is_active=True)
+        .select_related("owner")
+        .annotate(comment_count=Coalesce(Subquery(comments), 0))
+    )
 
 def public_songs(user: User, scope: str = "community", query: str = "") -> QuerySet[Song]:
     """
@@ -58,3 +77,119 @@ def open_public_blob(song_id):
     """
     song = get_public_song(song_id)
     return song, open_blob(song)
+
+# --- Comentarios -----------------------------------------------------------------------
+
+#: El dueño de una canción no abre hilos nuevos en ella, pero responde y modera. Con
+#: False, en sus propias canciones solo puede ver y eliminar comentarios.
+OWNER_MAY_REPLY = True
+
+
+class CommentError(Exception):
+    """Regla de negocio de comentarios. `code` y `http_status` los usa la vista."""
+
+    code = "comment_error"
+    http_status = 400
+
+    def __init__(self, message: str):
+        super().__init__(message)
+        self.message = message
+
+
+class CommentNotFound(CommentError):
+    code = "not_found"
+    http_status = 404
+
+
+class CommentForbidden(CommentError):
+    code = "forbidden"
+    http_status = 403
+
+
+class OwnerCannotComment(CommentError):
+    code = "owner_cannot_comment"
+    http_status = 403
+
+
+class MaxDepthReached(CommentError):
+    code = "max_depth"
+
+
+def list_comments(song_id) -> QuerySet[Comment]:
+    """Todos los comentarios de una canción pública, en orden cronológico (el frontend arma el árbol)."""
+    song = get_public_song(song_id)  # privada o inexistente: SongNotFound (404)
+    return Comment.objects.filter(song=song).select_related("author", "song")
+
+
+def _check_owner_policy(user: User, song: Song, parent: Comment | None) -> None:
+    if song.owner_id != user.pk:
+        return
+    if not OWNER_MAY_REPLY:
+        raise OwnerCannotComment("En tus propias canciones solo puedes ver y eliminar comentarios.")
+    if parent is None:
+        raise OwnerCannotComment("No puedes abrir comentarios en tu propia canción; responde a los de otros.")
+
+
+def create_comment(user: User, song_id, body: str, parent_id: int | None = None) -> Comment:
+    song = get_public_song(song_id)
+    parent = None
+    if parent_id is not None:
+        parent = Comment.objects.filter(pk=parent_id, song=song).first()
+        if parent is None or parent.is_deleted:
+            raise CommentNotFound("El comentario al que respondes ya no existe.")
+        if parent.depth >= MAX_DEPTH:
+            raise MaxDepthReached("Esta conversación llegó al máximo de niveles de respuesta.")
+    _check_owner_policy(user, song, parent)
+    return Comment.objects.create(
+        song=song, author=user, parent=parent, depth=0 if parent is None else parent.depth + 1, body=body
+    )
+
+
+def _get_visible_comment(comment_id) -> Comment:
+    """Un comentario solo existe mientras su canción siga pública."""
+    comment = Comment.objects.select_related("author", "song").filter(pk=comment_id).first()
+    if comment is None:
+        raise CommentNotFound("Comentario no encontrado.")
+    try:
+        get_public_song(comment.song.uuid)
+    except SongNotFound:
+        raise CommentNotFound("Comentario no encontrado.") from None
+    return comment
+
+
+def edit_comment(user: User, comment_id, body: str) -> Comment:
+    comment = _get_visible_comment(comment_id)
+    if comment.is_deleted:
+        raise CommentNotFound("Comentario no encontrado.")
+    if comment.author_id != user.pk:
+        raise CommentForbidden("Solo puedes editar tus propios comentarios.")
+    if body != comment.body:
+        comment.body = body
+        comment.edited_at = timezone.now()
+        comment.save(update_fields=["body", "edited_at"])
+    return comment
+
+
+def delete_comment(user: User, comment_id) -> None:
+    """
+    Elimina un comentario (el autor o el dueño de la canción). Con respuestas, queda
+    como "eliminado" para conservar el hilo; sin ellas, se borra, junto con los
+    padres ya eliminados que se queden sin respuestas. Es idempotente.
+    """
+    with transaction.atomic():
+        comment = _get_visible_comment(comment_id)
+        if user.pk not in (comment.author_id, comment.song.owner_id):
+            raise CommentForbidden("Solo el autor o el dueño de la canción pueden eliminar un comentario.")
+        if comment.is_deleted:
+            return
+        if comment.replies.exists():
+            comment.is_deleted = True
+            comment.body = ""
+            comment.save(update_fields=["is_deleted", "body"])
+            return
+        parent = comment.parent
+        comment.delete()
+        while parent is not None and parent.is_deleted and not parent.replies.exists():
+            grandparent = parent.parent
+            parent.delete()
+            parent = grandparent

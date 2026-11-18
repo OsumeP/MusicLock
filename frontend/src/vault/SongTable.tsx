@@ -15,6 +15,8 @@ export interface RowActions {
   share?(song: Song): void
   /** Publicar o despublicar (solo canciones propias). */
   publish?(song: Song): void  
+  /** Ver y escribir comentarios (solo canciones públicas de Comunidad). */
+  comments?(song: Song): void  
   edit?(song: Song): void
   remove?(song: Song): void
 }
@@ -28,6 +30,7 @@ function RowAction({
   spinning,
   pressed,
   filled,
+  badge,  
   className = '',
 }: {
   icon: string
@@ -39,6 +42,7 @@ function RowAction({
   pressed?: boolean
   filled?: boolean
   className?: string
+  badge?: number
 }) {
   return (
     <button
@@ -48,7 +52,7 @@ function RowAction({
       aria-label={label}
       aria-pressed={pressed}
       title={label}
-      className={`grid size-8 place-items-center rounded-lg transition disabled:opacity-60 ${
+      className={`relative grid size-8 place-items-center rounded-lg transition disabled:opacity-60 ${
         danger ? 'text-on-surface-variant hover:bg-security-danger/15 hover:text-security-danger' : 'text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface'
       } ${className}`}
     >
@@ -57,6 +61,14 @@ function RowAction({
         className={`material-symbols-outlined text-[20px] ${spinning ? 'animate-spin' : ''}`}
         style={filled ? { fontVariationSettings: '"FILL" 1' } : undefined}
       >
+        {badge !== undefined && badge > 0 && (
+          <span
+            aria-hidden
+            className="absolute -right-0.5 -top-0.5 grid min-w-4 place-items-center rounded-full bg-primary px-1 font-mono text-[10px] font-semibold leading-4 text-white"
+          >
+            {badge > 99 ? '99+' : badge}
+          </span>
+        )}        
         {icon}
       </span>
     </button>
@@ -198,6 +210,18 @@ function SongRow({
               className={`hidden sm:grid ${song.visibility === 'public' ? '!text-accent-cyan' : ''}`}
             />
           )}            
+          {actions.comments && (
+            <RowAction
+              icon="forum"
+              badge={song.publicInfo?.commentCount}
+              label={
+                song.publicInfo?.commentCount
+                  ? `Comentarios de ${song.title} (${song.publicInfo.commentCount})`
+                  : `Comentarios de ${song.title}`
+              }
+              onClick={() => actions.comments?.(song)}
+            />
+          )}       
           {/* En móvil se ocultan descargar y editar para que la fila quepa a 390 px. */}
           <RowAction
             icon={downloading ? 'progress_activity' : 'download'}

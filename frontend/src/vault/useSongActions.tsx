@@ -64,7 +64,7 @@ export function useSongActions({
     })
   }
 
-  const actions: Required<RowActions> = {
+  const actions: Omit<Required<RowActions>, 'comments'> = {
     async download(song) {
       if (session.status !== 'ready') return
       setDownloadingId(song.id)

@@ -6,8 +6,7 @@ from vault.services import SongNotFound
 from vault.views import SongPagination, serve_encrypted_blob
 
 from . import services
-from .serializers import CommunitySongSerializer
-
+from .serializers import CommentCreateSerializer, CommentSerializer, CommentUpdateSerializer, CommunitySongSerializer
 
 def _not_found() -> Response:
     return Response({"detail": "Canción no encontrada.", "code": "not_found"}, status=status.HTTP_404_NOT_FOUND)
@@ -58,3 +57,55 @@ class CommunitySongBlobView(APIView):
 
     def get(self, request, song_id):
         return serve_encrypted_blob(lambda: services.open_public_blob(song_id))
+
+def _comment_error(error: services.CommentError) -> Response:
+    return Response({"detail": error.message, "code": error.code}, status=error.http_status)
+
+
+class SongCommentsView(APIView):
+    """
+    GET  /api/community/songs/{id}/comments — todos los comentarios, en orden cronológico.
+    POST /api/community/songs/{id}/comments — {"body": "...", "parent": <id opcional>}.
+    Canción privada o inexistente: 404.
+    """
+
+    def get(self, request, song_id):
+        try:
+            comments = services.list_comments(song_id)
+        except SongNotFound:
+            return _not_found()
+        return Response(CommentSerializer(comments, many=True, context={"request": request}).data)
+
+    def post(self, request, song_id):
+        serializer = CommentCreateSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        try:
+            comment = services.create_comment(request.user, song_id, **serializer.validated_data)
+        except SongNotFound:
+            return _not_found()
+        except services.CommentError as error:
+            return _comment_error(error)
+        return Response(CommentSerializer(comment, context={"request": request}).data, status=status.HTTP_201_CREATED)
+
+
+class CommentDetailView(APIView):
+    """
+    PATCH  /api/community/comments/{id} — editar el texto (solo el autor).
+    DELETE /api/community/comments/{id} — eliminar (el autor o el dueño de la canción).
+    """
+
+    def patch(self, request, comment_id):
+        serializer = CommentUpdateSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        try:
+            comment = services.edit_comment(request.user, comment_id, serializer.validated_data["body"])
+        except services.CommentError as error:
+            return _comment_error(error)
+        return Response(CommentSerializer(comment, context={"request": request}).data)
+
+    def delete(self, request, comment_id):
+        try:
+            services.delete_comment(request.user, comment_id)
+        except services.CommentError as error:
+            return _comment_error(error)
+        return Response(status=status.HTTP_204_NO_CONTENT)

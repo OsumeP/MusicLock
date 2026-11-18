@@ -8,8 +8,12 @@ import { Alert } from '../components/ui'
 import { downloadOriginalSong } from '../vault/downloadSong'
 import { SongTable } from '../vault/SongTable'
 import { useSongList } from '../vault/useSongList'
+import { CommentsModal } from '../comments/CommentsModal'
+
 
 const NO_PENDING: ReadonlySet<string> = new Set()
+
+
 
 const TABS = [
   { to: '/comunidad', label: 'Comunidad', end: true },
@@ -22,6 +26,7 @@ export function CommunityPage({ scope }: { scope: CommunityScope }) {
   const list = useSongList({ community: scope })
   const [downloadingId, setDownloadingId] = useState<string | null>(null)
   const [downloadError, setDownloadError] = useState<string | null>(null)
+  const [commenting, setCommenting] = useState<Song | null>(null)
 
   async function download(song: Song) {
     if (session.status !== 'ready') return
@@ -43,6 +48,12 @@ export function CommunityPage({ scope }: { scope: CommunityScope }) {
       ? 'Aún no has publicado ninguna canción. Pulsa el globo en Mis Archivos para publicar una.'
       : 'Todavía nadie ha publicado canciones.'
 
+  /** Refresca el número de comentarios de la fila sin recargar la lista. */
+  function updateCommentCount(songId: string, count: number) {
+    const current = list.page?.songs.find((s) => s.id === songId)
+    if (!current?.publicInfo || current.publicInfo.commentCount === count) return
+    list.updateSong({ ...current, publicInfo: { ...current.publicInfo, commentCount: count } })
+  }
   return (
     <div className="flex flex-col gap-6">
       <header>
@@ -85,11 +96,17 @@ export function CommunityPage({ scope }: { scope: CommunityScope }) {
             dateLabel="Publicada"
             downloadingId={downloadingId}
             favoritePending={NO_PENDING}
-            actions={{ download }}
+            actions={{ download, comments: setCommenting }}
           />
         </div>
       )}
-
+      {commenting && (
+        <CommentsModal
+          song={commenting}
+          onClose={() => setCommenting(null)}
+          onCountChange={(count) => updateCommentCount(commenting.id, count)}
+        />
+      )}
       {list.page && (list.page.hasPrevious || list.page.hasNext) && (
         <div className="flex items-center justify-between font-mono text-mono-crypto text-on-surface-variant">
           <button type="button" disabled={!list.page.hasPrevious} onClick={() => list.goToPage(list.pageNumber - 1)} className="rounded-lg px-3 py-1.5 ring-1 ring-border-subtle enabled:hover:text-on-surface disabled:opacity-40">
