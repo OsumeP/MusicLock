@@ -8,14 +8,16 @@ almacenamiento de blobs queden consistentes entre sí.
 """
 
 from dataclasses import dataclass
+from datetime import datetime
 from typing import BinaryIO
 
 from django.db import IntegrityError, transaction
 from django.db.models import Exists, F, OuterRef, Q, QuerySet, Subquery
+from django.utils import timezone
 
 from accounts.models import User
 
-from .models import Favorite, ListeningHistory, Song, build_storage_key
+from .models import Favorite, ListeningHistory, OriginalDownload, Song, build_storage_key
 from .storage import get_blob_storage
 
 # AES-GCM añade 16 bytes de tag: un cifrado más pequeño que esto no puede contener audio.
@@ -141,6 +143,48 @@ class BlobMissing(Exception):
     """La fila existe pero el blob no está en el almacenamiento (inconsistencia que hay que investigar)."""
 
 
+class DownloadLimitReached(Exception):
+    """El usuario agotó las descargas originales permitidas en el mes calendario."""
+
+
+def _current_month_window(at=None):
+    """Inicio y fin exclusivos del mes actual en la zona horaria del proyecto."""
+    local_now = timezone.localtime(at or timezone.now())
+    start_naive = datetime(local_now.year, local_now.month, 1)
+    if local_now.month == 12:
+        end_naive = datetime(local_now.year + 1, 1, 1)
+    else:
+        end_naive = datetime(local_now.year, local_now.month + 1, 1)
+    current_tz = timezone.get_current_timezone()
+    return timezone.make_aware(start_naive, current_tz), timezone.make_aware(end_naive, current_tz)
+
+
+def monthly_download_count(user: User, *, at=None) -> int:
+    """Cantidad de descargas originales registradas en el mes calendario local."""
+    start, end = _current_month_window(at)
+    return OriginalDownload.objects.filter(
+        user_id=user.pk,
+        downloaded_at__gte=start,
+        downloaded_at__lt=end,
+    ).count()
+
+
+@transaction.atomic
+def consume_download_allowance(user: User) -> None:
+    """Registra una descarga válida respetando el límite del plan.
+
+    Se bloquea la fila del usuario para que dos descargas simultáneas no puedan
+    consumir el último cupo al mismo tiempo (PostgreSQL, entorno de producción).
+    Premium usa límite `None`, que significa descargas ilimitadas.
+    """
+    locked_user = User.objects.select_for_update().select_related("active_plan").get(pk=user.pk)
+    limit = locked_user.active_plan.max_monthly_downloads
+    used = monthly_download_count(locked_user)
+    if limit is not None and used >= limit:
+        raise DownloadLimitReached
+    OriginalDownload.objects.create(user=locked_user)
+
+
 def get_own_song(user: User, song_id) -> Song:
     song = own_songs(user).filter(uuid=song_id).first()
     if song is None:
@@ -156,6 +200,18 @@ def open_song_blob(user: User, song_id) -> tuple[Song, BinaryIO]:
     """
     song = get_own_song(user, song_id)
     return song, open_blob(song)
+
+
+def open_song_download_blob(user: User, song_id) -> tuple[Song, BinaryIO]:
+    """Abre el blob propio y consume una descarga original, no una reproducción."""
+    song = get_own_song(user, song_id)
+    blob = open_blob(song)
+    try:
+        consume_download_allowance(user)
+    except DownloadLimitReached:
+        blob.close()
+        raise
+    return song, blob
 
 
 def open_blob(song: Song) -> BinaryIO:

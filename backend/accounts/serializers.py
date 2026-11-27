@@ -78,16 +78,52 @@ class ChangePasswordSerializer(serializers.Serializer):
 class PlanSerializer(serializers.ModelSerializer):
     class Meta:
         model = Plan
-        fields = ["code", "name", "max_storage_bytes", "max_file_size_bytes"]
+        fields = [
+            "code",
+            "name",
+            "max_storage_bytes",
+            "max_file_size_bytes",
+            "max_monthly_downloads",
+            "max_shared_recipients",
+        ]
 
 
 class MeSerializer(serializers.ModelSerializer):
     plan = PlanSerializer(source="active_plan", read_only=True)
     storage_available = serializers.IntegerField(read_only=True)
+    monthly_downloads_used = serializers.SerializerMethodField()
+    monthly_downloads_remaining = serializers.SerializerMethodField()
+
+    @staticmethod
+    def _monthly_downloads_used(user):
+        # Importación local para no acoplar el módulo de cuentas al de la bóveda
+        # durante la carga inicial de modelos de Django.
+        from vault.services import monthly_download_count
+
+        return monthly_download_count(user)
+
+    def get_monthly_downloads_used(self, user):
+        return self._monthly_downloads_used(user)
+
+    def get_monthly_downloads_remaining(self, user):
+        limit = user.active_plan.max_monthly_downloads
+        if limit is None:
+            return None
+        return max(limit - self._monthly_downloads_used(user), 0)
 
     class Meta:
         model = User
-        fields = ["id", "email", "username", "plan", "used_storage", "storage_available", "has_keypair"]
+        fields = [
+            "id",
+            "email",
+            "username",
+            "plan",
+            "used_storage",
+            "storage_available",
+            "has_keypair",
+            "monthly_downloads_used",
+            "monthly_downloads_remaining",
+        ]
         read_only_fields = fields
 
 

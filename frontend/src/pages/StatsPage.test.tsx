@@ -135,6 +135,26 @@ describe('StatsPage', () => {
     expect(await screen.findByText('Sin reproducciones en los últimos 7 días')).toBeInTheDocument()
   })
 
+  it('muestra una explicación cuando la API restringe las estadísticas al plan Premium', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (url: string) => {
+        calls.push(url)
+        return new Response(
+          JSON.stringify({ detail: 'Las estadísticas requieren Premium.', code: 'premium_required' }),
+          { status: 403 },
+        )
+      }),
+    )
+
+    renderStats()
+
+    expect(await screen.findByRole('heading', { name: 'Estadísticas Premium' })).toBeInTheDocument()
+    expect(screen.getByText(/Tu historial de reproducción se sigue registrando normalmente/)).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Consultar mi plan' })).toHaveAttribute('href', '/cuenta')
+    expect(screen.queryByText('Calculando estadísticas…')).not.toBeInTheDocument()
+  })
+
   it('▶ en el ranking reproduce esa canción', async () => {
     const u = userEvent.setup()
     renderStats()

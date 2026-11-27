@@ -54,7 +54,9 @@ async function setup() {
               }],
         })
       }
-      if (url === `/api/shared/${SONG_ID}/blob`) return revoked ? json({ code: 'not_found' }, 404) : new Response(ciphertext)
+      if (url === `/api/shared/${SONG_ID}/blob` || url === `/api/shared/${SONG_ID}/download`) {
+        return revoked ? json({ code: 'not_found' }, 404) : new Response(ciphertext)
+      }
       if (url === '/api/me/keypair') {
         return json({ public_key: betoKeyPair.publicKey, wrapped_private_key: betoKeyPair.wrappedPrivateKey, private_key_iv: betoKeyPair.privateKeyIv })
       }
@@ -92,6 +94,7 @@ describe('SharedWithMePage', () => {
     })
     vi.spyOn(HTMLMediaElement.prototype, 'pause').mockImplementation(() => {})
     vi.spyOn(HTMLMediaElement.prototype, 'load').mockImplementation(() => {})
+    vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {})
   })
   afterEach(() => {
     vi.unstubAllGlobals()
@@ -122,6 +125,18 @@ describe('SharedWithMePage', () => {
     expect(calls).toContain('/api/me/keypair')
     expect(calls.some((c) => c.endsWith('/plays'))).toBe(false)
     expect(calls.some((c) => c.startsWith('/api/songs/'))).toBe(false) // nunca usa el Proxy del propietario
+  })
+
+  it('Beto descarga una canción compartida por la ruta que aplica su cuota mensual', async () => {
+    const u = userEvent.setup()
+    const { original } = await setup()
+
+    await u.click(await screen.findByRole('button', { name: 'Descargar Brisa' }))
+
+    await waitFor(() => expect(calls).toContain(`/api/shared/${SONG_ID}/download`))
+    expect(calls).toContain('/api/me/keypair')
+    expect(createdUrls).toHaveLength(1)
+    expect(new Uint8Array(await createdUrls[0].arrayBuffer())).toEqual(original)
   })
 
   it('si Ana revocó, al reproducir se explica que ya no hay acceso', async () => {

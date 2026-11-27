@@ -11,6 +11,10 @@ export interface Plan {
   name: string
   maxStorageBytes: number
   maxFileSizeBytes: number
+  /** null means unlimited. */
+  maxMonthlyDownloads?: number | null
+  /** Maximum distinct recipients per shared item; null means unlimited. */
+  maxSharedRecipients?: number | null
 }
 
 export interface User {
@@ -22,6 +26,8 @@ export interface User {
   storageAvailable: number
   /** Ya generó su par de claves para compartir (día 16). */
   hasKeyPair: boolean
+  monthlyDownloadsUsed?: number
+  monthlyDownloadsRemaining?: number | null
 }
 
 export interface SessionResponse {
@@ -38,10 +44,19 @@ interface UserDto {
   id: number
   email: string
   username: string
-  plan: { code: Plan['code']; name: string; max_storage_bytes: number; max_file_size_bytes: number }
+  plan: {
+    code: Plan['code']
+    name: string
+    max_storage_bytes: number
+    max_file_size_bytes: number
+    max_monthly_downloads?: number | null
+    max_shared_recipients?: number | null
+  }
   used_storage: number
   storage_available: number
   has_keypair: boolean
+  monthly_downloads_used?: number
+  monthly_downloads_remaining?: number | null
 }
 
 interface SessionDto {
@@ -61,10 +76,14 @@ function toUser(dto: UserDto): User {
       name: dto.plan.name,
       maxStorageBytes: dto.plan.max_storage_bytes,
       maxFileSizeBytes: dto.plan.max_file_size_bytes,
+      maxMonthlyDownloads: dto.plan.max_monthly_downloads ?? null,
+      maxSharedRecipients: dto.plan.max_shared_recipients ?? null,
     },
     usedStorage: dto.used_storage,
     storageAvailable: dto.storage_available,
     hasKeyPair: dto.has_keypair,
+    monthlyDownloadsUsed: dto.monthly_downloads_used ?? 0,
+    monthlyDownloadsRemaining: dto.monthly_downloads_remaining ?? null,
   }
 }
 

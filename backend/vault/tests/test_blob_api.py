@@ -1,13 +1,15 @@
 import io
 import os
 import uuid
+from datetime import timedelta
 from unittest import mock
 
 from django.urls import reverse
+from django.utils import timezone
 from rest_framework.test import APITestCase
 
-from accounts.models import User
-from vault.models import Song
+from accounts.models import Plan, User
+from vault.models import OriginalDownload, Song
 from vault.storage import get_blob_storage
 from vault.tests.helpers import TempLocalStorageMixin
 
@@ -32,6 +34,9 @@ class SongBlobApiTests(TempLocalStorageMixin, APITestCase):
 
     def download(self, song_id=None):
         return self.client.get(reverse("song-blob", args=[song_id or self.song.uuid]))
+
+    def download_original(self, song_id=None):
+        return self.client.get(reverse("song-download", args=[song_id or self.song.uuid]))
 
     def test_owner_gets_the_exact_ciphertext_with_private_headers(self):
         response = self.download()
@@ -77,3 +82,77 @@ class SongBlobApiTests(TempLocalStorageMixin, APITestCase):
     def test_numeric_ids_are_not_accepted(self):
         response = self.client.get(f"/api/songs/{self.song.pk}/blob")
         self.assertEqual(response.status_code, 404)
+
+    def test_playback_blob_does_not_consume_an_original_download(self):
+        response = self.download()
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(b"".join(response.streaming_content), self.ciphertext)
+        self.assertEqual(OriginalDownload.objects.filter(user=self.ana).count(), 0)
+
+    def test_original_download_counts_one_successful_download(self):
+        response = self.download_original()
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(b"".join(response.streaming_content), self.ciphertext)
+        self.assertEqual(OriginalDownload.objects.filter(user=self.ana).count(), 1)
+
+    def test_free_plan_rejects_the_eleventh_original_download_in_a_month(self):
+        for _ in range(10):
+            response = self.download_original()
+            self.assertEqual(response.status_code, 200)
+            b"".join(response.streaming_content)
+
+        rejected = self.download_original()
+
+        self.assertEqual(rejected.status_code, 429)
+        self.assertEqual(rejected.json()["code"], "download_limit_reached")
+        self.assertEqual(OriginalDownload.objects.filter(user=self.ana).count(), 10)
+
+    def test_premium_plan_has_unlimited_original_downloads(self):
+        self.ana.active_plan = Plan.objects.get(code=Plan.PREMIUM)
+        self.ana.save(update_fields=["active_plan"])
+
+        for _ in range(12):
+            response = self.download_original()
+            self.assertEqual(response.status_code, 200)
+            b"".join(response.streaming_content)
+
+        self.assertEqual(OriginalDownload.objects.filter(user=self.ana).count(), 12)
+
+    def test_previous_month_downloads_do_not_consume_the_current_month_quota(self):
+        OriginalDownload.objects.create(user=self.ana, downloaded_at=timezone.now() - timedelta(days=40))
+
+        response = self.download_original()
+
+        self.assertEqual(response.status_code, 200)
+        b"".join(response.streaming_content)
+        self.assertEqual(OriginalDownload.objects.filter(user=self.ana).count(), 2)
+
+    def test_missing_blob_does_not_consume_a_download(self):
+        get_blob_storage().delete(self.song.storage_key)
+
+        with self.assertLogs("vault.views", level="ERROR"):
+            response = self.download_original()
+
+        self.assertEqual(response.status_code, 404)
+        self.assertEqual(OriginalDownload.objects.filter(user=self.ana).count(), 0)
+
+    def test_download_limit_is_applied_to_the_requesting_user(self):
+        self.client.force_authenticate(self.beto)
+
+        response = self.download_original()
+
+        self.assertEqual(response.status_code, 404)
+        self.assertEqual(OriginalDownload.objects.count(), 0)
+
+    def test_me_exposes_monthly_download_usage_and_plan_limits(self):
+        OriginalDownload.objects.create(user=self.ana)
+
+        response = self.client.get(reverse("me"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["plan"]["max_monthly_downloads"], 10)
+        self.assertEqual(response.json()["plan"]["max_shared_recipients"], 5)
+        self.assertEqual(response.json()["monthly_downloads_used"], 1)
+        self.assertEqual(response.json()["monthly_downloads_remaining"], 9)

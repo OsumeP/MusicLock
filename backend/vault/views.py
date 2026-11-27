@@ -100,6 +100,14 @@ def serve_encrypted_blob(open_authorized):
         song, blob = open_authorized()
     except services.SongNotFound:
         return _not_found()
+    except services.DownloadLimitReached:
+        return Response(
+            {
+                "detail": "Has alcanzado el límite de descargas originales de tu plan Free este mes.",
+                "code": "download_limit_reached",
+            },
+            status=status.HTTP_429_TOO_MANY_REQUESTS,
+        )
     except services.BlobMissing as error:
         logger.error("Falta el blob de una canción existente: %s", error)
         return Response(
@@ -126,6 +134,13 @@ class SongBlobView(APIView):
 
     def get(self, request, song_id):
         return serve_encrypted_blob(lambda: services.open_song_blob(request.user, song_id))
+
+
+class SongDownloadView(APIView):
+    """GET /api/songs/{id}/download — descarga original con cuota mensual Free."""
+
+    def get(self, request, song_id):
+        return serve_encrypted_blob(lambda: services.open_song_download_blob(request.user, song_id))
 
 
 def _not_found() -> Response:
@@ -217,6 +232,14 @@ class StatsView(APIView):
         period = request.query_params.get("period", "7d")
         try:
             result = stats.listening_stats(request.user, period)
+        except stats.PremiumRequired:
+            return Response(
+                {
+                    "detail": "Las estadísticas avanzadas están disponibles únicamente con el plan Premium.",
+                    "code": "premium_required",
+                },
+                status=status.HTTP_403_FORBIDDEN,
+            )
         except stats.InvalidPeriod:
             return Response(
                 {"detail": "`period` debe ser 7d, 30d o all.", "code": "invalid_period"},

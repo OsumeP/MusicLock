@@ -14,6 +14,7 @@ function lookupErrorMessage(error: unknown): string {
     if (error.code === 'recipient_not_found') return 'No hay ninguna cuenta con ese correo o usuario.'
     if (error.code === 'self_share') return 'No puedes compartir contigo.'
     if (error.code === 'recipient_without_key') return 'Esa persona aún no tiene clave para compartir: debe iniciar sesión en MusicLock una vez.'
+    if (error.code === 'share_limit_reached') return 'El plan Free permite compartir cada canción con un máximo de 5 personas. Para añadir más, el propietario necesita Premium.'
     if (error.status === 429) return 'Demasiadas búsquedas. Espera un minuto.'
   }
   if (error instanceof TypeError) return 'Sin conexión con el servidor.'

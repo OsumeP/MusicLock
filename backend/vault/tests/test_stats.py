@@ -10,7 +10,7 @@ from django.urls import reverse
 from django.utils import timezone
 from rest_framework.test import APITestCase
 
-from accounts.models import User
+from accounts.models import Plan, User
 from vault.models import ListeningHistory, Song
 
 # "Ahora" fijo: viernes 2026-11-06 a las 10:00 en Bogotá.
@@ -19,8 +19,13 @@ NOW = timezone.make_aware(datetime(2026, 11, 6, 10, 0), timezone.get_fixed_timez
 
 class StatsTests(APITestCase):
     def setUp(self):
-        self.ana = User.objects.create_user(username="ana", email="ana@example.com", password="x")
-        self.beto = User.objects.create_user(username="beto", email="beto@example.com", password="x")
+        premium = Plan.objects.get(code=Plan.PREMIUM)
+        self.ana = User.objects.create_user(
+            username="ana", email="ana@example.com", password="x", active_plan=premium
+        )
+        self.beto = User.objects.create_user(
+            username="beto", email="beto@example.com", password="x", active_plan=premium
+        )
         self.client.force_authenticate(self.ana)
         self.aurora = self.song("Aurora", "Aethel", 100)
         self.brisa = self.song("Brisa", "Aethel", 50)
@@ -137,3 +142,12 @@ class StatsTests(APITestCase):
         self.assertEqual((response.status_code, response.json()["code"]), (400, "invalid_period"))
         self.client.force_authenticate(None)
         self.assertEqual(self.stats().status_code, 401)
+
+    def test_free_users_cannot_access_advanced_statistics(self):
+        self.ana.active_plan = Plan.objects.get(code=Plan.FREE)
+        self.ana.save(update_fields=["active_plan"])
+
+        response = self.stats("7d")
+
+        self.assertEqual(response.status_code, 403)
+        self.assertEqual(response.json()["code"], "premium_required")

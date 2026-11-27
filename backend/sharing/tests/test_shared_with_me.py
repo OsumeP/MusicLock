@@ -10,6 +10,7 @@ import os
 from django.urls import reverse
 
 from sharing.models import SongShare
+from vault.models import OriginalDownload
 from vault.storage import get_blob_storage
 
 from .test_sharing_api import SharingTestCase, shared_key
@@ -29,6 +30,9 @@ class SharedWithMeTestCase(SharingTestCase):
 
     def shared_blob(self, song=None):
         return self.client.get(reverse("shared-blob", args=[(song or self.song).uuid]))
+
+    def shared_download(self, song=None):
+        return self.client.get(reverse("shared-download", args=[(song or self.song).uuid]))
 
 
 class SharedListTests(SharedWithMeTestCase):
@@ -96,6 +100,30 @@ class SharedBlobTests(SharedWithMeTestCase):
         self.client.force_authenticate(self.beto)
 
         self.assertEqual(self.shared_blob().status_code, 404)
+
+    def test_playing_a_shared_blob_does_not_consume_a_download(self):
+        response = self.shared_blob()
+
+        self.assertEqual(response.status_code, 200)
+        b"".join(response.streaming_content)
+        self.assertFalse(OriginalDownload.objects.filter(user=self.beto).exists())
+
+    def test_downloading_a_shared_song_consumes_the_recipient_monthly_quota(self):
+        response = self.shared_download()
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(b"".join(response.streaming_content), self.blob)
+        self.assertEqual(OriginalDownload.objects.filter(user=self.beto).count(), 1)
+        self.assertFalse(OriginalDownload.objects.filter(user=self.ana).exists())
+
+    def test_shared_download_is_rejected_when_the_recipient_has_exhausted_free_quota(self):
+        OriginalDownload.objects.bulk_create([OriginalDownload(user=self.beto) for _ in range(10)])
+
+        response = self.shared_download()
+
+        self.assertEqual(response.status_code, 429)
+        self.assertEqual(response.json()["code"], "download_limit_reached")
+        self.assertEqual(OriginalDownload.objects.filter(user=self.beto).count(), 10)
 
     def test_a_third_user_gets_404(self):
         self.client.force_authenticate(self.carla)

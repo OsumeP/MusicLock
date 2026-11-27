@@ -18,7 +18,7 @@ from django.db.models import BooleanField, Case, Count, Max, Sum, Value, When
 from django.db.models.functions import TruncDate
 from django.utils import timezone
 
-from accounts.models import User
+from accounts.models import Plan, User
 
 from .models import ListeningHistory
 from .services import own_songs
@@ -30,6 +30,10 @@ TOP_ARTISTS = 5
 
 class InvalidPeriod(Exception):
     pass
+
+
+class PremiumRequired(Exception):
+    """Las estadísticas avanzadas son exclusivas del plan Premium (BR-14)."""
 
 
 @dataclass(frozen=True)
@@ -45,6 +49,8 @@ class ListeningStats:
 
 
 def listening_stats(user: User, period: str = "7d") -> ListeningStats:
+    if user.active_plan.code != Plan.PREMIUM:
+        raise PremiumRequired
     if period not in PERIOD_DAYS:
         raise InvalidPeriod(period)
     days = PERIOD_DAYS[period]
