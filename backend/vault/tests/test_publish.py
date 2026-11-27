@@ -93,62 +93,22 @@ class PublishApiTests(TempLocalStorageMixin, APITestCase):
     def test_missing_key_is_rejected(self):
         self.assertEqual(self.client.put(self.url(), {}, format="json").status_code, 400)
 
-    # --- Despublicar ---
-
-    def test_unpublish_clears_the_key_and_the_date(self):
-        self.publish()
-
-        response = self.client.delete(self.url())
-
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.json()["visibility"], "private")
-        self.assertIsNone(response.json()["published_at"])
-        self.song.refresh_from_db()
-        self.assertEqual(self.song.visibility, Visibility.PRIVATE)
-        self.assertEqual(self.song.public_file_key, "")
-        self.assertIsNone(self.song.published_at)
-
-    def test_unpublish_is_idempotent(self):
-        for _ in range(2):
-            self.assertEqual(self.client.delete(self.url()).status_code, 200)
-        self.song.refresh_from_db()
-        self.assertEqual(self.song.visibility, Visibility.PRIVATE)
-
-    def test_can_publish_again_after_unpublishing_with_a_new_key(self):
-        self.publish()
-        self.client.delete(self.url())
-        second = new_key()
-
-        self.assertEqual(self.publish(second).status_code, 200)
-
-        self.song.refresh_from_db()
-        self.assertEqual(self.song.public_file_key, second)
+    # Despublicar (con rotación de la File Key): ver test_unpublish.py.
 
     # --- Permisos ---
 
     def test_requires_authentication(self):
         self.client.force_authenticate(None)
         self.assertEqual(self.publish().status_code, 401)
-        self.assertEqual(self.client.delete(self.url()).status_code, 401)
 
     def test_another_user_gets_404_and_cannot_change_visibility(self):
         self.client.force_authenticate(self.beto)
 
         self.assertEqual(self.publish().status_code, 404)
-        self.assertEqual(self.client.delete(self.url()).status_code, 404)
 
         self.song.refresh_from_db()
         self.assertEqual(self.song.visibility, Visibility.PRIVATE)
         self.assertEqual(self.song.public_file_key, "")
-
-    def test_another_user_cannot_unpublish_a_public_song(self):
-        self.publish()
-        self.client.force_authenticate(self.beto)
-
-        self.assertEqual(self.client.delete(self.url()).status_code, 404)
-
-        self.song.refresh_from_db()
-        self.assertEqual(self.song.visibility, Visibility.PUBLIC)
 
     def test_unknown_song_is_404(self):
         song = self.make_song()

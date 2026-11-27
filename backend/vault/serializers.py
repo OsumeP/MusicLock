@@ -1,19 +1,25 @@
-from rest_framework import serializers
-
-from accounts.crypto_fields import IV_BYTES, WRAPPED_KEY_BYTES, Base64BytesField
-
-from .models import ListeningHistory, Song
-
 import base64
 import binascii
+import json
+
+from rest_framework import serializers
+
+from accounts.crypto_fields import IV_BYTES, SHARED_FILE_KEY_BYTES, WRAPPED_KEY_BYTES, Base64BytesField
+
+from .models import ListeningHistory, Song
 
 PUBLIC_FILE_KEY_BYTES = 32  # AES-256
 
 
 class PublishSerializer(serializers.Serializer):
-    """PUT /publish: la File Key en claro (base64). Debe ser una clave AES-256."""
+    """
+    PUT /publish: la File Key en claro (base64). Debe ser una clave AES-256.
+    `file_iv` (opcional) es el IV del material del que salió la llave: si ya no es
+    el actual (la llave se rotó), se rechaza con 409 `stale_key`.
+    """
 
     file_key = serializers.CharField(max_length=64)
+    file_iv = Base64BytesField(IV_BYTES, required=False)
 
     def validate_file_key(self, value):
         try:
@@ -23,6 +29,39 @@ class PublishSerializer(serializers.Serializer):
         if len(raw) != PUBLIC_FILE_KEY_BYTES:
             raise serializers.ValidationError("La llave debe tener 32 bytes (AES-256).")
         return base64.b64encode(raw).decode()  # forma canónica
+
+
+class UnpublishSerializer(serializers.Serializer):
+    """
+    POST /unpublish (multipart): la canción cifrada de nuevo con una File Key nueva,
+    su material envuelto con la Master Key y `share_keys`, un JSON
+    {"usuario": File Key nueva envuelta con RSA-OAEP} con TODOS los destinatarios
+    actuales (`{}` si no hay).
+    """
+
+    file = serializers.FileField(allow_empty_file=False)
+    file_iv = Base64BytesField(IV_BYTES)
+    wrapped_file_key = Base64BytesField(WRAPPED_KEY_BYTES)
+    wrapped_key_iv = Base64BytesField(IV_BYTES)
+    share_keys = serializers.CharField(required=False, default="{}")
+
+    def validate_share_keys(self, value):
+        try:
+            keys = json.loads(value)
+        except ValueError:
+            raise serializers.ValidationError("Debe ser un objeto JSON.")
+        if not isinstance(keys, dict):
+            raise serializers.ValidationError("Debe ser un objeto JSON.")
+        field = Base64BytesField(SHARED_FILE_KEY_BYTES)
+        validated = {}
+        for username, wrapped in keys.items():
+            if not isinstance(wrapped, str):
+                raise serializers.ValidationError(f"La llave de {username} debe ser texto base64.")
+            try:
+                validated[username] = field.run_validation(wrapped)
+            except serializers.ValidationError as error:
+                raise serializers.ValidationError(f"Llave inválida para {username}: {error.detail[0]}")
+        return validated
 
 
 # Límite razonable para la duración declarada (6 h): evita valores absurdos.

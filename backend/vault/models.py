@@ -6,6 +6,7 @@ D10) y el material necesario para que el navegador del dueño descifre el audio.
 El audio cifrado vive en el almacenamiento de blobs (MinIO) bajo `storage_key`.
 """
 
+import secrets
 import uuid
 
 from django.conf import settings
@@ -16,6 +17,15 @@ from django.utils import timezone
 def build_storage_key(owner_id: int, song_uuid: uuid.UUID) -> str:
     """Nombre del objeto en el almacenamiento. Nunca incluye títulos ni nombres de archivo."""
     return f"users/{owner_id}/songs/{song_uuid}.bin"
+
+
+def rotated_storage_key(owner_id: int, song_uuid: uuid.UUID) -> str:
+    """
+    Nombre para el blob de una canción a la que se le rotó la File Key. Es distinto
+    en cada rotación para que el blob nuevo conviva con el viejo hasta que la
+    transacción se confirme (el viejo se borra después, ver `vault/signals.py`).
+    """
+    return f"users/{owner_id}/songs/{song_uuid}-{secrets.token_hex(8)}.bin"
 
 
 class Visibility(models.TextChoices):

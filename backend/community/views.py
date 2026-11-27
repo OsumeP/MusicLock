@@ -2,6 +2,7 @@ from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from core.throttling import WriteThrottleMixin
 from vault.services import SongNotFound
 from vault.views import SongPagination, serve_encrypted_blob
 
@@ -65,12 +66,14 @@ def _comment_error(error: services.CommentError) -> Response:
     return Response({"detail": error.message, "code": error.code}, status=error.http_status)
 
 
-class SongCommentsView(APIView):
+class SongCommentsView(WriteThrottleMixin, APIView):
     """
     GET  /api/community/songs/{id}/comments — todos los comentarios, en orden cronológico.
     POST /api/community/songs/{id}/comments — {"body": "...", "parent": <id opcional>}.
-    Canción privada o inexistente: 404.
+    Canción privada o inexistente: 404. El POST tiene límite `comments` por usuario.
     """
+
+    throttle_scope = "comments"
 
     def get(self, request, song_id):
         try:
@@ -91,11 +94,14 @@ class SongCommentsView(APIView):
         return Response(CommentSerializer(comment, context={"request": request}).data, status=status.HTTP_201_CREATED)
 
 
-class CommentDetailView(APIView):
+class CommentDetailView(WriteThrottleMixin, APIView):
     """
     PATCH  /api/community/comments/{id} — editar el texto (solo el autor).
     DELETE /api/community/comments/{id} — eliminar (el autor o el dueño de la canción).
+    Ambos comparten el límite `comments` con la creación.
     """
+
+    throttle_scope = "comments"
 
     def patch(self, request, comment_id):
         serializer = CommentUpdateSerializer(data=request.data)
@@ -113,12 +119,15 @@ class CommentDetailView(APIView):
             return _comment_error(error)
         return Response(status=status.HTTP_204_NO_CONTENT)
 
-class UserFollowView(APIView):
+class UserFollowView(WriteThrottleMixin, APIView):
     """
     PUT    /api/community/users/{username}/follow — seguir (idempotente).
     DELETE /api/community/users/{username}/follow — dejar de seguir (idempotente).
-    Ambas responden {"username", "is_following"}.
+    Ambas responden {"username", "is_following"}. Límite `follow` por usuario: la
+    respuesta revela si un usuario existe, así que sin límite serviría para enumerarlos.
     """
+
+    throttle_scope = "follow"
 
     def put(self, request, username):
         return self._set(request, username, follow=True)

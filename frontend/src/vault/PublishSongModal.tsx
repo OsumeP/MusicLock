@@ -5,9 +5,32 @@ import type { Song } from '../api/songs'
 import { useAuth } from '../auth/session'
 import { Modal } from '../components/Modal'
 import { Alert } from '../components/ui'
-import { publishOwnSong, unpublishOwnSong } from './publishing'
+import { DecryptionError } from '../crypto'
+import { publishOwnSong, unpublishOwnSong, type UnpublishStep } from './publishing'
 
-/** Confirma publicar o despublicar una canción propia (D11). No se cierra mientras trabaja. */
+const STEP_TEXT: Record<UnpublishStep, string> = {
+  downloading: 'Descargando la canción cifrada…',
+  encrypting: 'Cifrando de nuevo con una llave nueva…',
+  uploading: 'Subiendo…',
+}
+
+function errorMessage(error: unknown, isPublic: boolean): string {
+  if (error instanceof DecryptionError || (error instanceof ApiError && error.code === 'stale_key')) {
+    return 'La canción cambió desde que cargaste la lista (quizá en otra pestaña). Recarga la página e inténtalo de nuevo.'
+  }
+  if (error instanceof ApiError) {
+    if (error.code === 'shares_changed') return 'Los accesos de la canción cambiaron mientras se despublicaba. Inténtalo de nuevo.'
+    return error.message
+  }
+  if (error instanceof TypeError) return 'Sin conexión con el servidor.'
+  return isPublic ? 'No se pudo despublicar la canción. Inténtalo de nuevo.' : 'No se pudo publicar la canción. Inténtalo de nuevo.'
+}
+
+/**
+ * Confirma publicar o despublicar una canción propia (D11). Despublicar rota la File
+ * Key (descarga, cifra de nuevo y sube), así que muestra el paso en curso. No se
+ * cierra mientras trabaja.
+ */
 export function PublishSongModal({
   song,
   onClose,
@@ -22,6 +45,8 @@ export function PublishSongModal({
   const { session } = useAuth()
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [step, setStep] = useState<UnpublishStep | null>(null)
+  const [progress, setProgress] = useState<number | null>(null)
   const isPublic = song.visibility === 'public'
 
   if (session.status !== 'ready') return null
@@ -31,17 +56,21 @@ export function PublishSongModal({
     setBusy(true)
     setError(null)
     try {
-      const saved = isPublic ? await unpublishOwnSong(song) : await publishOwnSong(song, masterKey)
+      const saved = isPublic
+        ? await unpublishOwnSong(song, masterKey, {
+            onStep: (current) => {
+              setStep(current)
+              setProgress(null)
+            },
+            onProgress: setProgress,
+          })
+        : await publishOwnSong(song, masterKey)
       onChanged(saved)
       onClose()
     } catch (err) {
-      setError(
-        err instanceof ApiError
-          ? err.message
-          : isPublic
-            ? 'No se pudo despublicar la canción. Inténtalo de nuevo.'
-            : 'No se pudo publicar la canción. Inténtalo de nuevo.',
-      )
+      setError(errorMessage(err, isPublic))
+      setStep(null)
+      setProgress(null)
       setBusy(false)
     }
   }
@@ -60,7 +89,9 @@ export function PublishSongModal({
 
         {isPublic ? (
           <Alert tone="info">
-            La canción volverá a ser privada y dejará de aparecer en Comunidad. Quien ya la haya descargado la conserva.
+            La canción volverá a ser privada y dejará de aparecer en Comunidad. Tu navegador la cifrará de nuevo con una llave
+            nueva, así que la llave que se usó mientras era pública ya no servirá; quienes tengan acceso compartido lo
+            conservan. Lo que alguien ya haya descargado no se puede recuperar.
           </Alert>
         ) : (
           <Alert tone="warning">
@@ -68,6 +99,14 @@ export function PublishSongModal({
             que otros puedan abrirla, el servidor guardará su llave. Puedes despublicarla cuando quieras, pero no podemos
             recuperar lo que ya se haya descargado.
           </Alert>
+        )}
+
+        {step && (
+          <p className="flex items-center gap-2 font-mono text-mono-crypto text-on-surface-variant" role="status">
+            <span aria-hidden className="material-symbols-outlined animate-spin text-[16px]">progress_activity</span>
+            {STEP_TEXT[step]}
+            {step === 'uploading' && progress !== null && ` ${Math.round(progress * 100)} %`}
+          </p>
         )}
 
         {error && <Alert tone="error">{error}</Alert>}

@@ -13,11 +13,12 @@ from typing import BinaryIO
 from django.db import IntegrityError, transaction
 from django.db.models import Exists, F, OuterRef, Q, QuerySet, Subquery
 
+from django.utils import timezone
+
 from accounts.models import User
 
-from django.utils import timezone
-from .models import Favorite, ListeningHistory, Song, Visibility, build_storage_key
-
+from .models import Favorite, ListeningHistory, Song, Visibility, build_storage_key, rotated_storage_key
+from .signals import schedule_blob_deletion
 from .storage import get_blob_storage
 
 # AES-GCM añade 16 bytes de tag: un cifrado más pequeño que esto no puede contener audio.
@@ -266,21 +267,40 @@ def clear_history(user: User) -> int:
 # --- Publicar y despublicar (D11, opción A) ---------------------------------------------
 
 
-def publish_song(user: User, song_id, public_file_key: str) -> Song:
+class StaleKey(Exception):
+    """
+    El navegador usó el material de una File Key que ya se rotó (p. ej. otra pestaña
+    con la lista sin recargar). Lo usan publicar y compartir: si no se rechazara, la
+    llave enviada no abriría el blob actual.
+    """
+
+    code = "stale_key"
+    message = "La canción cambió desde que la cargaste. Recarga la lista e inténtalo de nuevo."
+
+
+def check_fresh_key(song: Song, file_iv: str | None) -> None:
+    """`file_iv` identifica la File Key con la que trabajó el navegador (cambia al rotarla)."""
+    if file_iv is not None and file_iv != song.file_iv:
+        raise StaleKey
+
+
+def publish_song(user: User, song_id, public_file_key: str, file_iv: str | None = None) -> Song:
     """
     Hace pública una canción propia. El navegador del dueño desenvuelve la File Key
     y la envía en claro; el servidor la guarda para que cualquier usuario pueda
     descifrar el blob (que no cambia). Es idempotente: si ya es pública, no cambia
-    nada (ni la llave ni la fecha).
+    nada (ni la llave ni la fecha). Con `file_iv`, rechaza (`StaleKey`) una llave
+    sacada de material ya rotado.
 
-    Las filas de `sharing` se conservan: pasan a ser redundantes, pero si la
-    canción se despublica vuelven a tener efecto.
+    Las filas de `sharing` se conservan: pasan a ser redundantes mientras sea
+    pública, y al despublicarla se vuelven a envolver con la File Key nueva.
     """
     with transaction.atomic():
         song = Song.objects.select_for_update().filter(owner=user, uuid=song_id).first()
         if song is None:
             raise SongNotFound
         if song.visibility != Visibility.PUBLIC:
+            check_fresh_key(song, file_iv)
             song.visibility = Visibility.PUBLIC
             song.public_file_key = public_file_key
             song.published_at = timezone.now()
@@ -288,18 +308,96 @@ def publish_song(user: User, song_id, public_file_key: str) -> Song:
     return get_own_song(user, song_id)
 
 
-def unpublish_song(user: User, song_id) -> Song:
+class RotationRejected(Exception):
+    """El material de la rotación no corresponde al estado actual. `code` y `http_status` los usa la vista."""
+
+    code = "rotation_rejected"
+    http_status = 400
+
+    def __init__(self, message: str):
+        super().__init__(message)
+        self.message = message
+
+
+class SizeMismatch(RotationRejected):
+    code = "size_mismatch"
+
+
+class SharesChanged(RotationRejected):
+    code = "shares_changed"
+    http_status = 409
+
+
+@dataclass(frozen=True)
+class KeyMaterial:
+    """Material nuevo de una canción tras rotar su File Key (todo envuelto o público)."""
+
+    file_iv: str
+    wrapped_file_key: str
+    wrapped_key_iv: str
+
+
+def unpublish_song(
+    user: User, song_id, data: BinaryIO, size: int, material: KeyMaterial, share_keys: dict[str, str]
+) -> Song:
     """
-    Vuelve privada una canción propia y borra la llave pública. El blob no se toca.
-    Idempotente. Lo que alguien ya descargó o guardó no se puede recuperar.
+    Vuelve privada una canción propia ROTANDO su File Key: la llave que el servidor
+    vio al publicar (`public_file_key`) deja de abrir cualquier blob guardado.
+
+    El navegador del dueño descifra el blob, lo vuelve a cifrar con una File Key
+    nueva y la envuelve con su Master Key y con la clave pública de cada
+    destinatario de `sharing`. Aquí, de forma atómica:
+    - Se bloquea la fila de la canción (las comparticiones también la bloquean,
+      así que nadie comparte ni revoca a mitad de la rotación).
+    - El cifrado nuevo debe medir lo mismo que el viejo (mismo audio con AES-GCM):
+      la cuota no cambia y no se cuela otro archivo.
+    - `share_keys` debe traer exactamente los destinatarios actuales; si alguien
+      compartió o revocó entretanto → `SharesChanged` (409) y el navegador reintenta.
+    - Blob nuevo antes que la fila (con otro nombre); el viejo se borra al confirmar.
+
+    Idempotente: si ya es privada no cambia nada. Lo que alguien ya descargó con
+    la llave pública no se puede recuperar.
     """
+    storage = get_blob_storage()
+
     with transaction.atomic():
         song = Song.objects.select_for_update().filter(owner=user, uuid=song_id).first()
         if song is None:
             raise SongNotFound
-        if song.visibility != Visibility.PRIVATE:
+        if song.visibility == Visibility.PRIVATE:
+            return get_own_song(user, song_id)
+        if size != song.size:
+            raise SizeMismatch("El archivo cifrado de nuevo no corresponde a esta canción.")
+
+        shares = list(song.shares.select_related("recipient"))
+        if set(share_keys) != {share.recipient.username for share in shares}:
+            raise SharesChanged("Los accesos de la canción cambiaron mientras se despublicaba. Inténtalo de nuevo.")
+
+        old_key = song.storage_key
+        song.storage_key = rotated_storage_key(user.pk, song.uuid)
+        try:
+            storage.put(song.storage_key, data, size)
+        except Exception as exc:
+            raise StorageUnavailable(str(exc)) from exc
+        try:
+            song.file_iv = material.file_iv
+            song.wrapped_file_key = material.wrapped_file_key
+            song.wrapped_key_iv = material.wrapped_key_iv
             song.visibility = Visibility.PRIVATE
             song.public_file_key = ""
             song.published_at = None
-            song.save(update_fields=["visibility", "public_file_key", "published_at"])
+            song.save(
+                update_fields=[
+                    "storage_key", "file_iv", "wrapped_file_key", "wrapped_key_iv",
+                    "visibility", "public_file_key", "published_at",
+                ]
+            )
+            for share in shares:
+                share.wrapped_file_key = share_keys[share.recipient.username]
+                share.save(update_fields=["wrapped_file_key"])
+        except BaseException:
+            storage.delete(song.storage_key)
+            raise
+        schedule_blob_deletion(old_key)
+
     return get_own_song(user, song_id)

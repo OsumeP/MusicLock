@@ -15,6 +15,7 @@ function lookupErrorMessage(error: unknown): string {
     if (error.code === 'self_share') return 'No puedes compartir contigo.'
     if (error.code === 'recipient_without_key') return 'Esa persona aún no tiene clave para compartir: debe iniciar sesión en MusicLock una vez.'
     if (error.status === 429) return 'Demasiadas búsquedas. Espera un minuto.'
+    if (error.code === 'stale_key') return error.message
   }
   if (error instanceof TypeError) return 'Sin conexión con el servidor.'
   return 'No se pudo buscar a esa persona.'
@@ -79,7 +80,7 @@ export function ShareSongModal({ song, onClose }: { song: Song; onClose: () => v
     setError(null)
     try {
       const wrapped = await wrapFileKeyFor(song, masterKey, found.publicKey)
-      const share = await shareSong(song.id, found.username, wrapped)
+      const share = await shareSong(song.id, found.username, wrapped, { fileIv: song.fileIv })
       setShares((current) => [share, ...(current ?? []).filter((s) => s.recipient !== share.recipient)])
       setNotice(`“${song.title}” se compartió con ${found.username}.`)
       setFound(null)

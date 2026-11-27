@@ -110,7 +110,9 @@ describe('ShareSongModal', () => {
     expect(await screen.findByText('“Aurora” se compartió con beto.', {}, { timeout: 10_000 })).toBeInTheDocument()
     const put = calls.find((c) => c.method === 'PUT')!
     expect(put.url).toBe('/api/songs/song-1/shares/beto')
-    const { wrapped_file_key } = put.body as { wrapped_file_key: string }
+    const { wrapped_file_key, file_iv } = put.body as { wrapped_file_key: string; file_iv: string }
+    // El IV identifica la File Key usada: si se rotó entretanto, el servidor responde 409.
+    expect(file_iv).toBe(encrypted.fileIv)
     // Del lado de Beto: su privada (envuelta con SU Master Key) abre la File Key y descifra el mismo blob.
     const betoPrivate = await unlockPrivateKey(beto.keyPair.wrappedPrivateKey, beto.keyPair.privateKeyIv, beto.masterKey)
     const played = await decryptSharedAudio(encrypted.ciphertext, { fileIv: encrypted.fileIv, sharedFileKey: wrapped_file_key }, betoPrivate)

@@ -166,12 +166,33 @@ export async function uploadEncryptedSong(
   form.append('wrapped_key_iv', encrypted.wrappedKeyIv)
   return toSong(await apiUpload<SongDto>('/songs', form, options))
 }
-/** PUT /api/songs/{id}/publish — hace pública la canción. `fileKey` es la File Key en claro (base64). */
-export async function publishSong(id: string, fileKey: string): Promise<Song> {
-  return toSong(await apiRequest<SongDto>(`/songs/${encodeURIComponent(id)}/publish`, { method: 'PUT', json: { file_key: fileKey } }))
+/**
+ * PUT /api/songs/{id}/publish — hace pública la canción. `fileKey` es la File Key en
+ * claro (base64) y `fileIv` el de la canción de la que salió (409 `stale_key` si ya rotó).
+ */
+export async function publishSong(id: string, fileKey: string, fileIv: string): Promise<Song> {
+  return toSong(
+    await apiRequest<SongDto>(`/songs/${encodeURIComponent(id)}/publish`, { method: 'PUT', json: { file_key: fileKey, file_iv: fileIv } }),
+  )
 }
 
-/** DELETE /api/songs/{id}/publish — la vuelve privada y borra la llave pública (idempotente). */
-export async function unpublishSong(id: string): Promise<Song> {
-  return toSong(await apiRequest<SongDto>(`/songs/${encodeURIComponent(id)}/publish`, { method: 'DELETE' }))
+/**
+ * POST /api/songs/{id}/unpublish — la vuelve privada subiendo el audio cifrado con
+ * una File Key NUEVA (`rotateFileKey`) y esa llave envuelta para cada destinatario
+ * actual (`shareKeys`: usuario → llave). Errores: 409 `shares_changed` si los
+ * accesos cambiaron entretanto, 400 `size_mismatch`.
+ */
+export async function unpublishSong(
+  id: string,
+  rotated: EncryptedAudio,
+  shareKeys: Record<string, string>,
+  options: { onProgress?: (fraction: number) => void; signal?: AbortSignal } = {},
+): Promise<Song> {
+  const form = new FormData()
+  form.append('file', rotated.ciphertext, 'audio.bin')
+  form.append('file_iv', rotated.fileIv)
+  form.append('wrapped_file_key', rotated.wrappedFileKey)
+  form.append('wrapped_key_iv', rotated.wrappedKeyIv)
+  form.append('share_keys', JSON.stringify(shareKeys))
+  return toSong(await apiUpload<SongDto>(`/songs/${encodeURIComponent(id)}/unpublish`, form, options))
 }

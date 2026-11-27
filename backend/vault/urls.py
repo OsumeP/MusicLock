@@ -10,5 +10,6 @@ urlpatterns = [
     path("songs/<uuid:song_id>/plays", views.SongPlaysView.as_view(), name="song-plays"),
     path("history", views.HistoryView.as_view(), name="history"),
     path("stats", views.StatsView.as_view(), name="stats"),
-    path("songs/<uuid:song_id>/publish", views.SongPublishView.as_view(), name="song-publish"),    
+    path("songs/<uuid:song_id>/publish", views.SongPublishView.as_view(), name="song-publish"),
+    path("songs/<uuid:song_id>/unpublish", views.SongUnpublishView.as_view(), name="song-unpublish"),
 ]

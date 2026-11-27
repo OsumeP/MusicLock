@@ -200,7 +200,10 @@ class CommunityApiTests(TempLocalStorageMixin, APITestCase):
         ciphertext = os.urandom(1000)
         song = self.make_song(size=len(ciphertext))
         self.put_blob(song, ciphertext)
-        self.assertEqual(self.client.get(self.blob_url(song)).status_code, 200)
+        response = self.client.get(self.blob_url(song))
+        self.assertEqual(response.status_code, 200)
+        # Consumir el streaming cierra el archivo (si no, Windows no puede borrar la carpeta temporal).
+        self.assertEqual(b"".join(response.streaming_content), ciphertext)
 
         song.visibility = Visibility.PRIVATE
         song.public_file_key = ""

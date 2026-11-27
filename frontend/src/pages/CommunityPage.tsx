@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { NavLink } from 'react-router'
 
+import { ApiError } from '../api/client'
 import { setFollowing, type CommunityScope } from '../api/community'
 import type { Song } from '../api/songs'
 import { useAuth } from '../auth/session'
@@ -11,6 +12,12 @@ import { SongTable } from '../vault/SongTable'
 import { useSongList } from '../vault/useSongList'
 
 const NO_PENDING: ReadonlySet<string> = new Set()
+
+/** Mensaje al fallar seguir o dejar de seguir. 429 = límite `follow` del servidor. */
+function followErrorMessage(error: unknown, wanted: boolean, owner: string): string {
+  if (error instanceof ApiError && error.status === 429) return 'Demasiados cambios seguidos. Espera un minuto antes de volver a intentarlo.'
+  return wanted ? `No se pudo seguir a ${owner}.` : `No se pudo dejar de seguir a ${owner}.`
+}
 
 const TABS = [
   { to: '/comunidad', label: 'Comunidad', end: true },
@@ -61,9 +68,9 @@ export function CommunityPage({ scope }: { scope: CommunityScope }) {
     try {
       await setFollowing(owner, wanted)
       if (scope === 'following' && !wanted) list.reload() // sus canciones salen de "Siguiendo"
-    } catch {
+    } catch (error) {
       apply(!wanted)
-      setNotice(wanted ? `No se pudo seguir a ${owner}.` : `No se pudo dejar de seguir a ${owner}.`)
+      setNotice(followErrorMessage(error, wanted, owner))
     } finally {
       setFollowPending((current) => {
         const next = new Set(current)

@@ -1,12 +1,8 @@
 from rest_framework import serializers
 
-from accounts.crypto_fields import Base64BytesField
+from accounts.crypto_fields import IV_BYTES, SHARED_FILE_KEY_BYTES, Base64BytesField
 
 from .models import SongShare
-
-# RSA-OAEP con una clave de 3072 bits produce siempre 384 bytes.
-SHARED_FILE_KEY_BYTES = 3072 // 8
-
 
 class RecipientSerializer(serializers.Serializer):
     """Lo que el propietario necesita para compartir: el usuario y su clave pública."""
@@ -16,18 +12,25 @@ class RecipientSerializer(serializers.Serializer):
 
 
 class ShareSerializer(serializers.ModelSerializer):
-    """Un acceso a una canción propia. Del destinatario solo se muestra el usuario."""
+    """
+    Un acceso a una canción propia. Del destinatario solo se muestra el usuario y su
+    clave pública: el navegador del dueño la necesita para volver a envolver la File
+    Key cuando la rota (al despublicar).
+    """
 
     recipient = serializers.CharField(source="recipient.username")
+    recipient_public_key = serializers.CharField(source="recipient.public_key")
 
     class Meta:
         model = SongShare
-        fields = ["recipient", "role", "created_at"]
+        fields = ["recipient", "recipient_public_key", "role", "created_at"]
 
 
 class ShareWriteSerializer(serializers.Serializer):
     wrapped_file_key = Base64BytesField(SHARED_FILE_KEY_BYTES)
     role = serializers.ChoiceField(choices=SongShare.ROLE_CHOICES, default=SongShare.ROLE_QUERY)
+    # IV del material del que salió la File Key: si se rotó entretanto → 409 `stale_key`.
+    file_iv = Base64BytesField(IV_BYTES, required=False)
 
 
 class SharedSongSerializer(serializers.ModelSerializer):

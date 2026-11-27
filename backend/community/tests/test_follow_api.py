@@ -1,6 +1,7 @@
 import base64
 
 from django.db import IntegrityError, transaction
+from django.core.cache import cache
 from django.urls import reverse
 from django.utils import timezone
 from rest_framework.test import APITestCase
@@ -16,6 +17,7 @@ PUBLIC_KEY = base64.b64encode(b"k" * 32).decode()
 class FollowApiTests(TempLocalStorageMixin, APITestCase):
     def setUp(self):
         super().setUp()
+        cache.clear()  # límite de peticiones (`comments` / `follow`)
         self.ana = User.objects.create_user(username="ana", email="ana@example.com", password="x")
         self.beto = User.objects.create_user(username="beto", email="beto@example.com", password="x")
         self.carla = User.objects.create_user(username="carla", email="carla@example.com", password="x")
