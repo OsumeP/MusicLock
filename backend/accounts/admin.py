@@ -7,7 +7,7 @@ from .models import Plan, User
 
 @admin.register(Plan)
 class PlanAdmin(admin.ModelAdmin):
-    list_display = ("name", "code", "monthly_price", "storage", "file_size")
+    list_display = ("name", "code", "monthly_price", "storage", "file_size", "downloads", "shared_recipients")
 
     @admin.display(description="Almacenamiento")
     def storage(self, plan):
@@ -16,6 +16,14 @@ class PlanAdmin(admin.ModelAdmin):
     @admin.display(description="Máx. por archivo")
     def file_size(self, plan):
         return filesizeformat(plan.max_file_size_bytes)
+
+    @admin.display(description="Descargas / mes")
+    def downloads(self, plan):
+        return plan.max_monthly_downloads if plan.max_monthly_downloads is not None else "Ilimitadas"
+
+    @admin.display(description="Destinatarios / canción")
+    def shared_recipients(self, plan):
+        return plan.max_shared_recipients if plan.max_shared_recipients is not None else "Ilimitados"
 
 
 @admin.register(User)

@@ -52,6 +52,12 @@ export function AccountPage() {
   )
   if (!user) return null
 
+  const downloadsUsed = user.monthlyDownloadsUsed ?? 0
+  const downloadsLimit = user.plan.maxMonthlyDownloads
+  const sharedRecipientsLimit = user.plan.maxSharedRecipients
+  const downloadUsage = downloadsLimit == null ? 'Ilimitadas' : `${downloadsUsed} de ${downloadsLimit} utilizadas`
+  const sharingLimit = sharedRecipientsLimit == null ? 'Ilimitados por canción' : `Hasta ${sharedRecipientsLimit} personas por canción`
+
   const sameAsCurrent = password.length > 0 && password === current
   const passwordError = submitted
     ? !strength.acceptable
@@ -100,6 +106,8 @@ export function AccountPage() {
             ['Correo', user.email],
             ['Plan', `${user.plan.name} · ${formatBytes(user.plan.maxStorageBytes)} · hasta ${formatBytes(user.plan.maxFileSizeBytes)} por archivo`],
             ['Almacenamiento usado', `${formatBytes(user.usedStorage)} de ${formatBytes(user.plan.maxStorageBytes)}`],
+            ['Descargas originales este mes', downloadUsage],
+            ['Compartición privada', sharingLimit],
           ].map(([term, value]) => (
             <div key={term} className="flex min-w-0 flex-col gap-0.5">
               <dt className="font-mono text-mono-label uppercase tracking-wider text-on-surface-variant">{term}</dt>

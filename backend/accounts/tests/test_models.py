@@ -11,6 +11,9 @@ class PlanSeedTests(TestCase):
 
         self.assertEqual((free.max_storage_bytes, free.max_file_size_bytes), (500 * MiB, 20 * MiB))
         self.assertEqual((premium.max_storage_bytes, premium.max_file_size_bytes), (5 * GiB, 100 * MiB))
+        self.assertEqual((free.max_monthly_downloads, free.max_shared_recipients), (10, 5))
+        self.assertIsNone(premium.max_monthly_downloads)
+        self.assertIsNone(premium.max_shared_recipients)
 
 
 class UserModelTests(TestCase):

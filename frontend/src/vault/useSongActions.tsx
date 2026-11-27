@@ -1,5 +1,6 @@
 import { useState, type ReactNode } from 'react'
 
+import { ApiError } from '../api/client'
 import { setFavorite, type Song } from '../api/songs'
 import { useAuth } from '../auth/session'
 import { AddToPlaylistModal } from '../playlists/AddToPlaylistModal'
@@ -68,8 +69,17 @@ export function useSongActions({
       setNotice(null)
       try {
         await downloadOriginalSong(song, session.masterKey)
-      } catch {
-        setNotice({ tone: 'error', text: `No se pudo descargar “${song.title}”.` })
+        // Actualiza el contador de cuota en el contexto; un fallo de /me no debe
+        // convertir una descarga que ya terminó en un aviso de error.
+        if (typeof refreshUser === 'function') void refreshUser().catch(() => undefined)
+      } catch (error) {
+        setNotice({
+          tone: 'error',
+          text:
+            error instanceof ApiError && error.code === 'download_limit_reached'
+              ? 'Alcanzaste las 10 descargas originales permitidas por el plan Free este mes. Podrás volver a descargar el próximo mes.'
+              : `No se pudo descargar “${song.title}”.`,
+        })
       } finally {
         setDownloadingId(null)
       }

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link, useSearchParams } from 'react-router'
 
+import { ApiError } from '../api/client'
 import { getStats, type ListeningStats, type StatsPeriod } from '../api/stats'
 import { Alert } from '../components/ui'
 import { formatDuration, formatListeningTime } from '../lib/format'
@@ -17,7 +18,7 @@ const PERIODS: { value: StatsPeriod; param: string; label: string; heading: stri
 const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`
 const artistName = (artist: string) => artist || 'Sin artista'
 
-type LoadResult = { key: string; stats: ListeningStats } | { key: string; error: true }
+type LoadResult = { key: string; stats: ListeningStats } | { key: string; error: 'failed' | 'premium_required' }
 
 function StatTile({ label, value, hint }: { label: string; value: string; hint?: string }) {
   return (
@@ -111,13 +112,19 @@ export function StatsPage() {
     const controller = new AbortController()
     getStats(period.value, controller.signal)
       .then((stats) => setResult({ key: requestKey, stats }))
-      .catch(() => !controller.signal.aborted && setResult({ key: requestKey, error: true }))
+      .catch((error: unknown) => {
+        if (controller.signal.aborted) return
+        setResult({
+          key: requestKey,
+          error: error instanceof ApiError && error.code === 'premium_required' ? 'premium_required' : 'failed',
+        })
+      })
     return () => controller.abort()
   }, [period.value, requestKey])
 
   // Mientras llega el periodo nuevo se sigue mostrando el anterior (sin parpadeo).
   const stats = result && 'stats' in result ? result.stats : null
-  const failed = result && 'error' in result && result.key === requestKey
+  const failed = result && 'error' in result && result.key === requestKey ? result.error : null
   const loading = result?.key !== requestKey
   const empty = stats?.totalPlays === 0
   const topArtist = stats?.topArtists[0]
@@ -159,7 +166,25 @@ export function StatsPage() {
         </div>
       </section>
 
-      {failed && (
+      {failed === 'premium_required' && (
+        <section className="flex flex-col gap-3 rounded-xl bg-surface-card p-6 ring-1 ring-border-subtle" aria-labelledby="premium-stats">
+          <div className="flex items-center gap-3">
+            <span aria-hidden className="material-symbols-outlined text-[28px] text-accent-cyan">lock</span>
+            <h2 id="premium-stats" className="font-display text-headline-sm font-semibold">Estadísticas Premium</h2>
+          </div>
+          <p className="max-w-2xl text-body-md text-on-surface-variant">
+            Las estadísticas avanzadas de reproducciones, artistas y canciones están disponibles únicamente para cuentas Premium.
+            Tu historial de reproducción se sigue registrando normalmente.
+          </p>
+          <div>
+            <Link to="/cuenta" className="text-title-sm font-semibold text-primary-light hover:text-on-surface">
+              Consultar mi plan
+            </Link>
+          </div>
+        </section>
+      )}
+
+      {failed === 'failed' && (
         <Alert tone="error">
           No se pudieron cargar tus estadísticas.{' '}
           <button type="button" className="font-semibold underline" onClick={() => setReloadKey((k) => k + 1)}>

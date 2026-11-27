@@ -25,6 +25,10 @@ class Plan(models.Model):
     monthly_price = models.PositiveIntegerField(default=0, help_text="Precio mensual en COP.")
     max_storage_bytes = models.BigIntegerField()
     max_file_size_bytes = models.BigIntegerField()
+    # None significa ilimitado. Los límites se aplican en el backend; el frontend
+    # solo los presenta para orientar al usuario.
+    max_monthly_downloads = models.PositiveIntegerField(null=True, blank=True)
+    max_shared_recipients = models.PositiveIntegerField(null=True, blank=True)
 
     class Meta:
         ordering = ["max_storage_bytes"]

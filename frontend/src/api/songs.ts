@@ -6,6 +6,11 @@ export function downloadEncryptedSong(id: string, signal?: AbortSignal): Promise
   return apiBlob(`/songs/${encodeURIComponent(id)}/blob`, { signal })
 }
 
+/** GET /api/songs/{id}/download — descarga original; consume la cuota mensual del plan Free. */
+export function downloadEncryptedSongOriginal(id: string, signal?: AbortSignal): Promise<Blob> {
+  return apiBlob(`/songs/${encodeURIComponent(id)}/download`, { signal })
+}
+
 /** Canción tal como la devuelve la API (metadatos en claro + material para descifrar). */
 export interface Song {
   id: string

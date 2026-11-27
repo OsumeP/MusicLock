@@ -56,7 +56,7 @@ describe('downloadOriginalSong', () => {
 
     await downloadOriginalSong(song, masterKey)
 
-    expect(fetchMock).toHaveBeenCalledWith('/api/songs/abc/blob', expect.anything())
+    expect(fetchMock).toHaveBeenCalledWith('/api/songs/abc/download', expect.anything())
     expect(clicked).toEqual([{ href: 'blob:musiclock/descarga', download: 'Nocturno- versión 2.mp3' }])
     expect(created[0].type).toBe('audio/mpeg')
     expect(new Uint8Array(await created[0].arrayBuffer())).toEqual(original)

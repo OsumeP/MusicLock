@@ -11,7 +11,7 @@ from django.db.models import Q, QuerySet
 
 from accounts.models import User
 from vault.models import Song
-from vault.services import SongNotFound, get_own_song, open_blob
+from vault.services import DownloadLimitReached, SongNotFound, consume_download_allowance, get_own_song, open_blob
 
 from .models import SongShare
 
@@ -26,6 +26,10 @@ class RecipientWithoutKey(Exception):
 
 class CannotShareWithSelf(Exception):
     pass
+
+
+class ShareLimitReached(Exception):
+    """El plan del propietario alcanzó el máximo de destinatarios por canción."""
 
 
 def find_recipient(owner: User, query: str) -> User:
@@ -63,8 +67,18 @@ def share_song(owner: User, song_id, recipient_username: str, *, wrapped_file_ke
     Comparte (o actualiza el acceso de) una canción propia con un destinatario.
     Volver a compartir reemplaza la File Key envuelta y el rol (Accesos FR-04).
     """
-    song = get_own_song(owner, song_id)
+    # Bloquear la fila de la canción serializa altas concurrentes de destinatarios
+    # y evita que dos solicitudes simultáneas superen el límite Free de cinco.
+    song = Song.objects.select_for_update().filter(owner=owner, uuid=song_id).first()
+    if song is None:
+        raise SongNotFound
     recipient = find_recipient(owner, recipient_username)
+
+    existing = SongShare.objects.filter(song=song, recipient=recipient).first()
+    limit = owner.active_plan.max_shared_recipients
+    if existing is None and limit is not None and SongShare.objects.filter(song=song).count() >= limit:
+        raise ShareLimitReached
+
     return SongShare.objects.update_or_create(
         song=song,
         recipient=recipient,
@@ -115,3 +129,15 @@ def open_shared_blob(user: User, song_id) -> tuple[Song, BinaryIO]:
     """
     song = get_share(user, song_id).song
     return song, open_blob(song)
+
+
+def open_shared_download_blob(user: User, song_id) -> tuple[Song, BinaryIO]:
+    """Abre una descarga original compartida y consume la cuota del destinatario."""
+    song = get_share(user, song_id).song
+    blob = open_blob(song)
+    try:
+        consume_download_allowance(user)
+    except DownloadLimitReached:
+        blob.close()
+        raise
+    return song, blob

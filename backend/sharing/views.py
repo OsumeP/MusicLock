@@ -75,6 +75,12 @@ class SongShareView(APIView):
             return _song_not_found()
         except RECIPIENT_ERRORS as error:
             return _recipient_error(error)
+        except services.ShareLimitReached:
+            return _error(
+                "El plan Free permite compartir cada canción con un máximo de 5 personas.",
+                "share_limit_reached",
+                status.HTTP_403_FORBIDDEN,
+            )
         return Response(ShareSerializer(share).data, status=status.HTTP_201_CREATED if created else status.HTTP_200_OK)
 
     def delete(self, request, song_id, username):
@@ -106,3 +112,10 @@ class SharedBlobView(APIView):
 
     def get(self, request, song_id):
         return serve_encrypted_blob(lambda: services.open_shared_blob(request.user, song_id))
+
+
+class SharedDownloadView(APIView):
+    """GET /api/shared/{id}/download — descarga original que consume la cuota propia."""
+
+    def get(self, request, song_id):
+        return serve_encrypted_blob(lambda: services.open_shared_download_blob(request.user, song_id))

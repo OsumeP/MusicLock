@@ -92,3 +92,27 @@ class ListeningHistory(models.Model):
 
     def __str__(self) -> str:
         return f"{self.user} ▶ {self.song} ({self.played_at:%Y-%m-%d %H:%M})"
+
+
+class OriginalDownload(models.Model):
+    """Registro mínimo para aplicar el límite mensual de descargas originales.
+
+    No se guarda el nombre ni el contenido descargado. El registro se conserva
+    aunque la canción se elimine, porque una descarga ya consumida no se repone.
+    """
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="original_downloads",
+    )
+    downloaded_at = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        ordering = ["-downloaded_at", "-id"]
+        indexes = [models.Index(fields=["user", "downloaded_at"], name="vault_orig_user_id_0fc36c_idx")]
+        verbose_name = "original download"
+        verbose_name_plural = "original downloads"
+
+    def __str__(self) -> str:
+        return f"{self.user} ↓ ({self.downloaded_at:%Y-%m-%d %H:%M})"

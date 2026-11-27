@@ -4,8 +4,8 @@
  * el archivo en claro.
  */
 
-import { downloadSharedEncryptedSong } from '../api/sharing'
-import { downloadEncryptedSong, type Song } from '../api/songs'
+import { downloadSharedEncryptedSong, downloadSharedEncryptedSongOriginal } from '../api/sharing'
+import { downloadEncryptedSong, downloadEncryptedSongOriginal, type Song } from '../api/songs'
 import { decryptAudio, decryptSharedAudio } from '../crypto'
 import { getPrivateKey } from '../sharing/privateKey'
 
@@ -32,9 +32,22 @@ export async function decryptSongToBlob(song: Song, masterKey: CryptoKey, signal
   return decryptAudio(encrypted, song, masterKey)
 }
 
+/** Variante para una descarga explícita: usa endpoints que consumen cuota Free. */
+async function decryptOriginalForDownload(song: Song, masterKey: CryptoKey): Promise<Blob> {
+  if (song.sharedBy) {
+    const [encrypted, privateKey] = await Promise.all([
+      downloadSharedEncryptedSongOriginal(song.id),
+      getPrivateKey(masterKey),
+    ])
+    return decryptSharedAudio(encrypted, { fileIv: song.fileIv, sharedFileKey: song.sharedBy.sharedFileKey }, privateKey)
+  }
+  const encrypted = await downloadEncryptedSongOriginal(song.id)
+  return decryptAudio(encrypted, song, masterKey)
+}
+
 /** Descifra y dispara la descarga del archivo original en el navegador. */
 export async function downloadOriginalSong(song: Song, masterKey: CryptoKey): Promise<void> {
-  const mp3 = await decryptSongToBlob(song, masterKey)
+  const mp3 = await decryptOriginalForDownload(song, masterKey)
   const url = URL.createObjectURL(mp3)
   try {
     const link = document.createElement('a')

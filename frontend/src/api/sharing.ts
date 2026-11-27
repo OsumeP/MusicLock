@@ -109,3 +109,8 @@ export async function listSharedWithMe(
 export function downloadSharedEncryptedSong(id: string, signal?: AbortSignal): Promise<Blob> {
   return apiBlob(`/shared/${encodeURIComponent(id)}/blob`, { signal })
 }
+
+/** Descarga original de una canción compartida; cuenta para la cuota del destinatario. */
+export function downloadSharedEncryptedSongOriginal(id: string, signal?: AbortSignal): Promise<Blob> {
+  return apiBlob(`/shared/${encodeURIComponent(id)}/download`, { signal })
+}

@@ -11,7 +11,7 @@ from django.core.cache import cache
 from django.urls import reverse
 from rest_framework.test import APITestCase
 
-from accounts.models import User
+from accounts.models import Plan, User
 from accounts.tests.test_keypair import fake_public_key
 from sharing.models import SongShare
 from vault.models import Song
@@ -148,6 +148,43 @@ class ShareTests(SharingTestCase):
 
         self.assertEqual(self.share(username="carla").status_code, 404)
         self.assertEqual(self.shares().status_code, 404)
+
+    def test_free_plan_allows_five_recipients_per_song_and_rejects_the_sixth(self):
+        recipients = [self.beto, self.carla]
+        recipients.extend(make_user(f"persona{i}") for i in range(3))
+        sixth = make_user("persona6")
+
+        for recipient in recipients:
+            response = self.share(username=recipient.username)
+            self.assertIn(response.status_code, (200, 201), response.data)
+
+        rejected = self.share(username=sixth.username)
+
+        self.assertEqual(rejected.status_code, 403)
+        self.assertEqual(rejected.json()["code"], "share_limit_reached")
+        self.assertEqual(SongShare.objects.filter(song=self.song).count(), 5)
+
+    def test_updating_an_existing_share_is_allowed_when_the_limit_is_reached(self):
+        recipients = [self.beto, self.carla]
+        recipients.extend(make_user(f"miembro{i}") for i in range(3))
+        for recipient in recipients:
+            self.share(username=recipient.username)
+
+        response = self.share(username=self.beto.username, key=shared_key())
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(SongShare.objects.filter(song=self.song).count(), 5)
+
+    def test_premium_owner_can_share_with_more_than_five_recipients(self):
+        self.ana.active_plan = Plan.objects.get(code=Plan.PREMIUM)
+        self.ana.save(update_fields=["active_plan"])
+        recipients = [self.beto, self.carla]
+        recipients.extend(make_user(f"premium{i}") for i in range(4))
+
+        responses = [self.share(username=recipient.username) for recipient in recipients]
+
+        self.assertTrue(all(response.status_code in (200, 201) for response in responses))
+        self.assertEqual(SongShare.objects.filter(song=self.song).count(), 6)
 
 
 class RevokeTests(SharingTestCase):
