@@ -11,7 +11,7 @@ from django.db.models import Q, QuerySet
 
 from accounts.models import User
 from vault.models import Song
-from vault.services import SongNotFound, get_own_song, open_blob
+from vault.services import SongNotFound, check_fresh_key, get_own_song, open_blob
 
 from .models import SongShare
 
@@ -51,6 +51,18 @@ def find_recipient(owner: User, query: str) -> User:
     return user
 
 
+def _lock_own_song(owner: User, song_id) -> Song:
+    """
+    Canción propia con su fila bloqueada hasta el final de la transacción: así
+    compartir y revocar no se cruzan con una rotación de la File Key
+    (`vault.services.unpublish_song`, que bloquea la misma fila).
+    """
+    song = Song.objects.select_for_update().filter(owner=owner, uuid=song_id).first()
+    if song is None:
+        raise SongNotFound
+    return song
+
+
 def shares_of(owner: User, song_id) -> QuerySet[SongShare]:
     """Quién tiene acceso a una canción propia (Accesos FR-05). Ajena → SongNotFound."""
     song = get_own_song(owner, song_id)
@@ -58,12 +70,17 @@ def shares_of(owner: User, song_id) -> QuerySet[SongShare]:
 
 
 @transaction.atomic
-def share_song(owner: User, song_id, recipient_username: str, *, wrapped_file_key: str, role: str) -> tuple[SongShare, bool]:
+def share_song(
+    owner: User, song_id, recipient_username: str, *, wrapped_file_key: str, role: str, file_iv: str | None = None
+) -> tuple[SongShare, bool]:
     """
     Comparte (o actualiza el acceso de) una canción propia con un destinatario.
     Volver a compartir reemplaza la File Key envuelta y el rol (Accesos FR-04).
+    Con `file_iv`, rechaza (`StaleKey`) una File Key sacada de material ya rotado:
+    el destinatario no podría abrir el blob actual.
     """
-    song = get_own_song(owner, song_id)
+    song = _lock_own_song(owner, song_id)
+    check_fresh_key(song, file_iv)
     recipient = find_recipient(owner, recipient_username)
     return SongShare.objects.update_or_create(
         song=song,
@@ -72,12 +89,13 @@ def share_song(owner: User, song_id, recipient_username: str, *, wrapped_file_ke
     )
 
 
+@transaction.atomic
 def revoke_share(owner: User, song_id, recipient_username: str) -> None:
     """
     Revoca el acceso (Accesos FR-02). Idempotente. El servidor deja de entregar el
     blob al destinatario, pero no puede borrar lo que ya descargó (PlanMVP §4.6).
     """
-    song = get_own_song(owner, song_id)
+    song = _lock_own_song(owner, song_id)
     SongShare.objects.filter(song=song, recipient__username__iexact=recipient_username).delete()
 
 

@@ -6,6 +6,7 @@ D10) y el material necesario para que el navegador del dueño descifre el audio.
 El audio cifrado vive en el almacenamiento de blobs (MinIO) bajo `storage_key`.
 """
 
+import secrets
 import uuid
 
 from django.conf import settings
@@ -17,6 +18,19 @@ def build_storage_key(owner_id: int, song_uuid: uuid.UUID) -> str:
     """Nombre del objeto en el almacenamiento. Nunca incluye títulos ni nombres de archivo."""
     return f"users/{owner_id}/songs/{song_uuid}.bin"
 
+
+def rotated_storage_key(owner_id: int, song_uuid: uuid.UUID) -> str:
+    """
+    Nombre para el blob de una canción a la que se le rotó la File Key. Es distinto
+    en cada rotación para que el blob nuevo conviva con el viejo hasta que la
+    transacción se confirme (el viejo se borra después, ver `vault/signals.py`).
+    """
+    return f"users/{owner_id}/songs/{song_uuid}-{secrets.token_hex(8)}.bin"
+
+
+class Visibility(models.TextChoices):
+    PRIVATE = "private", "Privada"
+    PUBLIC = "public", "Pública"
 
 class Song(models.Model):
     uuid = models.UUIDField(default=uuid.uuid4, unique=True, editable=False)
@@ -36,15 +50,32 @@ class Song(models.Model):
     wrapped_file_key = models.CharField(max_length=128, help_text="File Key envuelta con la Master Key.")
     wrapped_key_iv = models.CharField(max_length=32, help_text="IV usado al envolver la File Key.")
 
+    visibility = models.CharField(
+        max_length=10, choices=Visibility.choices, default=Visibility.PRIVATE, db_index=True
+    )
+    published_at = models.DateTimeField(null=True, blank=True, editable=False)
+    # Opción A (D11): al publicar, la File Key queda EN CLARO para que cualquiera
+    # pueda descifrar. Vacía mientras la canción es privada.
+    public_file_key = models.CharField(max_length=64, blank=True, default="", editable=False)
+    
     # Reservados para el backlog (contenido público + ACRCloud). BR-19: privado por defecto.
-    is_public = models.BooleanField(default=False)
     copyright = models.CharField(max_length=255, blank=True)
 
     creation_date = models.DateTimeField(auto_now_add=True)
 
     class Meta:
         ordering = ["-creation_date"]
-        indexes = [models.Index(fields=["owner", "-creation_date"])]
+        indexes = [
+            models.Index(fields=["owner", "-creation_date"]),
+            models.Index(fields=["visibility", "-published_at"]),
+        ]
+        constraints = [
+            models.CheckConstraint(
+                condition=models.Q(visibility="private")
+                | (~models.Q(public_file_key="") & models.Q(published_at__isnull=False)),
+                name="public_song_has_key_and_date",
+            ),
+        ]
 
     def __str__(self) -> str:
         return f"{self.title} — {self.artist}" if self.artist else self.title

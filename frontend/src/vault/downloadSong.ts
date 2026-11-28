@@ -6,8 +6,9 @@
 
 import { downloadSharedEncryptedSong } from '../api/sharing'
 import { downloadEncryptedSong, type Song } from '../api/songs'
-import { decryptAudio, decryptSharedAudio } from '../crypto'
 import { getPrivateKey } from '../sharing/privateKey'
+import { downloadCommunityEncryptedSong } from '../api/community'
+import { decryptAudio, decryptPublicAudio, decryptSharedAudio } from '../crypto'
 
 /** "AC/DC: Live?" → "AC-DC- Live-" (caracteres no válidos en nombres de archivo de Windows/macOS/Linux). */
 export function safeFileName(title: string): string {
@@ -22,11 +23,17 @@ export function safeFileName(title: string): string {
  * Key envuelta con mi Master Key. Compartida conmigo (`sharedBy`): File Key
  * envuelta con mi clave pública, que abre mi privada (a su vez envuelta con mi
  * Master Key). En ambos casos se descifra el MISMO blob del propietario.
+ * Si es publica, lee la llave que viene con la cancion(no en el blob).
  */
 export async function decryptSongToBlob(song: Song, masterKey: CryptoKey, signal?: AbortSignal): Promise<Blob> {
   if (song.sharedBy) {
     const [encrypted, privateKey] = await Promise.all([downloadSharedEncryptedSong(song.id, signal), getPrivateKey(masterKey)])
     return decryptSharedAudio(encrypted, { fileIv: song.fileIv, sharedFileKey: song.sharedBy.sharedFileKey }, privateKey)
+  }
+  if (song.publicInfo) {
+    // Pública: la File Key viene en claro en la propia canción; no hace falta ninguna clave del usuario.
+    const encrypted = await downloadCommunityEncryptedSong(song.id, signal)
+    return decryptPublicAudio(encrypted, { fileIv: song.fileIv, publicFileKey: song.publicInfo.publicFileKey })
   }
   const encrypted = await downloadEncryptedSong(song.id, signal)
   return decryptAudio(encrypted, song, masterKey)

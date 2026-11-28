@@ -8,8 +8,8 @@ from .models import Favorite, ListeningHistory, Song
 class SongAdmin(admin.ModelAdmin):
     """Solo lectura del material cifrado: el admin no puede descifrar nada (Actor 3)."""
 
-    list_display = ("title", "artist", "owner", "encrypted_size", "is_public", "creation_date")
-    list_filter = ("is_public",)
+    list_display = ("title", "artist", "owner", "encrypted_size", "visibility", "creation_date")
+    list_filter = ("visibility",)    
     search_fields = ("title", "artist", "owner__email")
     readonly_fields = (
         "uuid", "owner", "size", "storage_key", "file_iv", "wrapped_file_key", "wrapped_key_iv", "creation_date",

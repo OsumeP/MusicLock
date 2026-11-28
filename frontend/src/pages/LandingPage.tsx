@@ -1,5 +1,6 @@
+import { listFaqs, type Faq } from '../api/faq'
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router'
-
 import { useAuth } from '../auth/session'
 
 /**
@@ -41,17 +42,31 @@ const PLANS = [
   { name: 'Premium', price: 'Próximamente', features: ['5 GB de almacenamiento cifrado', 'Hasta 100 MB por archivo', 'Estadísticas avanzadas'], available: false },
 ]
 
-const FAQ = [
-  { q: '¿MusicLock puede escuchar mi música?', a: 'No. Tus archivos se cifran en tu navegador antes de subirse y la llave nunca sale de tu dispositivo. El servidor guarda datos cifrados que no puede abrir.' },
-  { q: '¿Qué pasa si olvido mi contraseña?', a: 'Tu contraseña es la única llave de tu bóveda: si la olvidas, tus archivos no se pueden recuperar. Por eso al registrarte te pedimos confirmar que lo entiendes. (La recuperación con frase semilla está en nuestra hoja de ruta.)' },
-  { q: '¿Qué formatos puedo subir?', a: 'Por ahora, archivos MP3. Otros formatos llegarán más adelante.' },
-  { q: '¿Puedo compartir canciones?', a: 'Todavía no. Compartir con permisos revocables, playlists y favoritos están en camino.' },
-  { q: '¿El título de mis canciones también se cifra?', a: 'El título y el artista que escribes se guardan sin cifrar para poder buscarlos. El audio y las etiquetas internas del archivo sí viajan y se guardan cifrados.' },
-]
+
+function useFaqs() {
+  const [faqs, setFaqs] = useState<Faq[]>([])
+  const [status, setStatus] = useState<'loading' | 'ready' | 'error'>('loading')
+
+  useEffect(() => {
+    const controller = new AbortController()
+    listFaqs(controller.signal)
+      .then((data) => {
+        setFaqs(data)
+        setStatus('ready')
+      })
+      .catch((err) => {
+        if (err.name !== 'AbortError') setStatus('error')
+      })
+    return () => controller.abort()
+  }, [])
+
+  return { faqs, status }
+}
 
 export function LandingPage() {
   const { session } = useAuth()
   const signedIn = session.status === 'ready' || session.status === 'locked'
+  const { faqs, status: faqStatus } = useFaqs()
 
   return (
     <div className="min-h-screen bg-surface-base">
@@ -214,13 +229,24 @@ export function LandingPage() {
         <section id="preguntas" className="mx-auto max-w-3xl scroll-mt-20 px-4 pb-20 lg:px-8">
           <h2 className="font-display text-headline-lg font-semibold">Preguntas frecuentes</h2>
           <div className="mt-6 flex flex-col gap-3">
-            {FAQ.map((item) => (
-              <details key={item.q} className="group rounded-xl bg-surface-card p-5 ring-1 ring-border-subtle">
+            {faqStatus === 'loading' && (
+              <p className="text-body-md text-on-surface-variant">Cargando preguntas…</p>
+            )}
+            {faqStatus === 'error' && (
+              <p className="text-body-md text-on-surface-variant">
+                No pudimos cargar las preguntas frecuentes. Inténtalo de nuevo más tarde.
+              </p>
+            )}
+            {faqStatus === 'ready' && faqs.length === 0 && (
+              <p className="text-body-md text-on-surface-variant">Aún no hay preguntas frecuentes.</p>
+            )}
+            {faqs.map((item) => (
+              <details key={item.id} className="group rounded-xl bg-surface-card p-5 ring-1 ring-border-subtle">
                 <summary className="flex cursor-pointer list-none items-center justify-between gap-4 text-title-md font-semibold">
-                  {item.q}
+                  {item.question}
                   <span aria-hidden className="material-symbols-outlined transition-transform group-open:rotate-180">expand_more</span>
                 </summary>
-                <p className="mt-3 text-body-md text-on-surface-variant">{item.a}</p>
+                <p className="mt-3 text-body-md text-on-surface-variant">{item.answer}</p>
               </details>
             ))}
           </div>

@@ -18,17 +18,25 @@ export type ShareRole = 'query'
 /** Un acceso a una canción propia. */
 export interface Share {
   recipient: string
+  /** Clave pública del destinatario (SPKI, base64): para volver a envolver la File Key al rotarla. */
+  recipientPublicKey: string
   role: ShareRole
   createdAt: string
 }
 
 interface ShareDto {
   recipient: string
+  recipient_public_key: string
   role: ShareRole
   created_at: string
 }
 
-const toShare = (dto: ShareDto): Share => ({ recipient: dto.recipient, role: dto.role, createdAt: dto.created_at })
+const toShare = (dto: ShareDto): Share => ({
+  recipient: dto.recipient,
+  recipientPublicKey: dto.recipient_public_key,
+  role: dto.role,
+  createdAt: dto.created_at,
+})
 
 const sharesPath = (songId: string) => `/songs/${encodeURIComponent(songId)}/shares`
 const sharePath = (songId: string, username: string) => `${sharesPath(songId)}/${encodeURIComponent(username)}`
@@ -47,9 +55,19 @@ export async function listShares(songId: string, signal?: AbortSignal): Promise<
   return (await apiRequest<ShareDto[]>(sharesPath(songId), { signal })).map(toShare)
 }
 
-/** Comparte (o renueva el acceso). `wrappedFileKey` sale de `wrapFileKeyFor` (crypto). */
-export async function shareSong(songId: string, username: string, wrappedFileKey: string, role: ShareRole = 'query'): Promise<Share> {
-  return toShare(await apiRequest<ShareDto>(sharePath(songId, username), { method: 'PUT', json: { wrapped_file_key: wrappedFileKey, role } }))
+/**
+ * Comparte (o renueva el acceso). `wrappedFileKey` sale de `wrapFileKeyFor` (crypto).
+ * `fileIv` es el de la canción con la que se envolvió: si la File Key se rotó
+ * entretanto, el servidor responde 409 `stale_key`.
+ */
+export async function shareSong(
+  songId: string,
+  username: string,
+  wrappedFileKey: string,
+  { fileIv, role = 'query' }: { fileIv?: string; role?: ShareRole } = {},
+): Promise<Share> {
+  const json = { wrapped_file_key: wrappedFileKey, role, ...(fileIv ? { file_iv: fileIv } : {}) }
+  return toShare(await apiRequest<ShareDto>(sharePath(songId, username), { method: 'PUT', json }))
 }
 
 /** Revoca el acceso (idempotente). */
@@ -87,6 +105,8 @@ export function toSharedSong(dto: SharedSongDto): Song {
     wrappedKeyIv: '',
     isFavorite: false,
     favoritedAt: null,
+    visibility: 'private', // no aplica: aquí importa el acceso compartido, no la visibilidad del dueño
+    publishedAt: null,    
     sharedBy: { owner: dto.owner, sharedFileKey: dto.shared_file_key, sharedAt: dto.shared_at },
   }
 }

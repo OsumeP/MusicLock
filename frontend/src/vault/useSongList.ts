@@ -4,6 +4,8 @@ import { useSearchParams } from 'react-router'
 import { ApiError } from '../api/client'
 import { listSharedWithMe } from '../api/sharing'
 import { listSongs, SONGS_PAGE_SIZE, type Song, type SongPage } from '../api/songs'
+import { listCommunitySongs, type CommunityScope } from '../api/community'
+
 
 /** Resultado de la última carga, etiquetado con la petición que lo produjo. */
 type LoadResult = { key: string; page: SongPage } | { key: string; error: string }
@@ -14,19 +16,23 @@ type LoadResult = { key: string; page: SongPage } | { key: string; error: string
  * Estilo "stale-while-revalidate": mientras llega una página nueva se sigue
  * mostrando la anterior (sin parpadeo), y no hay `setState` síncrono en efectos.
  */
-export function useSongList({ favorites = false, shared = false }: { favorites?: boolean; shared?: boolean } = {}) {
+export function useSongList({ favorites = false, shared = false, community }: { favorites?: boolean; shared?: boolean; community?: CommunityScope } = {}) {
   const [params, setParams] = useSearchParams()
   const query = params.get('q') ?? ''
   const pageNumber = Math.max(1, Number(params.get('page')) || 1)
   const [result, setResult] = useState<LoadResult | null>(null)
   const [reloadKey, setReloadKey] = useState(0)
-  const requestKey = `${favorites}|${shared}|${query}|${pageNumber}|${reloadKey}`
+  const requestKey = `${favorites}|${shared}|${community ?? ''}|${query}|${pageNumber}|${reloadKey}`
+  
 
   useEffect(() => {
     const controller = new AbortController()
-    const load = shared
-      ? listSharedWithMe({ query, page: pageNumber }, controller.signal)
-      : listSongs({ query, page: pageNumber, favorites }, controller.signal)
+
+    const load = community
+      ? listCommunitySongs({ scope: community, query, page: pageNumber }, controller.signal)
+      : shared
+        ? listSharedWithMe({ query, page: pageNumber }, controller.signal)
+        : listSongs({ query, page: pageNumber, favorites }, controller.signal)
     load
       .then((page) => setResult({ key: requestKey, page }))
       .catch((error: unknown) => {
@@ -38,7 +44,7 @@ export function useSongList({ favorites = false, shared = false }: { favorites?:
         setResult({ key: requestKey, error: 'No se pudo cargar tu bóveda. Inténtalo de nuevo.' })
       })
     return () => controller.abort()
-  }, [favorites, shared, query, pageNumber, requestKey, setParams])
+  }, [favorites, shared,community, query, pageNumber, requestKey, setParams])
 
   const page = result && 'page' in result ? result.page : null
   const error = result && 'error' in result && result.key === requestKey ? result.error : null
@@ -53,7 +59,15 @@ export function useSongList({ favorites = false, shared = false }: { favorites?:
         ? { ...current, page: { ...current.page, songs: current.page.songs.map((s) => (s.id === song.id ? song : s)) } }
         : current,
     )
-  }, [])
+  }, [])       
+  /** Aplica un cambio a todas las canciones de la página visible (p. ej. seguir a un usuario marca todas sus filas). */
+  const mapSongs = useCallback((change: (song: Song) => Song) => {
+    setResult((current) =>
+      current && 'page' in current
+        ? { ...current, page: { ...current.page, songs: current.page.songs.map(change) } }
+        : current,
+    )
+  }, [])    
 
   function goToPage(target: number) {
     setParams((p) => {
@@ -67,5 +81,5 @@ export function useSongList({ favorites = false, shared = false }: { favorites?:
   const last = page ? first + page.songs.length - 1 : 0
   const totalSize = page?.songs.reduce((sum, s) => sum + s.size, 0) ?? 0
 
-  return { query, pageNumber, page, error, loading, reload, updateSong, goToPage, setParams, first, last, totalSize }
+  return { query, pageNumber, page, error, loading, reload, updateSong, mapSongs, goToPage, setParams, first, last, totalSize }
 }

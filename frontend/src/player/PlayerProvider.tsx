@@ -41,6 +41,9 @@ function cursorOf(iterator: SongIterator | null): Cursor {
   return { song: iterator.current(), hasNext: iterator.hasNext(), hasPrevious: iterator.hasPrevious(), queue: iterator.traversal() }
 }
 
+/** Solo cuentan en el historial las canciones de mi bóveda (también las mías reproducidas desde Comunidad). */
+const countsInHistory = (song: Song) => !song.sharedBy && (!song.publicInfo || song.publicInfo.isMine)
+
 function playbackErrorMessage(error: unknown): string {
   if (error instanceof DecryptionError) return 'No se pudo descifrar esta canción: el archivo fue alterado o la clave no coincide.'
   if (error instanceof ApiError) {
@@ -128,7 +131,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
         objectUrlRef.current = url
         loadedSongIdRef.current = song.id
         // Las compartidas no van al historial (es de la bóveda propia; decisión I97).
-        unrecordedSongRef.current = song.sharedBy ? null : song.id
+        unrecordedSongRef.current = countsInHistory(song) ? song.id : null
         const audio = audioRef.current!
         audio.src = url
         try {
@@ -156,7 +159,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
       const audio = audioRef.current
       if (audio && objectUrlRef.current && loadedSongIdRef.current === song.id) {
         audio.currentTime = 0
-        unrecordedSongRef.current = song.sharedBy ? null : song.id // cada vuelta cuenta como otra reproducción
+        unrecordedSongRef.current = countsInHistory(song) ? song.id : null // cada vuelta cuenta como otra reproducción
         void audio.play().catch(() => setStatus('paused'))
         return
       }

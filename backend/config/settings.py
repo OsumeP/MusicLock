@@ -58,6 +58,8 @@ INSTALLED_APPS = [
     "vault",
     "playlists",
     "sharing",
+    "community",
+    "faq",
 ]
 
 AUTH_USER_MODEL = "accounts.User"
@@ -152,8 +154,15 @@ REST_FRAMEWORK = {
     "PAGE_SIZE": 20,
     # Límite de peticiones para los endpoints sin sesión (prelogin, registro,
     # login, refresh): frena ataques de fuerza bruta. Un login usa 2 peticiones.
+    # `comments` y `follow` limitan solo las escrituras de Comunidad, por usuario
+    # (`core.throttling.WriteThrottleMixin`): frenan el spam y la enumeración de
+    # usuarios por el endpoint de seguir (mismo criterio que `lookup`, I90).
     "DEFAULT_THROTTLE_CLASSES": ["rest_framework.throttling.ScopedRateThrottle"],
-    "DEFAULT_THROTTLE_RATES": {"auth": os.environ.get("AUTH_THROTTLE_RATE", "30/min")},
+    "DEFAULT_THROTTLE_RATES": {
+        "auth": os.environ.get("AUTH_THROTTLE_RATE", "30/min"),
+        "comments": os.environ.get("COMMENTS_THROTTLE_RATE", "20/min"),
+        "follow": os.environ.get("FOLLOW_THROTTLE_RATE", "30/min"),
+    },
 }
 
 SIMPLE_JWT = {

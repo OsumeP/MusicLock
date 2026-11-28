@@ -4,7 +4,8 @@ import { Link, useLocation, useNavigate, useSearchParams } from 'react-router'
 import { useAuth } from '../auth/session'
 
 /** Secciones con lista filtrable por `?q=`; desde cualquier otra pantalla la búsqueda lleva a "Mis Archivos". */
-const SEARCHABLE = ['/archivos', '/favoritos', '/compartido']
+
+const SEARCHABLE = ['/archivos', '/favoritos', '/compartido', '/comunidad', '/comunidad/siguiendo', '/comunidad/mias']
 
 /** Barra superior: búsqueda en la bóveda, estado de la sesión cifrada y usuario. */
 export function Topbar({ onOpenMenu }: { onOpenMenu: () => void }) {

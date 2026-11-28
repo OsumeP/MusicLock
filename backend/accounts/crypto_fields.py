@@ -20,6 +20,8 @@ SALT_BYTES = 16
 IV_BYTES = 12
 # AES-GCM sobre una clave AES-256 cruda: 32 bytes + 16 de tag
 WRAPPED_KEY_BYTES = 32 + 16
+# File Key envuelta con RSA-OAEP para otro usuario: una clave de 3072 bits produce siempre 384 bytes.
+SHARED_FILE_KEY_BYTES = 3072 // 8
 
 
 class Base64BytesField(serializers.CharField):

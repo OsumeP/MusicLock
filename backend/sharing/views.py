@@ -2,7 +2,7 @@ from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from vault.services import SongNotFound
+from vault.services import SongNotFound, StaleKey
 from vault.views import SongPagination, serve_encrypted_blob
 
 from . import services
@@ -62,7 +62,8 @@ class SongSharesView(APIView):
 
 class SongShareView(APIView):
     """
-    PUT    /api/songs/{id}/shares/{username} {wrapped_file_key, role?} → 201 (nuevo) o 200 (actualizado).
+    PUT    /api/songs/{id}/shares/{username} {wrapped_file_key, role?, file_iv?} → 201 (nuevo) o 200
+           (actualizado); 409 `stale_key` si `file_iv` ya no es el de la canción (File Key rotada).
     DELETE /api/songs/{id}/shares/{username} → 204, idempotente (revocar).
     """
 
@@ -73,6 +74,8 @@ class SongShareView(APIView):
             share, created = services.share_song(request.user, song_id, username, **serializer.validated_data)
         except SongNotFound:
             return _song_not_found()
+        except StaleKey as error:
+            return _error(error.message, error.code, status.HTTP_409_CONFLICT)
         except RECIPIENT_ERRORS as error:
             return _recipient_error(error)
         return Response(ShareSerializer(share).data, status=status.HTTP_201_CREATED if created else status.HTTP_200_OK)

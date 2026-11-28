@@ -9,7 +9,15 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from . import services, stats
-from .serializers import HistoryEntrySerializer, ListeningStatsSerializer, SongSerializer, SongUpdateSerializer, SongUploadSerializer
+from .serializers import (
+    HistoryEntrySerializer,
+    ListeningStatsSerializer,
+    PublishSerializer,
+    SongSerializer,
+    SongUpdateSerializer,
+    SongUploadSerializer,
+    UnpublishSerializer,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -174,6 +182,73 @@ class SongFavoriteView(APIView):
             song = services.set_favorite(request.user, song_id, favorite)
         except services.SongNotFound:
             return _not_found()
+        return Response(SongSerializer(song).data)
+
+def _stale_key() -> Response:
+    error = services.StaleKey()
+    return Response({"detail": error.message, "code": error.code}, status=status.HTTP_409_CONFLICT)
+
+
+class SongPublishView(APIView):
+    """
+    PUT /api/songs/{id}/publish — hace pública la canción. Body: {"file_key": "<base64>",
+    "file_iv": "<base64, opcional>"}. Idempotente; responde la canción actualizada.
+    Canciones ajenas: 404. Material ya rotado: 409 `stale_key`.
+    Para volverla privada: POST /api/songs/{id}/unpublish (rota la File Key).
+    """
+
+    def put(self, request, song_id):
+        serializer = PublishSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        data = serializer.validated_data
+        try:
+            song = services.publish_song(request.user, song_id, data["file_key"], file_iv=data.get("file_iv"))
+        except services.SongNotFound:
+            return _not_found()
+        except services.StaleKey:
+            return _stale_key()
+        return Response(SongSerializer(song).data)
+
+
+class SongUnpublishView(APIView):
+    """
+    POST /api/songs/{id}/unpublish (multipart) — vuelve privada la canción ROTANDO su
+    File Key (ver `services.unpublish_song`): `file` (cifrado nuevo), `file_iv`,
+    `wrapped_file_key`, `wrapped_key_iv` y `share_keys` (JSON). Idempotente si ya es
+    privada. Errores: 404 ajena, 400 `size_mismatch`, 409 `shares_changed`, 503 almacenamiento.
+    """
+
+    parser_classes = [MultiPartParser]
+
+    def post(self, request, song_id):
+        declared = int(request.META.get("CONTENT_LENGTH") or 0)
+        if declared > request.user.active_plan.max_file_size_bytes + MULTIPART_OVERHEAD_BYTES:
+            return rejected(services.FileTooLarge("El archivo supera el máximo de tu plan."))
+
+        serializer = UnpublishSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        data = serializer.validated_data
+        upload = data["file"]
+        try:
+            song = services.unpublish_song(
+                request.user,
+                song_id,
+                upload,
+                upload.size,
+                services.KeyMaterial(
+                    file_iv=data["file_iv"],
+                    wrapped_file_key=data["wrapped_file_key"],
+                    wrapped_key_iv=data["wrapped_key_iv"],
+                ),
+                data["share_keys"],
+            )
+        except services.SongNotFound:
+            return _not_found()
+        except services.RotationRejected as error:
+            return Response({"detail": error.message, "code": error.code}, status=error.http_status)
+        except services.StorageUnavailable:
+            logger.exception("Fallo del almacenamiento al despublicar una canción")
+            return _storage_unavailable()
         return Response(SongSerializer(song).data)
 
 

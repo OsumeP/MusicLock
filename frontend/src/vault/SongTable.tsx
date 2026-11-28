@@ -1,8 +1,9 @@
 import type { ReactNode } from 'react'
 
-import type { Song } from '../api/songs'
+//import type { Song } from '../api/songs'
 import { formatBytes, formatDuration, formatRelativeDate } from '../lib/format'
 import { usePlayer } from '../player/playerContext'
+import { songOwnerLabel, type Song } from '../api/songs'
 
 /** Acciones de cada fila. Las opcionales que no se pasen no muestran su botón. */
 export interface RowActions {
@@ -12,6 +13,13 @@ export interface RowActions {
   addToPlaylist?(song: Song): void
   /** Compartir con otros usuarios (solo canciones propias). */
   share?(song: Song): void
+  /** Publicar o despublicar (solo canciones propias). */
+  publish?(song: Song): void  
+  /** Ver y escribir comentarios (solo canciones públicas de Comunidad). */
+  comments?(song: Song): void  
+  /** Seguir o dejar de seguir al dueño de una canción pública ajena. */
+  toggleFollow?(song: Song): void
+
   edit?(song: Song): void
   remove?(song: Song): void
 }
@@ -25,6 +33,7 @@ function RowAction({
   spinning,
   pressed,
   filled,
+  badge,  
   className = '',
 }: {
   icon: string
@@ -36,6 +45,7 @@ function RowAction({
   pressed?: boolean
   filled?: boolean
   className?: string
+  badge?: number
 }) {
   return (
     <button
@@ -45,7 +55,7 @@ function RowAction({
       aria-label={label}
       aria-pressed={pressed}
       title={label}
-      className={`grid size-8 place-items-center rounded-lg transition disabled:opacity-60 ${
+      className={`relative grid size-8 place-items-center rounded-lg transition disabled:opacity-60 ${
         danger ? 'text-on-surface-variant hover:bg-security-danger/15 hover:text-security-danger' : 'text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface'
       } ${className}`}
     >
@@ -54,6 +64,14 @@ function RowAction({
         className={`material-symbols-outlined text-[20px] ${spinning ? 'animate-spin' : ''}`}
         style={filled ? { fontVariationSettings: '"FILL" 1' } : undefined}
       >
+        {badge !== undefined && badge > 0 && (
+          <span
+            aria-hidden
+            className="absolute -right-0.5 -top-0.5 grid min-w-4 place-items-center rounded-full bg-primary px-1 font-mono text-[10px] font-semibold leading-4 text-white"
+          >
+            {badge > 99 ? '99+' : badge}
+          </span>
+        )}        
         {icon}
       </span>
     </button>
@@ -132,17 +150,24 @@ function SongRow({
                   En RAM
                 </span>
               )}
+              {song.visibility === 'public' && (
+                <span className="rounded bg-accent-cyan/15 px-1.5 py-0.5 font-mono text-[9px] uppercase tracking-wider text-accent-cyan" title="Cualquier usuario puede escuchar y descargar esta canción">
+                  Pública
+                </span>
+              )}              
             </p>
-            {song.sharedBy ? (
+
+            {songOwnerLabel(song) ? (
               <p className="flex max-w-[10rem] items-center gap-1 truncate font-mono text-mono-label text-accent-cyan sm:max-w-xs">
-                <span aria-hidden className="material-symbols-outlined text-[14px]">share</span>
-                de {song.sharedBy.owner}
+                <span aria-hidden className="material-symbols-outlined text-[14px]">{song.sharedBy ? 'share' : 'public'}</span>
+                de {songOwnerLabel(song)}
               </p>
             ) : (
               <p className="max-w-[10rem] truncate font-mono sm:max-w-xs text-mono-label text-on-surface-variant" title={song.id}>
                 ID {song.id.slice(0, 8)}…{song.id.slice(-4)}
               </p>
             )}
+
           </div>
         </div>
       </td>
@@ -178,6 +203,38 @@ function SongRow({
             <RowAction icon="playlist_add" label={`Añadir ${song.title} a una playlist`} onClick={() => actions.addToPlaylist?.(song)} />
           )}
           {actions.share && <RowAction icon="share" label={`Compartir ${song.title}`} onClick={() => actions.share?.(song)} />}
+          {actions.publish && (
+            <RowAction
+              icon="public"
+              filled={song.visibility === 'public'}
+              pressed={song.visibility === 'public'}
+              label={song.visibility === 'public' ? `Dejar de publicar ${song.title}` : `Publicar ${song.title}`}
+              onClick={() => actions.publish?.(song)}
+              className={`hidden sm:grid ${song.visibility === 'public' ? '!text-accent-cyan' : ''}`}
+            />
+          )}            
+          {actions.comments && (
+            <RowAction
+              icon="forum"
+              badge={song.publicInfo?.commentCount}
+              label={
+                song.publicInfo?.commentCount
+                  ? `Comentarios de ${song.title} (${song.publicInfo.commentCount})`
+                  : `Comentarios de ${song.title}`
+              }
+              onClick={() => actions.comments?.(song)}
+            />
+          )}       
+          {actions.toggleFollow && song.publicInfo && !song.publicInfo.isMine && (
+            <RowAction
+              icon={song.publicInfo.isFollowing ? 'how_to_reg' : 'person_add'}
+              filled={song.publicInfo.isFollowing}
+              pressed={song.publicInfo.isFollowing}
+              label={song.publicInfo.isFollowing ? `Dejar de seguir a ${song.publicInfo.owner}` : `Seguir a ${song.publicInfo.owner}`}
+              onClick={() => actions.toggleFollow?.(song)}
+              className={song.publicInfo.isFollowing ? '!text-accent-cyan' : ''}
+            />
+          )}          
           {/* En móvil se ocultan descargar y editar para que la fila quepa a 390 px. */}
           <RowAction
             icon={downloading ? 'progress_activity' : 'download'}
